@@ -26,5 +26,5 @@ To contribute code:
 * switch to the main branch `git checkout main`
 * make sure you are on the latest version of the main branch `git pull main`
 * create a new branch from there `git checkout -b <new_branch_name>` (replace <new_branch_name> with the name of your branch)
-* push your code to github with `git push -u <new_branch_name>` for the first time and just `git push` afterwards
+* push your code to github with `git push -u origin <new_branch_name>` for the first time and just `git push` afterwards
 * to merge code into the main branch, open a pull request on github. Navigate to your branch use the "Compare & pull request" button. 
