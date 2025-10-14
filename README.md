@@ -19,6 +19,12 @@ message like `Project '...' loaded. [renv 1.1.5]` and you should be able to use
 `renv::restore()`. If renv is not automatically loaded use
 `source("renv/activate.R")` to load it.
 
+## Project Structure
+
+Reusable functions, methods, etc. will be available as an r-package (built from
+this repository), that can be tested, built, installed, and distributed. Bespoke
+code for the simulation study will be included in the directory `scripts`.
+
 ## Contribute Code
 
 To contribute code:
