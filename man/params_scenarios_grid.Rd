@@ -10,7 +10,7 @@ params_scenarios_grid(...)
 \item{...}{vectors of parameter values}
 }
 \value{
-Returns a data.frame of parameter values for the simulations.
+Returns a tibble of parameter values for the simulations.
 }
 \description{
 Generate Grid of Parameter Values
@@ -18,10 +18,13 @@ Generate Grid of Parameter Values
 \details{
 The first value of each argument is taken to be the reference value. In
 addition to the reference scenario the output contains one line per
-additional value in each of the input arugments. In each of those lines only
+additional value in each of the input arguments In each of those lines only
 one parameter is varied. Each line differs from the first line in exactly one
 column.
+
+List columns can be used as they can be used in tibbles.
 }
 \examples{
 params_scenarios_grid(x=1:3, y=11:12, z=21)
+params_scenarios_grid(x=1:2, y=list(c(1), c(1, 2)))
 }
