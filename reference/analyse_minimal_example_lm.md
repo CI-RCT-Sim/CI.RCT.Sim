@@ -39,16 +39,16 @@ dat <- generate_minimal_example(condition)
 my_analyse_lm <- analyse_minimal_example_lm(ci_level=0.9)
 my_analyse_lm(condition, dat)
 #> $p
-#> [1] 0.0001640878
+#> [1] 8.725053e-06
 #> 
 #> $coef
-#>    group 
-#> 0.734723 
+#>     group 
+#> 0.9750616 
 #> 
 #> $ci_lower
-#> [1] 0.4234935
+#> [1] 0.6300908
 #> 
 #> $ci_upper
-#> [1] 1.045952
+#> [1] 1.320032
 #> 
 ```
