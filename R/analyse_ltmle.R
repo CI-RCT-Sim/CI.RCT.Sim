@@ -97,10 +97,3 @@ analyse_ltmle <- function(level = 0.95, alternative = "two.sided") {
     t
   }
 }
-
-<<<<<<< HEAD
-=======
-# analyse_ltmle()(assumptions_diabetes_rescue(print = FALSE),
-#                 generate_diabetes_rescue(assumptions_diabetes_rescue(print = FALSE)))
-
->>>>>>> tmp_fix_TF
