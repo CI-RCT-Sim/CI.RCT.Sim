@@ -18,4 +18,5 @@ URL: https://ci-rct-sim.github.io/CI.RCT.Sim/
 Config/testthat/edition: 3
 Imports: 
     SimNPH,
-    ipw
+    ipw,
+    magrittr
