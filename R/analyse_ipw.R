@@ -70,7 +70,7 @@ analyse_ipw <- function(estimand = "tp", level = 0.95, alternative = "two.sided"
         data = dat
       )
       ipw.mod <- lm(Y ~ A,
-        data = d %>% filter(Visit == 3, R == 0),
+        data = d |> filter(Visit == 3, R == 0),
         weights = rweight$ipw.weights[d$Visit == 3 & d$R == 0]
       )
 
