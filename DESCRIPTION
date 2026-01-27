@@ -19,4 +19,7 @@ Config/testthat/edition: 3
 Imports: 
     SimNPH,
     ipw,
-    magrittr
+    dplyr,
+    tibble,
+    ltmle,
+    mice

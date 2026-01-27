@@ -28,6 +28,12 @@ an analyse function that returns a list with the elements
 \description{
 Analyse Dataset with the Inverse probability weighting
 }
+\details{
+\code{alternative} can be "two.sided" for a two sided test of equality of the
+summary statistic or "one.sided" for a one sided test testing H0: treatment
+has equal or shorter survival than control vs. H1 treatment has longer
+survival than control.
+}
 \examples{
 condition <- merge(
   assumptions_delayed_effect(),
@@ -37,5 +43,4 @@ condition <- merge(
   head(1)
 dat <- generate_delayed_effect(condition)
 analyse_ipw()(condition, dat)
-analyse_ipw()(assumptions_diabetes_rescue, generate_diabetes_rescue(assumptions_diabetes_rescue()))
 }
