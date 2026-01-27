@@ -17,7 +17,6 @@
 #' @export
 #'
 #' @details
-#' @importFrom ipw ipwtm ipwpoint
 #'
 #' `alternative` can be "two.sided" for a two sided test of equality of the
 #' summary statistic or "one.sided" for a one sided test testing H0: treatment
