@@ -32,7 +32,6 @@
 #'   head(1)
 #' dat <- generate_delayed_effect(condition)
 #' analyse_ipw()(condition, dat)
-#' analyse_ipw()(assumptions_diabetes_rescue, generate_diabetes_rescue(assumptions_diabetes_rescue()))
 analyse_ipw <- function(estimand = "tp", level = 0.95, alternative = "two.sided") {
   stopifnot(alternative %in% c("two.sided", "one.sided"))
 
