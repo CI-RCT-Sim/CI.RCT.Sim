@@ -20,14 +20,18 @@
 #' @examples
 generate_diabetes_rescue <- function(condition, fixed_objects=NULL){
 
+  # What still remains to be done is to
+    # incorporate sample size calculations
+    # implement the correlation rho between the visits (which also goes in to the sample size calculations)
+    # time varying treatment effect (and rescue effect)
+    # documentation
+    # Statements to be able to turn rescue and missingness on and off
+
   if (length(unique(condition$rescue_effect))!=condition$k[1]+1){
-    # if crossing is smaller than 0 stop with error
-    stop(gettext("Time of crossing has to be >= 0"))
+    stop(gettext("Non-matching dimensions"))
   } else if (length(unique(condition$eff))!=condition$k[1]+1){
-    stop(gettext("Time of crossing has to be >= 0"))
-    }
-
-
+    stop(gettext("Non-matching dimensions"))
+  }
 
   n <- 100 # Should be edited according to proposed power and effect size
   # n <- ((qnorm(1 - alpha / 2) + qnorm(power))^2)*sigma^2/(eff^2)
@@ -46,20 +50,16 @@ generate_diabetes_rescue <- function(condition, fixed_objects=NULL){
   }
 
   resid <- mvtnorm::rmvnorm(n, rep(0, length(visit)), diag(length(visit)))
-
   Y <- mu + resid
 
   h_0 <- log(condition$pr_rescue[1] / (1 - condition$pr_rescue[1]))
   expit <- function(x) exp(x) / (1 + exp(x))
-  # browser()
   pr_rescue <- expit(h_0 + (Y - 10) * condition$h_y[1] + (age - condition$mean_age[1]) * condition$h_age[1])
   pr_rescue[,1] <- 0
   pr_rescue[,condition$k+1] <- 0
 
   resc <- matrix(rbinom((condition$k[1] + 1)*n, size = 1, prob = pr_rescue), nrow = n)
-
   rescue <- t(apply(resc, 1, cumsum))>0
-
   rescue_start <- rowSums(!rescue)+1
   k_rescue <- rowSums(rescue)
   response_rescue <- runif(n)
@@ -79,11 +79,10 @@ generate_diabetes_rescue <- function(condition, fixed_objects=NULL){
     }
   }
 
-  # browser()
   g_0 <- log(condition$pr_missing[1] / (1 - condition$pr_missing[1]))
   pr_miss <- expit(g_0 + (Y - 10) * condition$g_y[1] +
                      (age - condition$mean_age[1]) * condition$g_age[1] +
-                     rescue * condition$g_rescue[1]) # actuall prob. to drop out
+                     rescue * condition$g_rescue[1]) # actual prob. to drop out
   pr_miss[,1] <- 0 # we assume complete data at baseline
 
   wd <- matrix(rbinom((condition$k[1] + 1)*n, size = 1, prob = pr_miss), nrow = n)
@@ -93,7 +92,6 @@ generate_diabetes_rescue <- function(condition, fixed_objects=NULL){
     miss_start <- sum(!wd1[i,]) + 1
     if (miss_start <= (condition$k[1] + 1)) Y[i,miss_start:(condition$k[1] + 1)] <- NA
   }
-
 
   out <- data.frame(id, trt, age, Y, any_rescue, rescue_start)
   names(out) <- c("id", "trt", "age", paste("y", visit, sep = ""), "any_rescue", "rescue_start")
@@ -119,20 +117,20 @@ generate_diabetes_rescue <- function(condition, fixed_objects=NULL){
 #' Design
 assumptions_diabetes_rescue <- function(print=interactive()){
   skel <- "expand.grid(
-  eff = c(0,1,2,3,4,5),             # treatment effect
+  eff = c(0,1,2,3,4,5),                  # treatment effect
   rescue_effect = c(0,-2,-4,-6,-8,-10),  # effect of rescue medication
-  k = 5,                       # Number of visits post baseline
-  mean_bl=8,                   # mean hbalc value at baseline
-  mean_age=60,                 # mean of the variable age
-  sd_age=10,                   # standard deviation of the variable age
-  b_age=log(2)/10,             # age coefficient
-  pr_rescue = 0.05,            # probability for rescue medication
-  h_y = log(3),                # s
-  h_age = -log(1.01),          # w
-  pr_missing = 0.02,           # probability for missing data
-  g_y = log(1.5),              # moderate effect due to high hba1c
-  g_age = log(1.02),           # older patients drop out more easily, let's say, stronger age effect than for rescue
-  g_rescue = log(1.5)          # notable effect due to rescue medication, increase to large value to have positivity violation, like 5 or 10
+  k = 5,                                 # Number of visits post baseline
+  mean_bl=8,                             # mean hbalc value at baseline
+  mean_age=60,                           # mean of the variable age
+  sd_age=10,                             # standard deviation of the variable age
+  b_age=log(2)/10,                       # age coefficient
+  pr_rescue = 0.05,                      # probability for rescue medication
+  h_y = log(3),                          # strong effect due to high hba1c
+  h_age = -log(1.01),                    # weaker age effect than for dropout
+  pr_missing = 0.02,                     # probability for missing data
+  g_y = log(1.5),                        # moderate effect due to high hba1c
+  g_age = log(1.02),                     # older patients drop out more easily, let's say, stronger age effect than for rescue
+  g_rescue = log(1.5)                    # notable effect due to rescue medication, increase to large value to have positivity violation, like 5 or 10
 )
 "
 
