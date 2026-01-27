@@ -41,7 +41,7 @@ analyse_ltmle <- function(level = 0.95, alternative = "two.sided") {
     # determine if the "alternative" statement can be incorporated
 
   function(condition, dat, fixed_objects = NULL) {
-    dat <- dat magrittr::%>% dplyr::mutate(rescue_start = ifelse(is.na(rescue_start), condition$k[1]+2, rescue_start))
+    dat <- dat %>% dplyr::mutate(rescue_start = ifelse(is.na(rescue_start), condition$k[1]+2, rescue_start))
     pred <- mice::make.predictorMatrix(dat)
     pred[upper.tri(pred)] <- 0
     dats <- mice::mice(dat,
@@ -50,7 +50,7 @@ analyse_ltmle <- function(level = 0.95, alternative = "two.sided") {
     )
     t <- lapply(1:dats$m, function(i) {
       dat <- mice::complete(dats, i)
-      dat_comp <- dat magrittr::%>% mutate(
+      dat_comp <- dat %>% mutate(
         across(
           matches("^y[0-9]+$") & !y0,
           ~ .x - y0,
@@ -61,7 +61,7 @@ analyse_ltmle <- function(level = 0.95, alternative = "two.sided") {
       }
 
       model <- ltmle::ltmle(
-        data = dat_comp magrittr::%>%
+        data = dat_comp %>%
           dplyr::select(
             age,
             y0,
