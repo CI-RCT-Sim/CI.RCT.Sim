@@ -80,5 +80,5 @@ analyse_ipw <- function(estimand = "tp", level = 0.95, alternative = "two.sided"
   }
 }
 
-analyse_ipw(estimand = "tp")(assumptions_diabetes_rescue(print = FALSE),
-  generate_diabetes_rescue(assumptions_diabetes_rescue(print = FALSE)))
+# analyse_ipw(estimand = "tp")(assumptions_diabetes_rescue(print = FALSE),
+#   generate_diabetes_rescue(assumptions_diabetes_rescue(print = FALSE)))
