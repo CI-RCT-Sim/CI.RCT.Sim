@@ -61,6 +61,11 @@ A minimal working example is contained in the following files:
 
 ## All functions
 
+- [`analyse_ipw()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_ipw.md)
+  : Analyse Dataset with the Inverse probability weighting
+- [`analyse_ltmle()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_ltmle.md)
+  : Analyse Dataset with Longitudinal Targeted Minimum Loss/(Maximum
+  Likelihood) Estimation
 - [`analyse_minimal_example_lm()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_minimal_example_lm.md)
   : Analyse dataset from minimal example scenario with linear regression
 - [`analyse_minimal_example_t()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_minimal_example_t.md)
