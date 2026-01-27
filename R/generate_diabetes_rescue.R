@@ -18,7 +18,6 @@
 #' @describeIn generate_diabetes_rescue simulates a dataset with ...
 #'
 #' @examples
-#' generate_diabetes_rescue(assumptions_diabetes_rescue())
 generate_diabetes_rescue <- function(condition, fixed_objects=NULL){
 
   # What still remains to be done is to
