@@ -17,6 +17,7 @@
 #'
 #' @export
 #' @importFrom tibble tibble as_tibble
+#' @importFrom purrr imap list_rbind
 #'
 #' @examples
 #' params_scenarios_grid(x=1:3, y=11:12, z=21)
