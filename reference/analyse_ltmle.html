@@ -76,26 +76,6 @@ has equal or shorter survival than control vs. H1 treatment has longer
 survival than control.</p>
     </div>
 
-    <div class="section level2">
-    <h2 id="ref-examples">Examples<a class="anchor" aria-label="anchor" href="#ref-examples"></a></h2>
-    <div class="sourceCode"><pre class="sourceCode r"><code><span class="r-in"><span><span class="va">condition</span> <span class="op">&lt;-</span> <span class="fu"><a href="https://rdrr.io/r/base/merge.html" class="external-link">merge</a></span><span class="op">(</span></span></span>
-<span class="r-in"><span>  <span class="fu">assumptions_delayed_effect</span><span class="op">(</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  <span class="fu">design_fixed_followup</span><span class="op">(</span><span class="op">)</span>,</span></span>
-<span class="r-in"><span>  by <span class="op">=</span> <span class="cn">NULL</span></span></span>
-<span class="r-in"><span><span class="op">)</span> <span class="op">|&gt;</span></span></span>
-<span class="r-in"><span>  <span class="fu"><a href="https://rdrr.io/r/utils/head.html" class="external-link">head</a></span><span class="op">(</span><span class="fl">1</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in assumptions_delayed_effect():</span> could not find function "assumptions_delayed_effect"</span>
-<span class="r-in"><span><span class="va">dat</span> <span class="op">&lt;-</span> <span class="fu">generate_delayed_effect</span><span class="op">(</span><span class="va">condition</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in generate_delayed_effect(condition):</span> could not find function "generate_delayed_effect"</span>
-<span class="r-in"><span><span class="fu">analyse_ltmle</span><span class="op">(</span><span class="op">)</span><span class="op">(</span><span class="va">condition</span>, <span class="va">dat</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error:</span> object 'dat' not found</span>
-<span class="r-in"><span><span class="fu">analyse_ltmle</span><span class="op">(</span><span class="op">)</span><span class="op">(</span><span class="va">assumptions_diabetes_rescue</span>, <span class="fu"><a href="generate_diabetes_rescue.html">generate_diabetes_rescue</a></span><span class="op">(</span><span class="fu"><a href="generate_diabetes_rescue.html">assumptions_diabetes_rescue</a></span><span class="op">(</span><span class="op">)</span><span class="op">)</span><span class="op">)</span></span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span class="error">Error in dplyr::mutate(dat, rescue_start = ifelse(is.na(rescue_start),     condition$k[1] + 2, rescue_start)):</span> <span style="color: #00BBBB;">ℹ</span> In argument: `rescue_start = ifelse(is.na(rescue_start),</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span>   condition$k[1] + 2, rescue_start)`.</span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span style="font-weight: bold;">Caused by error in `condition$k`:</span></span>
-<span class="r-err co"><span class="r-pr">#&gt;</span> <span style="color: #BBBB00;">!</span> object of type 'closure' is not subsettable</span>
-</code></pre></div>
-    </div>
   </main><aside class="col-md-3"><nav id="toc" aria-label="Table of contents"><h2>On this page</h2>
     </nav></aside></div>
 

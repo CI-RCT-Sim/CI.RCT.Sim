@@ -27,6 +27,6 @@ dat <- generate_minimal_example(condition)
 my_analyse_t  <- analyse_minimal_example_t()
 my_analyse_t(condition, dat)
 #> $p
-#> [1] 0.003547989
+#> [1] 7.212631e-05
 #> 
 ```

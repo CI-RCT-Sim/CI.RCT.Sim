@@ -55,58 +55,16 @@
 </h1></div>
 <p>This repository contains code for the simulation study investigating causial inference (CI) methods used to account for intercurrent events (ICE) in randomized controlled trials (RCT).</p>
 <div class="section level2">
-<h2 id="setup-development-environment">Setup Development Environment<a class="anchor" aria-label="anchor" href="#setup-development-environment"></a>
+<h2 id="documentation">Documentation<a class="anchor" aria-label="anchor" href="#documentation"></a>
 </h2>
-<ul>
-<li>install git</li>
-<li>clone this repository</li>
-<li>open the rstudio project</li>
-<li>install dependencies with <code><a href="https://rstudio.github.io/renv/reference/restore.html" class="external-link">renv::restore()</a></code>
-</li>
-</ul>
-<div class="section level3">
-<h3 id="project-setup-troubleshooting">Project Setup Troubleshooting<a class="anchor" aria-label="anchor" href="#project-setup-troubleshooting"></a>
-</h3>
-<p>If you’re not using Rstudio: start R with the root folder of the project as working directory. renv should be loaded automatically and you should see a message like <code>Project '...' loaded. [renv 1.1.5]</code> and you should be able to use <code><a href="https://rstudio.github.io/renv/reference/restore.html" class="external-link">renv::restore()</a></code>. If renv is not automatically loaded use <code>source("renv/activate.R")</code> to load it.</p>
-</div>
+<p>Guidance for contributing, project setup, etc. is listed <a href="https://github.com/CI-RCT-Sim/CI-RCT-Sim#contributing-ov-file" class="external-link">here</a> A minimal working example is implemented in the package and explained in the following <a href="https://ci-rct-sim.github.io/CI.RCT.Sim/articles/minimal_example.html">vignette</a> A <a href="https://ci-rct-sim.github.io/CI.RCT.Sim/">pkgdown page</a> is generated from the readme, help pages, vignettes, … of this package as it grows.</p>
 </div>
 <div class="section level2">
-<h2 id="project-structure">Project Structure<a class="anchor" aria-label="anchor" href="#project-structure"></a>
+<h2 id="old-project">Old Project<a class="anchor" aria-label="anchor" href="#old-project"></a>
 </h2>
-<p>Reusable functions, methods, etc. will be available as an r-package (built from this repository), that can be tested, built, installed, and distributed. Bespoke code for the simulation study will be included in the directory <code>scripts</code>.</p>
-</div>
-<div class="section level2">
-<h2 id="contribute-code">Contribute Code<a class="anchor" aria-label="anchor" href="#contribute-code"></a>
-</h2>
-<p>To contribute code:</p>
-<ul>
-<li>switch to the main branch <code>git checkout main</code>
-</li>
-<li>make sure you are on the latest version of the main branch <code>git pull main</code>
-</li>
-<li>create a new branch from there <code>git checkout -b &lt;new_branch_name&gt;</code> (replace <new_branch_name> with the name of your branch)</new_branch_name>
-</li>
-<li>push your code to github with <code>git push -u origin &lt;new_branch_name&gt;</code> for the first time and just <code>git push</code> afterwards</li>
-<li>to merge code into the main branch, open a pull request on github. Navigate to your branch use the “Compare &amp; pull request” button.</li>
-</ul>
+<p>This project has many communalities wiht a previous simulation study we conducted. Documentation and code of the package SimNPH can be found on the <a href="https://simnph.github.io/SimNPH/" class="external-link">package pkgdown page</a>.</p>
 </div>
 </div>
-<div class="section level1">
-<h1 id="minimal-working-example">Minimal working example<a class="anchor" aria-label="anchor" href="#minimal-working-example"></a>
-</h1>
-<p>A minimal working example is contained in the following files:</p>
-<ul>
-<li>
-<code>R/generate_minimal_example.R</code>: definition of parameter values and data<br>
-generation</li>
-<li>
-<code>R/analyse_mimial_example.R</code>: definition of two example analysis function<br>
-that work with the generated datasets</li>
-<li>
-<code>scripts/minimal_example.R</code>: calling the functions defined above with the<br><code>SimDesign</code> package and helper functions from the <code>SimNPH</code> package</li>
-</ul>
-</div>
-
   </main><aside class="col-md-3"><div class="license">
 <h2 data-toc-skip>License</h2>
 <ul class="list-unstyled">
@@ -114,6 +72,12 @@ that work with the generated datasets</li>
 </ul>
 </div>
 
+<div class="community">
+<h2 data-toc-skip>Community</h2>
+<ul class="list-unstyled">
+<li><a href="CONTRIBUTING.html">Contributing guide</a></li>
+</ul>
+</div>
 
 <div class="citation">
 <h2 data-toc-skip>Citation</h2>

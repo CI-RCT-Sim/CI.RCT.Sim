@@ -232,8 +232,6 @@ Finally
 is used to conduct the actual simulations. This function takes care of
 parallelisation, initialisation of random seeds etc.
 
-`scripts/minimal_example.R`
-
 ``` r
 library("CI.RCT.Sim")
 #> Loading required package: SimDesign

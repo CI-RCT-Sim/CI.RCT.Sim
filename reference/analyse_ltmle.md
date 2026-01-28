@@ -49,24 +49,3 @@ an analyse function that returns a list with the elements
 summary statistic or "one.sided" for a one sided test testing H0:
 treatment has equal or shorter survival than control vs. H1 treatment
 has longer survival than control.
-
-## Examples
-
-``` r
-condition <- merge(
-  assumptions_delayed_effect(),
-  design_fixed_followup(),
-  by = NULL
-) |>
-  head(1)
-#> Error in assumptions_delayed_effect(): could not find function "assumptions_delayed_effect"
-dat <- generate_delayed_effect(condition)
-#> Error in generate_delayed_effect(condition): could not find function "generate_delayed_effect"
-analyse_ltmle()(condition, dat)
-#> Error: object 'dat' not found
-analyse_ltmle()(assumptions_diabetes_rescue, generate_diabetes_rescue(assumptions_diabetes_rescue()))
-#> Error in dplyr::mutate(dat, rescue_start = ifelse(is.na(rescue_start),     condition$k[1] + 2, rescue_start)): ℹ In argument: `rescue_start = ifelse(is.na(rescue_start),
-#>   condition$k[1] + 2, rescue_start)`.
-#> Caused by error in `condition$k`:
-#> ! object of type 'closure' is not subsettable
-```
