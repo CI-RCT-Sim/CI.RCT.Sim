@@ -1,6 +1,8 @@
 <urlset xmlns = 'http://www.sitemaps.org/schemas/sitemap/0.9'>
 <url><loc>https://ci-rct-sim.github.io/CI.RCT.Sim/404.html</loc></url>
 <url><loc>https://ci-rct-sim.github.io/CI.RCT.Sim/LICENSE-text.html</loc></url>
+<url><loc>https://ci-rct-sim.github.io/CI.RCT.Sim/articles/index.html</loc></url>
+<url><loc>https://ci-rct-sim.github.io/CI.RCT.Sim/articles/minimal_example.html</loc></url>
 <url><loc>https://ci-rct-sim.github.io/CI.RCT.Sim/authors.html</loc></url>
 <url><loc>https://ci-rct-sim.github.io/CI.RCT.Sim/index.html</loc></url>
 <url><loc>https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_ipw.html</loc></url>

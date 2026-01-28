@@ -81,3 +81,9 @@ A minimal working example is contained in the following files:
 - [`params_scenarios_grid()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/params_scenarios_grid.md)
   : Generate Grid of Parameter Values
 
+# Articles
+
+### All vignettes
+
+- [Minimal
+  Example](https://ci-rct-sim.github.io/CI.RCT.Sim/articles/minimal_example.md):
