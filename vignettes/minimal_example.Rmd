@@ -1,0 +1,117 @@
+---
+title: "Minimal Example"
+output: rmarkdown::html_vignette
+vignette: >
+  %\VignetteIndexEntry{Minimal Example}
+  %\VignetteEngine{knitr::rmarkdown}
+  %\VignetteEncoding{UTF-8}
+---
+
+```{r, include = FALSE}
+knitr::opts_chunk$set(
+  collapse = TRUE,
+  comment = "#>"
+)
+```
+
+
+# Intro
+
+This vignette is a short explanation of the structure of the `CI.RCT.Sim`
+package. And gives an explanation on how to contribute code for the
+data-generation of scenarios as well as for analysis functions.
+
+The example uses a simple example of a test and an estimator for the difference
+in means of two normal distributions.
+
+For to run the simulations the package `SimDesign` is used. Some functions for
+sumarisation of simulation results are re-used from the `SimNPH` package written
+for a previous simulation study.
+
+# Data Generation
+
+Let's look at the code for the data generation. The simulation study uses the
+`SimDesign` pacakge. To run simulations with SimDesign, one has to define three
+functions for *Data Generation*, *Analysis* and *Summarisation*. Each of those
+functions has to use fixed parameters. The function signatures can be displayed
+with `SimDesign::SimFunctions()`. This is the first function
+`generate_minimal_example` displayed in the code below.
+
+In `CI.RCT.Sim` there's two additional functions for each data-generating
+function. `true_summary_statistics_minimal_example`, calculates the true (or
+assymptotic) values of summary statistics from the parameters given in a
+"Design" dataset. This is specific to the data generating model and the
+estimand.
+
+The third function is a function that prints and outputs an example of a Design
+dataset that can be used with the data generating functions. This function gives
+a dataset that is directly useable with the data generating function for
+testing, documentation of the parameter and for users to have boilerplate code
+to be able to cerate custom parameter ranges.
+
+`R/generate_minimal_example.R`
+```{r, file="../R/generate_minimal_example.R", echo=TRUE, eval=FALSE}
+```
+
+The true summary statistics is really simple here, it is just the difference of
+group means.
+
+The utility function `params_scenario_grid` expands a dataset in the following
+way: the first row is the reference scenario with the first value of each
+defined parameter. The subsequent rows contain scenarios in which each parameter
+is varied across all given values and all other parameters are kept at the
+reference scenario value.
+
+# Analysis
+
+The analysis functions used in `SimDesign` take the arguments `condition` and
+`dat`, additional arguments can be passed in the optional argument
+`fixed_objects`. When running the simulations the current line of the Design
+dataset, containing the parameters for the current simulation scenario is passed
+as the `condition` argument. The simulated dataset is passed as the `dat`
+argument. Each analysis function is called once for each simulation replication
+for each scenario.
+
+To be able to use hyper-parameters for the analysis methods, CI.RCT.Sim
+implements the analysis functions such that they are functions with the
+hyper-parameters as arguments that return a function that can be used in
+`SimDesign::RunSimulation`. This way one analysis method can easily be used
+multiple times with different hyper-parameters in one simulation.
+
+For the minimal example two analysis functions are defined,
+`analyse_minimal_example_lm` uses a linear model and `analyse_minimal_example_t`
+uses a t-test. The return value for each method should be a named list to enable
+summarisation later.
+
+`R/analyse_minimal_example.R`
+```{r, file="../R/analyse_minimal_example.R", echo=TRUE, eval=FALSE}
+```
+
+Some names of the names of the analysis results are directly used by analysis
+functions, others can be choosen freely. "reserved" names are:
+
+* `p` the p-value of tests
+* `N_pat` number of recruited patients, relevant for sequential or adaptive designs
+* `N_evt` number of observed events, relevant for time-to event outcomes under censoring
+
+# Running Simulations
+
+To actually run the simulations, first a dataset of simulation parameters is
+created and true values of summary statistics are calculated if necessary. A
+list of analysis functions is created, here hyper-parameters are set, in this
+example the coverage of the confidence intervals.
+
+A list of summary functions is defined, those analysis functions are the applied
+to the list of outputs of all replications of each scenario. Which summary
+functions are applied to the output of which analysis functions is matched by
+name by the function `SimNPH::create_summary_function`, names can be repeated in
+the list of summary functions. The functions `SimNPH::summarise_estimator` and
+`SimNPH::summarise_test` provide common summaries for estimators and tests, see
+the documentation in the SimNPH package for details.
+
+Finally `SimDesign::runSimulation` is used to conduct the actual simulations.
+This function takes care of parallelisation, initialisation of random seeds etc.
+
+`scripts/minimal_example.R`
+```{r, file="../scripts/minimal_example.R", echo=TRUE}
+```
