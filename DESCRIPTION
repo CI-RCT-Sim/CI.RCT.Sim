@@ -10,6 +10,8 @@ Depends:
     SimDesign, 
     R (>= 4.1.0)
 Suggests:
+    knitr,
+    rmarkdown,
     roxygen2,
     testthat (>= 3.0.0)
 Roxygen: list(markdown = TRUE)
@@ -23,3 +25,4 @@ Imports:
     tibble,
     ltmle,
     mice
+VignetteBuilder: knitr

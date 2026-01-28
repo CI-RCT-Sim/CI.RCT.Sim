@@ -1,6 +1,3 @@
-
-
-
 #' Analyse dataset from minimal example scenario with linear regression
 #'
 #' @param ci_level the confidence level for the CIs (defaults to 0.95)
