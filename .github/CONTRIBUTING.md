@@ -39,7 +39,7 @@ To contribute code:
 7. run `devtools::test()` and `devtools::check()`, if there are any errors, fix
    them and iterate from step 5. if all errors are taken care of continue to 8.
 8. commit your code to git through the Rstudio userinterface or with `git add .` 
-   followed by `git commit`
+   followed by `git commit -m "<one-line description of the changes>"`
 9. push your code to github with `git push -u origin <new_branch_name>` for the
    first time and just `git push` afterwards
 10. to merge code into the main branch, open a pull request on github. Navigate
