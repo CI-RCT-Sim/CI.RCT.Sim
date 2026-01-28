@@ -29,19 +29,22 @@ code for the simulation study will be included in the directory `scripts`.
 
 To contribute code:
 
-* switch to the main branch `git checkout main`
-* make sure you are on the latest version of the main branch `git pull main`
-* create a new branch from there `git checkout -b <new_branch_name>` (replace <new_branch_name> with the name of your branch)
-* push your code to github with `git push -u origin <new_branch_name>` for the first time and just `git push` afterwards
-* to merge code into the main branch, open a pull request on github. Navigate to your branch use the "Compare & pull request" button. 
+1. switch to the main branch `git checkout main`
+2. make sure you are on the latest version of the main branch `git pull main`
+3. create a new branch from there `git checkout -b <new_branch_name>` (replace
+   <new_branch_name> with the name of your branch)
+4. write your code
+5. run `devtools::document()` to generate documentation and update `DESCRIPTION`
+   and `NAMESPACE`
+6. run `devtools::test()` and `devtools::check()`, if there are any errors, fix
+   them and iterate from step 5. if all errors are taken care of continue to 7.
+7. push your code to github with `git push -u origin <new_branch_name>` for the
+   first time and just `git push` afterwards
+8. to merge code into the main branch, open a pull request on github. Navigate
+   to your branch use the "Compare & pull request" button.
 
 # Minimal working example
 
-A minimal working example is contained in the following files:
-
-* `R/generate_minimal_example.R`: definition of parameter values and data  
-   generation
-* `R/analyse_mimial_example.R`: definition of two example analysis function  
-   that work with the generated datasets
-* `scripts/minimal_example.R`: calling the functions defined above with the  
-   `SimDesign` package and helper functions from the `SimNPH` package
+A minimal working example is implemented in the pacakge and explained in the
+following
+[vignette](https://ci-rct-sim.github.io/CI.RCT.Sim/articles/minimal_example.html)

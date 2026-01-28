@@ -112,6 +112,6 @@ the documentation in the SimNPH package for details.
 Finally `SimDesign::runSimulation` is used to conduct the actual simulations.
 This function takes care of parallelisation, initialisation of random seeds etc.
 
-`scripts/minimal_example.R`
-```{r, file="../scripts/minimal_example.R", echo=TRUE}
+`vignettes/minimal_example.R`
+```{r, file="../vignettes/minimal_example.R", echo=TRUE}
 ```
