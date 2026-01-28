@@ -7,8 +7,8 @@ causial inference (CI) methods used to account for intercurrent events
 ## Documentation
 
 Guidance for contributing, project setup, etc. is listed
-[here](https://github.com/CI-RCT-Sim/CI-RCT-Sim#contributing-ov-file) A
-minimal working example is implemented in the package and explained in
+[here](https://github.com/CI-RCT-Sim/CI.RCT.Sim?tab=contributing-ov-file#readme)
+A minimal working example is implemented in the package and explained in
 the following
 [vignette](https://ci-rct-sim.github.io/CI.RCT.Sim/articles/minimal_example.html)
 A [pkgdown page](https://ci-rct-sim.github.io/CI.RCT.Sim/) is generated
