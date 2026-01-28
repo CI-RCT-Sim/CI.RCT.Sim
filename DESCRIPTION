@@ -24,5 +24,6 @@ Imports:
     dplyr,
     tibble,
     ltmle,
-    mice
+    mice,
+    purrr
 VignetteBuilder: knitr
