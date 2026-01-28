@@ -19,6 +19,12 @@ message like `Project '...' loaded. [renv 1.1.5]` and you should be able to use
 `renv::restore()`. If renv is not automatically loaded use
 `source("renv/activate.R")` to load it.
 
+## Project Structure
+
+Reusable functions, methods, etc. will be available as an r-package (built from
+this repository), that can be tested, built, installed, and distributed. Bespoke
+code for the simulation study will be included in the directory `scripts`.
+
 ## Contribute Code
 
 To contribute code:
@@ -28,3 +34,14 @@ To contribute code:
 * create a new branch from there `git checkout -b <new_branch_name>` (replace <new_branch_name> with the name of your branch)
 * push your code to github with `git push -u origin <new_branch_name>` for the first time and just `git push` afterwards
 * to merge code into the main branch, open a pull request on github. Navigate to your branch use the "Compare & pull request" button. 
+
+# Minimal working example
+
+A minimal working example is contained in the following files:
+
+* `R/generate_minimal_example.R`: definition of parameter values and data  
+   generation
+* `R/analyse_mimial_example.R`: definition of two example analysis function  
+   that work with the generated datasets
+* `scripts/minimal_example.R`: calling the functions defined above with the  
+   `SimDesign` package and helper functions from the `SimNPH` package
