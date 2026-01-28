@@ -34,14 +34,3 @@ summary statistic or "one.sided" for a one sided test testing H0: treatment
 has equal or shorter survival than control vs. H1 treatment has longer
 survival than control.
 }
-\examples{
-condition <- merge(
-  assumptions_delayed_effect(),
-  design_fixed_followup(),
-  by = NULL
-) |>
-  head(1)
-dat <- generate_delayed_effect(condition)
-analyse_ltmle()(condition, dat)
-analyse_ltmle()(assumptions_diabetes_rescue, generate_diabetes_rescue(assumptions_diabetes_rescue()))
-}
