@@ -60,3 +60,22 @@ To contribute code:
 
 Please approximately keep to the [tidyverse style
 guide](https://style.tidyverse.org/) to keep the code easily readable.
+
+## Roxygen documentation
+
+Documentation and package metadata are automatically generated with the
+`roxygen2` package. You can add the roxygen tags in r-studio with
+`Code > Insert Roxygen Skeleton`. When using functions from other
+packages, also insert an
+`@importFrom <package> <function1> <function2> ...` tag. (See
+`R/utility_functions.R` for an example.)
+
+Please also add examples to your function. When adding examples, please
+ensure that they run without error, since examples are checked when
+building the package.
+
+## Package Dependencies
+
+If dependencies are not automatically added to DESCRIPTION from roxygen
+tags by running `devtools::document()`, please add them manually. The
+most appropriate field will most often be `Imports`.

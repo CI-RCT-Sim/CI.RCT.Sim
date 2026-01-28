@@ -75,6 +75,15 @@
 <div class="section level1">
 <h1 id="coding-style">Coding Style<a class="anchor" aria-label="anchor" href="#coding-style"></a></h1>
 <p>Please approximately keep to the <a href="https://style.tidyverse.org/" class="external-link">tidyverse style guide</a> to keep the code easily readable.</p>
+<div class="section level2">
+<h2 id="roxygen-documentation">Roxygen documentation<a class="anchor" aria-label="anchor" href="#roxygen-documentation"></a></h2>
+<p>Documentation and package metadata are automatically generated with the <code>roxygen2</code> package. You can add the roxygen tags in r-studio with <code>Code &gt; Insert Roxygen Skeleton</code>. When using functions from other packages, also insert an <code>@importFrom &lt;package&gt; &lt;function1&gt; &lt;function2&gt; ...</code> tag. (See <code>R/utility_functions.R</code> for an example.)</p>
+<p>Please also add examples to your function. When adding examples, please ensure that they run without error, since examples are checked when building the package.</p>
+</div>
+<div class="section level2">
+<h2 id="package-dependencies">Package Dependencies<a class="anchor" aria-label="anchor" href="#package-dependencies"></a></h2>
+<p>If dependencies are not automatically added to DESCRIPTION from roxygen tags by running <code>devtools::document()</code>, please add them manually. The most appropriate field will most often be <code>Imports</code>.</p>
+</div>
 </div>
 
 
