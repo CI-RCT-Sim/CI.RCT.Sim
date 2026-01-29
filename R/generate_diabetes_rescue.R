@@ -14,6 +14,8 @@
 #' For generate_diabetes_rescue: A data set with the columns id, trt
 #' (1=treatment, 0=control), evt (event, currently TRUE for all observations)
 #'
+#' @importFrom stats rbinom rnorm runif qnorm
+#'
 #' @export
 #' @describeIn generate_diabetes_rescue simulates a dataset with ...
 #'

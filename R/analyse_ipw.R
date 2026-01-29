@@ -17,8 +17,9 @@
 #'
 #' @export
 #'
+#' @importFrom stats lm as.formula
+#' @importFrom dplyr filter
 #' @details
-#'
 #' `alternative` can be "two.sided" for a two sided test of equality of the
 #' summary statistic or "one.sided" for a one sided test testing H0: treatment
 #' has equal or shorter survival than control vs. H1 treatment has longer
