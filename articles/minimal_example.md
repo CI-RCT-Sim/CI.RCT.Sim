@@ -47,6 +47,7 @@ ranges.
 #'
 #' @returns a simulated dataset
 #' @export
+#' @importFrom stats rnorm
 #'
 #' @examples
 #' Design <- assumptions_minimal_example() |>
@@ -63,7 +64,7 @@ generate_minimal_example <- function(condition, fixed_objects=NULL){
 
 #' Calculate true summary statistics value for generate_minimal_example
 #'
-#' @param Design
+#' @param Design data.frame with parameter values
 #'
 #' @returns For true_summary_statistics_minimal_example: the Design tibble with added column eff_size
 #' @export
@@ -145,6 +146,8 @@ method should be a named list to enable summarisation later.
 #'  * `ci_upper` the upper CI limit
 #' @export
 #'
+#' @importFrom stats lm confint confint.lm anova coefficients
+#'
 #' @examples
 #' Design <- assumptions_minimal_example() |>
 #'   true_summary_statistics_minimal_example()
@@ -176,6 +179,7 @@ analyse_minimal_example_lm <- function(ci_level=0.95){
 #' @returns an analyse function that returns a list with the elements
 #'  * `p` the p-value
 #' @export
+#' @importFrom stats t.test
 #'
 #' @examples
 #' Design <- assumptions_minimal_example() |>

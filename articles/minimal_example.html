@@ -109,6 +109,7 @@ ranges.</p>
 <span><span class="co">#'</span></span>
 <span><span class="co">#' @returns a simulated dataset</span></span>
 <span><span class="co">#' @export</span></span>
+<span><span class="co">#' @importFrom stats rnorm</span></span>
 <span><span class="co">#'</span></span>
 <span><span class="co">#' @examples</span></span>
 <span><span class="co">#' Design &lt;- assumptions_minimal_example() |&gt;</span></span>
@@ -125,7 +126,7 @@ ranges.</p>
 <span></span>
 <span><span class="co">#' Calculate true summary statistics value for generate_minimal_example</span></span>
 <span><span class="co">#'</span></span>
-<span><span class="co">#' @param Design</span></span>
+<span><span class="co">#' @param Design data.frame with parameter values</span></span>
 <span><span class="co">#'</span></span>
 <span><span class="co">#' @returns For true_summary_statistics_minimal_example: the Design tibble with added column eff_size</span></span>
 <span><span class="co">#' @export</span></span>
@@ -205,6 +206,8 @@ later.</p>
 <span><span class="co">#'  * `ci_upper` the upper CI limit</span></span>
 <span><span class="co">#' @export</span></span>
 <span><span class="co">#'</span></span>
+<span><span class="co">#' @importFrom stats lm confint confint.lm anova coefficients</span></span>
+<span><span class="co">#'</span></span>
 <span><span class="co">#' @examples</span></span>
 <span><span class="co">#' Design &lt;- assumptions_minimal_example() |&gt;</span></span>
 <span><span class="co">#'   true_summary_statistics_minimal_example()</span></span>
@@ -236,6 +239,7 @@ later.</p>
 <span><span class="co">#' @returns an analyse function that returns a list with the elements</span></span>
 <span><span class="co">#'  * `p` the p-value</span></span>
 <span><span class="co">#' @export</span></span>
+<span><span class="co">#' @importFrom stats t.test</span></span>
 <span><span class="co">#'</span></span>
 <span><span class="co">#' @examples</span></span>
 <span><span class="co">#' Design &lt;- assumptions_minimal_example() |&gt;</span></span>

@@ -28,6 +28,8 @@ assumptions_minimal_example(print = interactive())
 
 - Design:
 
+  data.frame with parameter values
+
 - print:
 
   print code to generate parameter set?
