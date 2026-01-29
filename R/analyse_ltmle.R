@@ -15,6 +15,8 @@
 #' * `N_evt` number of events
 #'
 #' @export
+#' @importFrom mice mice make.formulas
+#' @importFrom dplyr mutate across matches
 #'
 #' @details
 #'

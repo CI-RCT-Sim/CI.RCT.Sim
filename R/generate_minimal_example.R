@@ -5,6 +5,7 @@
 #'
 #' @returns a simulated dataset
 #' @export
+#' @importFrom stats rnorm
 #'
 #' @examples
 #' Design <- assumptions_minimal_example() |>
@@ -21,7 +22,7 @@ generate_minimal_example <- function(condition, fixed_objects=NULL){
 
 #' Calculate true summary statistics value for generate_minimal_example
 #'
-#' @param Design
+#' @param Design data.frame with parameter values
 #'
 #' @returns For true_summary_statistics_minimal_example: the Design tibble with added column eff_size
 #' @export

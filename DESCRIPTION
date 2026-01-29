@@ -25,5 +25,6 @@ Imports:
     tibble,
     ltmle,
     mice,
-    purrr
+    purrr,
+    mvtnorm
 VignetteBuilder: knitr
