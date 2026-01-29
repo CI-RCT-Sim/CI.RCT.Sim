@@ -4,6 +4,7 @@
 \alias{vaccine_scenario}
 \alias{vaccine_callibrate_gamma0}
 \alias{vaccine_callibrate_beta_A2}
+\alias{generate_vaccine}
 \title{Create an empty assumtions data.frame for generate_vaccine}
 \usage{
 vaccine_scenario(print = interactive())
@@ -11,6 +12,8 @@ vaccine_scenario(print = interactive())
 vaccine_callibrate_gamma0(design, dose_2_completion = 0.95)
 
 vaccine_callibrate_beta_A2(design, VE = c(0, 0.3, 0.5, 0.6))
+
+generate_vaccine(condition, fixed_objects = NULL)
 }
 \arguments{
 \item{print}{print code to generate parameter set?}
@@ -20,6 +23,10 @@ vaccine_callibrate_beta_A2(design, VE = c(0, 0.3, 0.5, 0.6))
 \item{dose_2_completion}{target percentage of completion of dose 2}
 
 \item{VE}{target VE of never compliers}
+
+\item{condition}{Row of parameters dataset}
+
+\item{fixed_objects}{other objects passed to simulation runs}
 }
 \value{
 For vaccine_scenario: a design tibble with default values invisibly
@@ -27,6 +34,8 @@ For vaccine_scenario: a design tibble with default values invisibly
 design with added column gamma_0
 
 design with added column beta_A1
+
+a simulated dataset
 }
 \description{
 Create an empty assumtions data.frame for generate_vaccine
@@ -45,10 +54,14 @@ the template is also printed for copying, pasting and editing by the user.
 
 \item \code{vaccine_callibrate_beta_A2()}: callibrate beta_A2
 
+\item \code{generate_vaccine()}: simulate a dataset from the vaccine scenario
+
 }}
 \examples{
 Design <- vaccine_scenario() |>
   vaccine_callibrate_gamma0() |>
   vaccine_callibrate_beta_A2()
 Design
+
+generate_vaccine(Design[1,])
 }

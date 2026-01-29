@@ -26,5 +26,6 @@ Imports:
     ltmle,
     mice,
     purrr,
-    mvtnorm
+    mvtnorm,
+    miniPCH
 VignetteBuilder: knitr
