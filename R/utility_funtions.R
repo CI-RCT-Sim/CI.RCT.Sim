@@ -17,6 +17,7 @@
 #'
 #' @export
 #' @importFrom tibble tibble as_tibble
+#' @importFrom purrr imap list_rbind
 #'
 #' @examples
 #' params_scenarios_grid(x=1:3, y=11:12, z=21)
@@ -29,7 +30,7 @@ params_scenarios_grid <- function(...){
     tibble::as_tibble()
 
   params_other <- purrr::imap(params_args, \(x, i){
-    if(class(x)=="list"){
+    if(inherits(x, "list")){
       purrr::map(x[-1], \(y){
         tmp <- params_ref
         tmp[,i] <- list(list(y))

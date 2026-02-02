@@ -1,4 +1,4 @@
-devtools::load_all()
+library("CI.RCT.Sim")
 
 # Define the parameter valued, calculate derived quantities from the parameters
 sim_parameters <- assumptions_minimal_example() |>
@@ -10,7 +10,7 @@ alpha <- 0.1
 
 # list of analysis functions
 my_analyse <- list(
-  lm    = analyse_minimal_example_lm(ci_level=0.9),
+  lm    = analyse_minimal_example_lm(ci_level=1-alpha),
   ttest = analyse_minimal_example_t()
 )
 
