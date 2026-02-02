@@ -74,7 +74,7 @@ the template is also printed for copying, pasting and editing by the user.
 
 }}
 \examples{
-generate_diabetes_rescue(assumptions_diabetes_rescue())
+generate_diabetes_rescue(assumptions_diabetes_rescue()[1, ])
 Design <- assumptions_diabetes_rescue()
 Design
 true_summary_statistics_diabetes_rescue(assumptions_diabetes_rescue())
