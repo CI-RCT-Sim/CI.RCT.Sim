@@ -1,6 +1,3 @@
-
-
-
 #' Analyse dataset from minimal example scenario with linear regression
 #'
 #' @param ci_level the confidence level for the CIs (defaults to 0.95)
@@ -11,6 +8,8 @@
 #'  * `ci_lower` the lower CI limit
 #'  * `ci_upper` the upper CI limit
 #' @export
+#'
+#' @importFrom stats lm confint confint.lm anova coefficients
 #'
 #' @examples
 #' Design <- assumptions_minimal_example() |>
@@ -43,6 +42,7 @@ analyse_minimal_example_lm <- function(ci_level=0.95){
 #' @returns an analyse function that returns a list with the elements
 #'  * `p` the p-value
 #' @export
+#' @importFrom stats t.test
 #'
 #' @examples
 #' Design <- assumptions_minimal_example() |>
