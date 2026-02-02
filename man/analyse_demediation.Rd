@@ -10,7 +10,7 @@ analyse_demediation(X)
 summarise_demediation(name = NULL)
 }
 \arguments{
-\item{X}{input}
+\item{X}{input can be used to pass parameters to the analyse function}
 
 \item{name}{also input}
 }

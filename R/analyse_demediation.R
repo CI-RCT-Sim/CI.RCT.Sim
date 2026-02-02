@@ -1,6 +1,6 @@
 #' Create Analyse Functions for ...
 #'
-#' @param X input
+#' @param X input can be used to pass parameters to the analyse function
 #'
 #' @return an analyse function that can be used in runSimulation
 #' @export
