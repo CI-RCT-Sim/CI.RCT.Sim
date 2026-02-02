@@ -6,7 +6,7 @@
 #' @export
 #'
 #' @examples
-#' analyse_demediation()
+#' analyse_demediation()(assumptions_diabetes_rescue()[1, ], generate_diabetes_rescue(assumptions_diabetes_rescue()[1, ]))
 #'
 analyse_demediation <- function(X) {
   function(condition, dat, fixed_objects = NULL) {
@@ -171,13 +171,13 @@ analyse_demediation <- function(X) {
 #' @export
 #'
 #' @examples
-#' summarise_demediation()
+#' summarise_demediation("tell")
 summarise_demediation <- function(name = NULL) {
-  res <- function(condition, results, fixed_objects = NULL) {
-    data.frame(
-      "Y" = NA_real_
-    )
-  }
+  # res <- function(condition, results, fixed_objects = NULL) {
+  res <- data.frame(
+    "Y" = NA_real_
+  )
+  # }
 
   attr(res, "name") <- name
 

@@ -40,7 +40,7 @@ Summarise Output from Analyse Functions for ...
 
 }}
 \examples{
-analyse_demediation()
+analyse_demediation()(assumptions_diabetes_rescue()[1, ], generate_diabetes_rescue(assumptions_diabetes_rescue()[1, ]))
 
-summarise_demediation()
+summarise_demediation("tell")
 }
