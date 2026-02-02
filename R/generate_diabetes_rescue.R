@@ -20,7 +20,7 @@
 #' @describeIn generate_diabetes_rescue simulates a dataset with ...
 #'
 #' @examples
-#' generate_diabetes_rescue(assumptions_diabetes_rescue())
+#' generate_diabetes_rescue(assumptions_diabetes_rescue()[1, ])
 generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   # sequence with the visits
   visit <- 0:condition$k
