@@ -10,7 +10,9 @@ analyse_demediation(X)
 summarise_demediation(name = NULL)
 }
 \arguments{
-\item{X}{also input}
+\item{X}{input}
+
+\item{name}{also input}
 }
 \value{
 an analyse function that can be used in runSimulation
@@ -40,7 +42,9 @@ Summarise Output from Analyse Functions for ...
 
 }}
 \examples{
-analyse_demediation()(assumptions_diabetes_rescue()[1, ], generate_diabetes_rescue(assumptions_diabetes_rescue()[1, ]))
+setting <- assumptions_diabetes_rescue()[1, ]
+dat <- generate_diabetes_rescue(setting)
+analyse_demediation()(setting, dat)
 
 summarise_demediation("tell")
 }

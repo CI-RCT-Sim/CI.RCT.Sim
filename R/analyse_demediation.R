@@ -8,7 +8,9 @@
 #' @importFrom stats lm glm as.formula
 #'
 #' @examples
-#' analyse_demediation()(assumptions_diabetes_rescue()[1, ], generate_diabetes_rescue(assumptions_diabetes_rescue()[1, ]))
+#' setting <- assumptions_diabetes_rescue()[1, ]
+#' dat <- generate_diabetes_rescue(setting)
+#' analyse_demediation()(setting, dat)
 #'
 analyse_demediation <- function(X) {
   function(condition, dat, fixed_objects = NULL) {
@@ -155,7 +157,7 @@ analyse_demediation <- function(X) {
 
 #' Summarise Output from Analyse Functions for ...
 #'
-#' @param X also input
+#' @param name also input
 #'
 #' @describeIn analyse_demediation Summarise Output from Analyse X
 #'
