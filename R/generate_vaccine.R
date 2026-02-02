@@ -13,10 +13,11 @@
 #' @describeIn vaccine_scenario generate default assumptions `data.frame`
 #'
 #' @examples
-#' Design <- vaccine_scenario() |>
-#'   vaccine_callibrate_gamma0() |>
-#'   vaccine_callibrate_beta_A2()
+#' Design <- vaccine_scenario()
 #' Design
+#'
+#' Design$gamma_0 <- 0.1
+#' Design$beta_A1 <- 0.1
 #'
 #' generate_vaccine(Design[1,])
 vaccine_scenario <- function(print=interactive()){
