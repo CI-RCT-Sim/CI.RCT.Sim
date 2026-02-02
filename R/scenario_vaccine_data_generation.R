@@ -51,49 +51,6 @@ invisible(
 )
 }
 
-#' @param design previously generated desing data.frame
-#' @param dose_2_completion target percentage of completion of dose 2
-#'
-#' @returns design with added column gamma_0
-#' @export
-#' @describeIn vaccine_scenario callibrate gamma_0
-vaccine_callibrate_gamma0 <- function(design, dose_2_completion = 0.95){ # TODO: check calculations
-  # only calculate for unique values of used variables
-  tmp <- merge(
-    design[, c("p_W", "p_V", "gamma_W", "gamma_V", "gamma_A", "gamma_AW")] |>
-      unique(),
-    data.frame(tmp_dose_2_completion=dose_2_completion),
-    by=NULL, all=TRUE
-  )
-  tmp <- within(tmp, {
-    gamma_0 = binomial()$linkfun(tmp_dose_2_completion) - gamma_W*p_W - gamma_V*p_V - gamma_A - gamma_AW
-  })
-  tmp$tmp_dose_2_completion <- NULL
-  # merge calculated values
-  design <- merge(design, tmp, by=c("p_W", "p_V", "gamma_W", "gamma_V", "gamma_A", "gamma_AW"), all.x=TRUE)
-  design
-}
-
-#' @param design previously generated desing data.frame
-#' @param VE target VE of never compliers
-#'
-#' @returns design with added column beta_A1
-#' @export
-#' @describeIn vaccine_scenario callibrate beta_A2
-vaccine_callibrate_beta_A2 <- function(design, VE=c(0, 0.3, 0.5, 0.6)){ # TODO: check calculations
-  # only calculate for unique values of used variables
-  tmp <- expand.grid(beta_A2=unique(design$beta_A2), tmp_hr=1-VE)
-  tmp$beta_A1 = log(-exp(tmp$beta_A2)+exp(tmp$tmp_hr))
-  tmp$beta_A1[tmp$beta_A1==-Inf] <- 0
-  tmp$tmp_hr <- NULL
-  # merge calculated values
-  design <- merge(design, tmp, by="beta_A2", all.x=TRUE)
-  design
-}
-
-
-
-
 #' @param condition Row of parameters dataset
 #' @param fixed_objects other objects passed to simulation runs
 #'
