@@ -20,53 +20,57 @@
 #' @describeIn generate_diabetes_rescue simulates a dataset with ...
 #'
 #' @examples
-#' generate_diabetes_rescue(assumptions_diabetes_rescue())
+#' generate_diabetes_rescue(assumptions_diabetes_rescue()[1, ])
 generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
-  # What still remains to be done is to
-  # incorporate sample size calculations
-  # implement the correlation rho between the visits (which also goes in to the sample size calculations)
-  # documentation
-  # Statements to be able to turn rescue and missingness on and off
+  # sequence with the visits
+  visit <- 0:condition$k
 
-  # n <- 100 # Should be edited according to proposed power and effect size
-  # n <- ((qnorm(1 - alpha / 2) + qnorm(power))^2)*sigma^2/(eff^2)
-  visit <- 0:condition$k[1]
+  # calculation of visit specific effects and the true effect
+  eff <- -condition$delta * (1 - exp(-condition$lambda * visit))
+  rescue_effect <- -condition$delta_resc * (1 - exp(-condition$lambda_resc * (visit)))
+  delta_true <- condition$delta / 2 * (1 - exp(-condition$lambda * condition$k))
 
-  # calculation of effects
-  eff <- condition$delta * (1 - exp(-condition$lambda * visit))
-  rescue_effect <- condition$delta_resc * (1 - exp(-condition$lambda_resc * (visit)))
-  delta_true <- condition$delta / 2 * (1 - exp(-condition$lambda * condition$k[1]))
-
+  # specifying parameters for sample size calculation
   alpha <- 0.05
   power <- 0.8
   rho <- 0.5
   sigma <- 1
   sigma_adj <- sqrt(sigma^2 * (1 - rho^2))
 
-  n <- 2*round(((qnorm(1 - alpha / 2) + qnorm(power))^2) * sigma_adj^2 * 2 / (delta_true^2))
+  n <- 2 * round(((qnorm(1 - alpha / 2) + qnorm(power))^2) * sigma_adj^2 * 2 / (delta_true^2))
 
+  # data generation
   id <- 1:n
   trt <- rbinom(n, 1, 0.5)
   age <- rnorm(n, mean = condition$mean_age, sd = condition$sd_age)
-  age_slope <- 2 * exp(-condition$b_age[1] * (age - 30))
+  age_slope <- 2 * exp(-condition$b_age * (age - 30))
   response_trt <- runif(n)
+  mu_ctr <- matrix(NA, nrow = n, ncol = length(visit))
+  for (i in 1:length(visit)) {
+    mu_ctr[, i] <- condition$mean_bl +
+      visit[i] / condition$k * age_slope
+  }
   mu <- matrix(NA, nrow = n, ncol = length(visit))
   for (i in 1:length(visit)) {
-    mu[, i] <- condition$mean_bl[1] +
-      visit[i] / condition$k[1] * age_slope +
+    mu[, i] <- mu_ctr[, i] +
       eff[i] * response_trt * trt
   }
-  # browser()
-  resid <- mvtnorm::rmvnorm(n, rep(0, length(visit)), diag(length(visit)))
+
+  mu_resid <- rep(0, length(visit))
+  sigma_resid <- diag(x = sigma^2, length(visit))
+  sigma_resid[upper.tri(sigma_resid)] <- rho
+  sigma_resid[lower.tri(sigma_resid)] <- rho
+
+  resid <- mvtnorm::rmvnorm(n, mu_resid, sigma_resid)
   Y <- mu + resid
 
-  h_0 <- log(condition$pr_rescue[1] / (1 - condition$pr_rescue[1]))
+  h_0 <- log(condition$pr_rescue / (1 - condition$pr_rescue))
   expit <- function(x) exp(x) / (1 + exp(x))
-  pr_rescue <- expit(h_0 + (Y - 10) * condition$h_y[1] + (age - condition$mean_age[1]) * condition$h_age[1])
+  pr_rescue <- expit(h_0 + (Y - 10) * condition$h_y + (age - condition$mean_age) * condition$h_age)
   pr_rescue[, 1] <- 0
   pr_rescue[, condition$k + 1] <- 0
-# browser()
-  resc <- matrix(rbinom((condition$k[1] + 1) * n, size = 1, prob = pr_rescue), nrow = n)
+
+  resc <- matrix(rbinom((condition$k + 1) * n, size = 1, prob = pr_rescue), nrow = n)
   rescue <- t(apply(resc, 1, cumsum)) > 0
   rescue_start <- rowSums(!rescue)
   k_rescue <- rowSums(rescue)
@@ -75,8 +79,8 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
 
   for (i in 1:n) {
     if (k_rescue[i] > 0) {
-      rescue_set <- (rescue_start[i] + 2):(condition$k[1] + 1)
-      Y[i, rescue_set] <- mu[i, rescue_set] +
+      rescue_set <- (rescue_start[i] + 2):(condition$k + 1)
+      Y[i, rescue_set] <- mu_ctr[i, rescue_set] +
         response_rescue[i] * rescue_effect[rescue_set - rescue_start[i] + 1] +
         resid[rescue_set]
       any_rescue[i] <- TRUE
@@ -86,18 +90,18 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
     }
   }
 
-  g_0 <- log(condition$pr_missing[1] / (1 - condition$pr_missing[1]))
-  pr_miss <- expit(g_0 + (Y - 10) * condition$g_y[1] +
-    (age - condition$mean_age[1]) * condition$g_age[1] +
-    rescue * condition$g_rescue[1]) # actual prob. to drop out
+  g_0 <- log(condition$pr_missing / (1 - condition$pr_missing))
+  pr_miss <- expit(g_0 + (Y - 10) * condition$g_y +
+    (age - condition$mean_age) * condition$g_age +
+    rescue * condition$g_rescue) # actual prob. to drop out
   pr_miss[, 1] <- 0 # we assume complete data at baseline
 
-  wd <- matrix(rbinom((condition$k[1] + 1) * n, size = 1, prob = pr_miss), nrow = n)
+  wd <- matrix(rbinom((condition$k + 1) * n, size = 1, prob = pr_miss), nrow = n)
   wd1 <- t(apply(wd, 1, cumsum)) > 0
 
   for (i in 1:n) {
     miss_start <- sum(!wd1[i, ]) + 1
-    if (miss_start <= (condition$k[1] + 1)) Y[i, miss_start:(condition$k[1] + 1)] <- NA
+    if (miss_start <= (condition$k + 1)) Y[i, miss_start:(condition$k + 1)] <- NA
   }
 
   out <- data.frame(id, trt, age, Y, any_rescue, rescue_start)
@@ -123,8 +127,8 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
 #' Design <- assumptions_diabetes_rescue()
 #' Design
 assumptions_diabetes_rescue <- function(print = interactive()) {
-  skel <- "expand.grid(
-  delta = 1,                             #
+  skel <- "params_scenarios_grid(
+  delta = c(1,0.5),                             #
   lambda = log(2)/2,                     #
   delta_resc = 0.75,
   lambda_resc = 1,
@@ -133,13 +137,13 @@ assumptions_diabetes_rescue <- function(print = interactive()) {
   mean_age=60,                           # mean of the variable age
   sd_age=10,                             # standard deviation of the variable age
   b_age=log(2)/10,                       # age coefficient
-  pr_rescue = 0.05,                      # probability for rescue medication
-  h_y = log(3),                          # strong effect due to high hba1c
+  pr_rescue = c(0.05,0.02),              # probability for rescue medication
+  h_y = c(log(3),log(150)),              # strong effect due to high hba1c
   h_age = -log(1.01),                    # weaker age effect than for dropout
-  pr_missing = 0.02,                     # probability for missing data
-  g_y = log(1.5),                        # moderate effect due to high hba1c
-  g_age = log(1.02),                     # older patients drop out more easily, let's say, stronger age effect than for rescue
-  g_rescue = log(1.5)                    # notable effect due to rescue medication, increase to large value to have positivity violation, like 5 or 10
+  pr_missing = c(0.02,0.04,0.5),         # probability for missing data
+  g_y = c(log(3),0,log(150)),            # moderate effect due to high hba1c
+  g_age = c(log(1.02),0),                # older patients drop out more easily, let's say, stronger age effect than for rescue
+  g_rescue = c(log(1.5),0)               # notable effect due to rescue medication, increase to large value to have positivity violation, like 5 or 10
 )
 "
 
@@ -176,24 +180,20 @@ assumptions_diabetes_rescue <- function(print = interactive()) {
 #' @examples
 #' true_summary_statistics_diabetes_rescue(assumptions_diabetes_rescue())
 true_summary_statistics_diabetes_rescue <- function(Design, cutoff_stats = 10, fixed_objects = NULL) {
-  true_summary_statistics_diabetes_rescue_rowwise <- function(condition, cutoff_stats) {
-    res <- data.frame(
-      rmst_trt = NA_real_,
-      medial_surv_trt = NA_real_,
-      rmst_ctrl = NA_real_,
-      median_surv_ctrl = NA_real_,
-      gAHR = NA_real_,
-      AHR = NA_real_
-    )
-
-    res
-  }
-
-  Design <- Design |>
-    split(1:nrow(Design)) |>
-    mapply(FUN = true_summary_statistics_diabetes_rescue_rowwise, cutoff_stats = cutoff_stats, SIMPLIFY = FALSE)
-
-  Design <- do.call(rbind, Design)
+  # true_summary_statistics_diabetes_rescue_rowwise <- function(condition, cutoff_stats) {
+  #   res <- data.frame(
+  #     eff_true <- condition$delta / 2 * (1 - exp(-condition$lambda * condition$k))
+  #   )
+  #
+  #   res
+  # }
+  #
+  # Design <- Design |>
+  #   split(1:nrow(Design)) |>
+  #   mapply(FUN = true_summary_statistics_diabetes_rescue_rowwise, cutoff_stats = cutoff_stats, SIMPLIFY = FALSE)
+  #
+  # Design <- do.call(rbind, Design)
+  Design$eff_true <- -Design$delta / 2 * (1 - exp(-Design$lambda * Design$k))
 
   Design
 }
