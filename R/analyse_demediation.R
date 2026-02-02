@@ -5,6 +5,8 @@
 #' @return an analyse function that can be used in runSimulation
 #' @export
 #'
+#' @importFrom stats lm glm as.formula
+#'
 #' @examples
 #' analyse_demediation()(assumptions_diabetes_rescue()[1, ], generate_diabetes_rescue(assumptions_diabetes_rescue()[1, ]))
 #'
