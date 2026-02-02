@@ -10,7 +10,7 @@ analyse_demediation(X)
 summarise_demediation(name = NULL)
 }
 \arguments{
-\item{X}{}
+\item{X}{also input}
 }
 \value{
 an analyse function that can be used in runSimulation

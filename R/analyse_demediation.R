@@ -1,6 +1,6 @@
 #' Create Analyse Functions for ...
 #'
-#' @param X
+#' @param X input
 #'
 #' @return an analyse function that can be used in runSimulation
 #' @export
@@ -155,7 +155,7 @@ analyse_demediation <- function(X) {
 
 #' Summarise Output from Analyse Functions for ...
 #'
-#' @param X
+#' @param X also input
 #'
 #' @describeIn analyse_demediation Summarise Output from Analyse X
 #'
