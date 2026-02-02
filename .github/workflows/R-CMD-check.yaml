@@ -37,6 +37,7 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
       R_KEEP_PKG_SOURCE: yes
+      RENV_PATHS_CACHE: ${{ runner.temp }}/Rcache
 
     steps:
       - uses: actions/checkout@v4
