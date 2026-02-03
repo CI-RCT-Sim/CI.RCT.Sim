@@ -1,0 +1,192 @@
+---
+title: "Derivation of the gamma 0"
+output: html_document
+date: "2026-02-03"
+---
+
+## Derive the value of $\gamma_0$
+
+We want to target an overall compliance of 95%. The probability of compliance for each arm is defined by the logistic regression model (4.1). The overall compliance is therefore the sum of the compliances for each treatment group, weighted by their respective sample sizes.
+
+For each treatment arm we define: $A0$ and $A1$ as the terms in the logistic regression that don't depend on $\gamma_0$, $w_0:=\frac{n_{\textrm{ctrl}}}{n_{\textrm{ctrl}}+n_{\textrm{trt}}}$, $w_1:=\frac{n_{\textrm{trt}}}{n_{\textrm{ctrl}}+n_{\textrm{trt}}}$ for the control (0) arm and the treatment arm (1) respectively. Given all other parameters we can solve this for $\gamma_0$ symbolically:
+
+```{python}
+from sympy import *
+```
+
+Define symbols and state assumptions:
+
+```{python}
+w0 = Symbol("w0", real=True, positive=True)
+w1 = Symbol("w1", real=True, positive=True)
+gamma0 = Symbol("gamma0", real=True)
+A0 = Symbol("A0", real=True)
+A1 = Symbol("A1", real=True)
+p = Symbol("p", real=True, positive=True)
+```
+
+Plug in definition of logistic function $x\mapsto \frac{1}{1+\exp(x)}$:
+
+```{python}
+my_expr = w1*(1/(1+exp(-gamma0-A1))) + w0*(1/(1+exp(-gamma0-A0))) - p
+```
+
+Sovle for $\gamma_0$
+
+```{python}
+solutions = solve(my_expr, gamma0)
+```
+
+Which gives us two solutions:
+
+```{python}
+len(solutions)
+```
+
+```{python}
+solutions[0]
+```
+
+```{python}
+solutions[1]
+```
+
+## R-implementation and check
+
+```{r, message=FALSE}
+library("CI.RCT.Sim")
+library("SimDesign")
+```
+
+As a reference/check: a naive implementation by numeric root-finding:
+
+```{r}
+vaccine_scenario_set_gamma_0_numeric <- function(Design){
+  set_gamma_0_rowwise <- function(condition){
+    # plug-in mean for W, V
+    A0 <- condition$gamma_W * condition$p_W +
+      condition$gamma_V * condition$p_V
+    
+    A1 <- condition$gamma_W * condition$p_W +
+      condition$gamma_V * condition$p_V +
+      condition$gamma_A + 
+      condition$gamma_AW * condition$p_W
+    
+    f <- function(gamma_0){
+      ((condition$n_trt)/(condition$n_trt + condition$n_ctrl)) * binomial()$linkinv(gamma_0 + A1) +
+        ((condition$n_ctrl)/(condition$n_trt + condition$n_ctrl)) * binomial()$linkinv(gamma_0 + A0) -
+        condition$overall_compliance
+    }
+    
+    gamma_0 <- uniroot(
+      f, lower=0, upper=0.1, extendInt = "upX", 
+      check.conv=TRUE, 
+      tol=.Machine$double.eps^0.5
+    )$root
+    
+    gamma_0
+  }
+  
+  Design$gamma_0 <- Design |> 
+    split(1:nrow(Design)) |>
+    sapply(set_gamma_0_rowwise)
+  
+  Design
+}
+```
+
+Implementation based on the symbolic math solution:
+
+```{r}
+vaccine_scenario_set_gamma_0 <- function(Design){
+  set_gamma_0_rowwise <- function(condition){
+    # plug-in mean for W, V
+    A0 <- condition$gamma_W * condition$p_W +
+      condition$gamma_V * condition$p_V
+    
+    A1 <- condition$gamma_W * condition$p_W +
+      condition$gamma_V * condition$p_V +
+      condition$gamma_A + 
+      condition$gamma_AW * condition$p_W
+    
+    w1 <- condition$n_trt  / (condition$n_trt + condition$n_ctrl)
+    w0 <- condition$n_ctrl / (condition$n_trt + condition$n_ctrl)
+    p <- condition$overall_compliance
+    
+    # derived with sympy
+    log_solution_1 <- 
+        (-p*exp(A0) - p*exp(A1) + w0*exp(A0) + w1*exp(A1) - sqrt(p^2*exp(2*A0) + p^2*exp(2*A1) - 2*p^2*exp(A0 + A1) - 2*p*w0*exp(2*A0) + 2*p*w0*exp(A0 + A1) - 2*p*w1*exp(2*A1) + 2*p*w1*exp(A0 + A1) + w0^2*exp(2*A0) + 2*w0*w1*exp(A0 + A1) + w1^2*exp(2*A1)))*exp(-A0 - A1)/(p - w0 - w1)
+    
+    # derived with sympy
+    log_solution_2 <- 
+      (-p*exp(A0) - p*exp(A1) + w0*exp(A0) + w1*exp(A1) + sqrt(p^2*exp(2*A0) + p^2*exp(2*A1) - 2*p^2*exp(A0 + A1) - 2*p*w0*exp(2*A0) + 2*p*w0*exp(A0 + A1) - 2*p*w1*exp(2*A1) + 2*p*w1*exp(A0 + A1) + w0^2*exp(2*A0) + 2*w0*w1*exp(A0 + A1) + w1^2*exp(2*A1)))*exp(-A0 - A1)/(p - w0 - w1)
+
+    # check which solution works (log of something > 0)
+    if((log_solution_1 > 0) && (log_solution_2 <= 0)){
+      gamma_0 <- log(log_solution_1) - log(2)
+    } else if((log_solution_2 > 0) && (log_solution_1 <= 0)){
+      gamma_0 <- log(log_solution_2) - log(2)
+    } else {
+      stop("No valid solution")
+    }
+    
+    gamma_0
+  }
+  
+  Design$gamma_0 <- Design |> 
+    split(1:nrow(Design)) |>
+    sapply(set_gamma_0_rowwise)
+  
+  Design
+}
+```
+
+## Compare Solutions
+
+Calculate the values with the two implementations and check, if they are the same:
+
+```{r}
+Design <- vaccine_scenario(print=FALSE)
+Design$overall_compliance <- 0.95
+
+Design_analytic <- vaccine_scenario_set_gamma_0(Design)
+Design_numeric  <- vaccine_scenario_set_gamma_0_numeric(Design)
+
+plot(Design_analytic$gamma_0, Design_numeric$gamma_0)
+abline(0,1)
+```
+
+## Check by simulation
+
+Do we actually hit the target of overall compliance?
+
+```{r, eval=TRUE, echo=TRUE, results='hide'}
+Design_analytic$beta_A1 <- 0.1
+
+# just take the means / proportions of the compliance C
+Analyse <- function(condition, dat, fixed_objects) {
+    ret <- nc(mean = mean(dat$C))
+    ret
+}
+
+# mean and variance of the proportions
+Summarise <- Summarise <- function(condition, results, fixed_objects) {
+    ret <- c(mean=mean(results$mean), var=var(results$mean))
+    ret
+}
+
+# run simulation with 1000 replications
+res <- runSimulation(
+  design = Design_analytic,
+  replications = 1000,
+  generate = generate_vaccine,
+  analyse = Analyse,
+  summarise = Summarise
+)
+```
+
+And the results look quite ok:
+
+```{r}
+res$mean - 0.95
+```
