@@ -3,11 +3,14 @@
 \name{vaccine_scenario}
 \alias{vaccine_scenario}
 \alias{generate_vaccine}
+\alias{vaccine_scenario_set_gamma_0}
 \title{Create an empty assumtions data.frame for generate_vaccine}
 \usage{
 vaccine_scenario(print = interactive())
 
 generate_vaccine(condition, fixed_objects = NULL)
+
+vaccine_scenario_set_gamma_0(Design)
 }
 \arguments{
 \item{print}{print code to generate parameter set?}
@@ -15,11 +18,15 @@ generate_vaccine(condition, fixed_objects = NULL)
 \item{condition}{Row of parameters dataset}
 
 \item{fixed_objects}{other objects passed to simulation runs}
+
+\item{Design}{Design dataset as returned by \code{vaccine_scenario}}
 }
 \value{
 For vaccine_scenario: a design tibble with default values invisibly
 
 a simulated dataset
+
+a Design dataset with the added column gamma_0
 }
 \description{
 Create an empty assumtions data.frame for generate_vaccine
@@ -36,12 +43,14 @@ the template is also printed for copying, pasting and editing by the user.
 
 \item \code{generate_vaccine()}: simulate a dataset from the vaccine scenario
 
+\item \code{vaccine_scenario_set_gamma_0()}: vaccine_scenario_set_gamma_0 calculate gamma_0 from other parameters
+
 }}
 \examples{
-Design <- vaccine_scenario()
+Design <- vaccine_scenario() |>
+  vaccine_scenario_set_gamma_0()
 Design
 
-Design$gamma_0 <- 0.1
 Design$beta_A1 <- 0.1
 
 generate_vaccine(Design[1,])

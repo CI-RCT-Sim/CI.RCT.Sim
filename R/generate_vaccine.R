@@ -13,10 +13,10 @@
 #' @describeIn vaccine_scenario generate default assumptions `data.frame`
 #'
 #' @examples
-#' Design <- vaccine_scenario()
+#' Design <- vaccine_scenario() |>
+#'   vaccine_scenario_set_gamma_0()
 #' Design
 #'
-#' Design$gamma_0 <- 0.1
 #' Design$beta_A1 <- 0.1
 #'
 #' generate_vaccine(Design[1,])
@@ -25,7 +25,7 @@ vaccine_scenario <- function(print=interactive()){
   p_V = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk
   p_W = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk and modifying treatment effect
   lambda_post = -log(1-(1/c(500, 1000, 2000)))/365.25, # force of infection (baseline infection hazard) after 14 days, yearly incidence of 1/500, 1/1000, 1/2000
-  # gamma_0  = c(), # callibrated from other parameters to give typical compliance
+  overall_compliance = c(0.95), # used to callibrate gamma0
   gamma_W  = c(-0.8, 0), # regression parameters for compliance
   gamma_V  = c(0.5, 0),
   gamma_A  = c(-0.357, 0),
@@ -86,7 +86,7 @@ generate_vaccine <- function(condition, fixed_objects = NULL){
   # observed compliance
   C <- as.numeric(U < p(A))
 
-  # TODO: check if beta_AW is the same for d=1,2 or if there should be one more parameter
+  # beta_AW^(1) == beta_AW^(2) == beta_AW according to table 4.1. in the protocol
   theta_1 <- condition$beta_A1 + condition$beta_AW * W
   theta_2 <- condition$beta_A2 + condition$beta_AW * W
   theta_early <- theta_1 * W
@@ -147,4 +147,53 @@ generate_vaccine <- function(condition, fixed_objects = NULL){
     t=T_,
     evt=Y
   )
+}
+
+
+#' @param Design Design dataset as returned by `vaccine_scenario`
+#'
+#' @describeIn vaccine_scenario vaccine_scenario_set_gamma_0 calculate gamma_0 from other parameters
+#'
+#' @returns a Design dataset with the added column gamma_0
+#' @export
+vaccine_scenario_set_gamma_0 <- function(Design){
+  set_gamma_0_rowwise <- function(condition){
+    # plug-in mean for W, V
+    A0 <- condition$gamma_W * condition$p_W +
+      condition$gamma_V * condition$p_V
+
+    A1 <- condition$gamma_W * condition$p_W +
+      condition$gamma_V * condition$p_V +
+      condition$gamma_A +
+      condition$gamma_AW * condition$p_W
+
+    w1 <- condition$n_trt  / (condition$n_trt + condition$n_ctrl)
+    w0 <- condition$n_ctrl / (condition$n_trt + condition$n_ctrl)
+    p <- condition$overall_compliance
+
+    # derived with sympy
+    log_solution_1 <-
+      (-p*exp(A0) - p*exp(A1) + w0*exp(A0) + w1*exp(A1) - sqrt(p^2*exp(2*A0) + p^2*exp(2*A1) - 2*p^2*exp(A0 + A1) - 2*p*w0*exp(2*A0) + 2*p*w0*exp(A0 + A1) - 2*p*w1*exp(2*A1) + 2*p*w1*exp(A0 + A1) + w0^2*exp(2*A0) + 2*w0*w1*exp(A0 + A1) + w1^2*exp(2*A1)))*exp(-A0 - A1)/(p - w0 - w1)
+
+    # derived with sympy
+    log_solution_2 <-
+      (-p*exp(A0) - p*exp(A1) + w0*exp(A0) + w1*exp(A1) + sqrt(p^2*exp(2*A0) + p^2*exp(2*A1) - 2*p^2*exp(A0 + A1) - 2*p*w0*exp(2*A0) + 2*p*w0*exp(A0 + A1) - 2*p*w1*exp(2*A1) + 2*p*w1*exp(A0 + A1) + w0^2*exp(2*A0) + 2*w0*w1*exp(A0 + A1) + w1^2*exp(2*A1)))*exp(-A0 - A1)/(p - w0 - w1)
+
+    # check which solution works (log of something > 0)
+    if((log_solution_1 > 0) && (log_solution_2 <= 0)){
+      gamma_0 <- log(log_solution_1) - log(2)
+    } else if((log_solution_2 > 0) && (log_solution_1 <= 0)){
+      gamma_0 <- log(log_solution_2) - log(2)
+    } else {
+      stop("No valid solution")
+    }
+
+    gamma_0
+  }
+
+  Design$gamma_0 <- Design |>
+    split(1:nrow(Design)) |>
+    sapply(set_gamma_0_rowwise)
+
+  Design
 }
