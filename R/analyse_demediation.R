@@ -148,8 +148,6 @@ analyse_demediation <- function(X) {
     #   )
     # }
     # t <- with(dats,analysis)
-
-    # browser()
     as.list(dplyr::bind_rows(t)[1, ])
   }
 }
@@ -157,7 +155,7 @@ analyse_demediation <- function(X) {
 
 #' Summarise Output from Analyse Functions for ...
 #'
-#' @param name also input
+#' @param name also input used to name the summarise function
 #'
 #' @describeIn analyse_demediation Summarise Output from Analyse X
 #'

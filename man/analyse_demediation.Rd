@@ -12,7 +12,7 @@ summarise_demediation(name = NULL)
 \arguments{
 \item{X}{input can be used to pass parameters to the analyse function}
 
-\item{name}{also input}
+\item{name}{also input used to name the summarise function}
 }
 \value{
 an analyse function that can be used in runSimulation
