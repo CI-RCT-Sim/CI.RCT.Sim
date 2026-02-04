@@ -26,5 +26,8 @@ Imports:
     ltmle,
     mice,
     purrr,
-    mvtnorm
+    mvtnorm,
+    estimatr,
+    magrittr,
+    tidyr
 VignetteBuilder: knitr

@@ -7,11 +7,11 @@
 analyse_ipw(estimand = "tp", level = 0.95, alternative = "two.sided")
 }
 \arguments{
-\item{estimand}{the estimand targeted by the CI method "tp" for treatment policy}
+\item{estimand}{the estimand targeted by the CI method "tp" for treatment policy, otherwise hypothetical}
 
 \item{level}{confidence level for CI computation}
 
-\item{alternative}{alternative hypothesis for the tests "two.sided" or "one.sieded"}
+\item{alternative}{alternative hypothesis for the tests "two.sided" or "one.sided"}
 }
 \value{
 an analyse function that returns a list with the elements
@@ -20,8 +20,8 @@ an analyse function that returns a list with the elements
 \item \code{alternative} the alternative used
 \item \code{coef} coefficient for \code{trt}
 \item \code{hr} hazard ratio for \code{trt}
-\item \code{hr_lower} lower 95\% confidence intervall boundary for the hazard ratio for \code{trt}
-\item \code{hr_upper}lower 95\% confidence intervall boundary for the hazard ratio for \code{trt}
+\item \code{hr_lower} lower 95\% confidence interval boundary for the hazard ratio for \code{trt}
+\item \code{hr_upper}lower 95\% confidence interval boundary for the hazard ratio for \code{trt}
 \item \code{CI_level} the CI level used
 \item \code{N_pat} number of patients
 \item \code{N_evt} number of events
@@ -35,4 +35,18 @@ Analyse Dataset with the Inverse probability weighting
 summary statistic or "one.sided" for a one sided test testing H0: treatment
 has equal or shorter survival than control vs. H1 treatment has longer
 survival than control.
+}
+\examples{
+Design <- assumptions_diabetes_rescue() #|>
+  #true_summary_statistics_diabetes_rescue()
+
+condition <- Design[1, ]
+
+dat <- generate_diabetes_rescue(condition)
+
+analyse_ipw_tp  <- analyse_ipw(estimand="tp")
+analyse_ipw_tp (condition, dat)
+
+analyse_ipw_hyp  <- analyse_ipw(estimand="hyp")
+analyse_ipw_hyp (condition, dat)
 }
