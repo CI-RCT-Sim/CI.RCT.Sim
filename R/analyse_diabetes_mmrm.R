@@ -19,7 +19,6 @@
 #' analyse_mmrm(Design[1, ], dat)
 analyse_diabetes_rescue_mmrm <- function(ci_level = 0.95) {
   function(condition, dat, fixed_objects = NULL) {
-
     # keep baseline
     baseline <- dat$y0
 
@@ -48,7 +47,7 @@ analyse_diabetes_rescue_mmrm <- function(ci_level = 0.95) {
     term <- paste0("trt:visit", condition$k)
 
     est <- coef(fit)[[term]]
-    se  <- sqrt(vcov(fit)[term, term])
+    se <- sqrt(vcov(fit)[term, term])
 
     z <- qnorm(1 - (1 - ci_level) / 2)
 
@@ -60,4 +59,3 @@ analyse_diabetes_rescue_mmrm <- function(ci_level = 0.95) {
     )
   }
 }
-
