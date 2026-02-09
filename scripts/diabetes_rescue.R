@@ -5,12 +5,12 @@ sim_parameters <- assumptions_diabetes_rescue()[1, ] |>
   true_summary_statistics_diabetes_rescue()
 
 # constants for simulation and aggregation
-N_sim <- 10 # 00
+N_sim <- 2 # 00
 alpha <- 0.1
 
 # list of analysis functions
 my_analyse <- list(
-  # ipw = analyse_ipw(estimand = "tp") # ,
+  ipw = analyse_ipw(estimand = "tp") ,
   dm = analyse_diabetes_demediation()
 )
 
@@ -20,7 +20,7 @@ my_analyse <- list(
 # summarise_estimator and summarise_test are generic summarisation function
 # from SimNPH, but own functions can be defined.
 my_summarise <- create_summarise_function(
-  # ipw = summarise_estimator(est = coef, real = eff_true) # ,
+  ipw = summarise_estimator(est = coef, real = eff_true) ,
   dm = summarise_estimator(est = coef, real = eff_true)
   # ttest = summarise_test(alpha),
   # lm = function(condition, results, fixed_objects = NULL) {
