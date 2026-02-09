@@ -33,6 +33,7 @@ importFrom(SimNPH,summarise_estimator)
 importFrom(SimNPH,summarise_test)
 importFrom(SimNPH,upsert_merge)
 <<<<<<< HEAD
+<<<<<<< HEAD
 importFrom(dplyr,across)
 importFrom(dplyr,arrange)
 importFrom(dplyr,filter)
@@ -47,6 +48,8 @@ importFrom(mice,make.formulas)
 importFrom(mice,mice)
 =======
 >>>>>>> main
+=======
+>>>>>>> origin/develop_lj
 importFrom(purrr,imap)
 importFrom(purrr,list_rbind)
 importFrom(stats,anova)
