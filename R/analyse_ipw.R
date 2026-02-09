@@ -40,16 +40,16 @@ analyse_ipw <- function(estimand = "hyp") {
     k<-condition$k[1] #number of last visit
 
     #reformate dat to long format with one Hba1c column, one outcome column 'y' (change of Hba1c) and a time variable 'visit'
-    dat_long <- pivot_longer(dat, y_0:paste0("y",k), names_to = "visit", values_to = "hba1c")
+    dat_long <- pivot_longer(dat, y0:paste0("y",k), names_to = "visit", values_to = "hba1c")
 
     dat_long<- dat_long %>%
-      mutate(visit = as.numeric(sub('hba1c', '', visit))) %>%
+      mutate(visit = as.numeric(sub('y', '', visit))) %>%
       mutate(rescue = ifelse(!is.na(rescue_start)&rescue_start<=visit, 1, 0)) %>% #new variable for rescue at visit j
       mutate(rescue_lag = lag(rescue, default = NA)) #rescue at visit j-1
 
     dat_long <- dat_long %>%
-      mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
       arrange(id, visit) %>% group_by(id) %>%
+      mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
       mutate(y_lag = lag(hba1c, default = NA)) %>% # HbA1 at visit j-1
       mutate(y = hba1c - hba1c_0) %>% # HbA1c change
       mutate(y_lag = lag(y, default = NA)) %>% # HbA1 change at visit j-1
@@ -73,13 +73,10 @@ analyse_ipw <- function(estimand = "hyp") {
         weights = temp$ipw.weights[dat_long$visit==k & dat_long$exposure==0],
         data = dat_long[dat_long$visit==k & dat_long$exposure==0,]
         )
-      CI <- confint(model, level=level)
 
       list(
-        p = summary(model)$coefficients["trt", "Pr(>|t|)"],
         coef = summary(model)$coefficients["trt", "Estimate"],
-        ci_lower = CI["trt", 1],
-        ci_upper = CI["trt", 2]
+        sd = summary(model)$coefficients["trt", "Std. Error"]
       )
     } else if (estimand == "hyp") {
       dat_long$exposure <- ifelse(is.na(dat_long$y) | dat_long$rescue == 1, 1L, 0L) #indicator for missing outcomes and rescue medication
@@ -99,13 +96,11 @@ analyse_ipw <- function(estimand = "hyp") {
         weights = temp$ipw.weights[dat_long$visit==k & dat_long$exposure==0],
         data = dat_long[dat_long$visit==k & dat_long$exposure==0,]
       )
-      CI <- confint(model, level=level)
 
       list(
-        p = summary(model)$coefficients["trt", "Pr(>|t|)"],
         coef = summary(model)$coefficients["trt", "Estimate"],
-        ci_lower = CI["trt", 1],
-        ci_upper = CI["trt", 2]
+        sd = summary(model)$coefficients["trt", "Std. Error"]
+
       )
     }
 
