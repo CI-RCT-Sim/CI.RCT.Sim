@@ -25,5 +25,11 @@ Imports:
     tibble,
     mice,
     purrr,
-    mvtnorm
+    mvtnorm,
+    estimatr,
+    magrittr,
+    tidyr,
+    gfoRmula,
+    ipw,
+    mmrm
 VignetteBuilder: knitr
