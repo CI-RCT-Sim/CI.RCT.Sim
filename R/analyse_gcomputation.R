@@ -59,7 +59,6 @@
 #' dat <- generate_diabetes_rescue(condition)
 #'
 #' analyse_gestimation <- analyse_gestimation()
-#' analyse_gestimation(condition, dat)
 analyse_gestimation <- function(level = 0.95, alternative = "two.sided") {
   stopifnot(alternative %in% c("two.sided", "one.sided"))
   stopifnot(level > 0 & level < 1)
