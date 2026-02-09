@@ -1,76 +1,42 @@
-library("CI.RCT.Sim")
-library("SimDesign")
+devtools::load_all()
 
-# -------------------------------------------------------------------
-# Define parameter values and derived quantities
-# -------------------------------------------------------------------
-
-sim_parameters <- assumptions_diabetes_rescue() |>
+# Define the parameter valued, calculate derived quantities from the parameters
+sim_parameters <- assumptions_diabetes_rescue()[1, ] |>
   true_summary_statistics_diabetes_rescue()
 
-# -------------------------------------------------------------------
-# Constants for simulation
-# -------------------------------------------------------------------
-
-N_sim <- 1000
+# constants for simulation and aggregation
+N_sim <- 2 # 00
 alpha <- 0.1
 
-# -------------------------------------------------------------------
-# List of analysis functions
-# -------------------------------------------------------------------
-
+# list of analysis functions
 my_analyse <- list(
-  mmrm = analyse_diabetes_rescue_mmrm(ci_level = 1 - alpha)
+  ipw = analyse_ipw(estimand = "tp"),
+  dm = analyse_diabetes_demediation()
 )
 
-# -------------------------------------------------------------------
-# List of summarisation functions
-# -------------------------------------------------------------------
-# summarise_estimator and summarise_test are generic summarisation
-# functions from CI.RCT.Sim / SimDesign
-
+# list of summarisation functions
+# those are applied to the results of the analysis functions by the same name,
+# repeating one name multiple times is allowed
+# summarise_estimator and summarise_test are generic summarisation function
+# from SimNPH, but own functions can be defined.
 my_summarise <- create_summarise_function(
-
-  # bias, SD, coverage etc. for the treatment effect at final visit
-  mmrm = summarise_estimator(
-    est   = coef,
-    real  = eff_true,
-    lower = ci_lower,
-    upper = ci_upper,
-    null  = 0
-  ),
-
-  # additional custom summary: mean CI width
-  mmrm = function(condition, results, fixed_objects = NULL) {
-    data.frame(
-      mean_ci_width = mean(results$ci_upper - results$ci_lower, na.rm = TRUE)
-    )
-  }
+  ipw = summarise_estimator(est = coef, real = eff_true),
+  dm = summarise_estimator(est = coef, real = eff_true)
+  # ttest = summarise_test(alpha),
+  # lm = function(condition, results, fixed_objects = NULL) {
+  #   data.frame(mean_ci_width = mean(results$ci_upper - results$ci_lower))
+  # }
 )
 
-# -------------------------------------------------------------------
-# Run the simulations
-# -------------------------------------------------------------------
-
+# run the simulations using SimDesign::runSimulation
 results <- runSimulation(
-  design      = sim_parameters,
+  sim_parameters,
   replications = N_sim,
-  generate    = generate_diabetes_rescue,
-  analyse     = my_analyse,
-  summarise   = my_summarise
+  generate = generate_diabetes_rescue,
+  analyse = my_analyse,
+  summarise = my_summarise
 )
 
-# -------------------------------------------------------------------
-# Inspect results
-# -------------------------------------------------------------------
-
+# inspect the results
 results |>
-  subset(
-    select = c(
-      names(sim_parameters),
-      "mmrm.bias",
-      "mmrm.sd_est",
-      "mmrm.coverage",
-      "mmrm.1.mean_ci_width"
-    )
-  )
+  subset(select = c(names(sim_parameters), "dm.bias", "dm.sd_est"))

@@ -10,7 +10,7 @@
 #'
 #' @importFrom stats as.formula
 #' @importFrom estimatr lm_robust
-#' @importFrom dplyr filter lag arrange group_by
+#' @importFrom dplyr filter lag arrange group_by mutate
 #' @importFrom tidyr pivot_longer
 #' @importFrom ipw ipwtm
 #' @importFrom magrittr `%>%`
@@ -41,18 +41,13 @@ analyse_ipw <- function(estimand = "hyp") {
     dat_long <- pivot_longer(dat, y0:paste0("y", k), names_to = "visit", values_to = "hba1c")
 
     dat_long <- dat_long %>%
-      dplyr::mutate(visit = as.numeric(sub("y", "", visit))) %>%
-      dplyr::mutate(rescue = ifelse(!is.na(rescue_start) & rescue_start <= visit, 1, 0)) %>% # new variable for rescue at visit j
-      dplyr::mutate(rescue_lag = lag(rescue, default = NA)) # rescue at visit j-1
-
-    dat_long <- dat_long %>%
-      dplyr::arrange(id, visit) %>%
+      arrange(id, visit) %>%
       group_by(id) %>%
-      dplyr::mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
-      dplyr::mutate(y_lag = lag(hba1c, default = NA)) %>% # HbA1 at visit j-1
-      dplyr::mutate(y = hba1c - hba1c_0) %>% # HbA1c change
-      dplyr::mutate(y_lag = lag(y, default = NA)) %>% # HbA1 change at visit j-1
-      dplyr::filter(visit != 0) # do not include baseline visits
+      mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
+      mutate(hba1c_lag = lag(hba1c, default = NA)) %>% # HbA1 at visit j-1
+      mutate(y = hba1c - hba1c_0) %>% # HbA1c change
+      mutate(y_lag = lag(y, default = NA)) %>% # HbA1 change at visit j-1
+      filter(visit != 0) # do not include baseline visits
 
     if (estimand == "tp") {
       dat_long$exposure <- ifelse(is.na(dat_long$y), 1L, 0L) # indicator for missing outcomes (somehow this only works if variable named exactly "exposure")
@@ -61,14 +56,14 @@ analyse_ipw <- function(estimand = "hyp") {
         exposure = exposure, # indicator for missing data at visit j
         family = "binomial",
         link = "logit",
-        denominator = ~ trt + age + y_lag + rescue_lag,
+        denominator = ~ trt + age + hba1c_lag + rescue_lag,
         id = id,
         timevar = visit,
         type = "first",
         data = dat_long
       )
       model <- lm_robust( # OLS with HC2 variance estimator
-        as.formula(paste0("y ~ trt + hba1c_0 + age")),
+        as.formula(paste0("y_k ~ trt + hba1c_0 + age")),
         weights = temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0],
         data = dat_long[dat_long$visit == k & dat_long$exposure == 0, ]
       )
