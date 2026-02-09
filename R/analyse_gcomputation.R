@@ -83,11 +83,11 @@ analyse_gestimation <- function(level = 0.95, alternative = "two.sided") {
     dat_long <- pivot_longer(dat, y0:paste0("y",k), names_to = "visit", values_to = "y")
 
     dat_long<- dat_long %>%
-      mutate(visit = as.numeric(sub('y', '', visit))) %>%
+      mutate(visit = as.numeric(sub('hba1c', '', visit))) %>%
       mutate(rescue = ifelse(!is.na(rescue_start)&rescue_start<=visit, 1, 0)) %>% #new variable for rescue at visit j
+      mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
+      mutate(y = hba1c - hba1c_0) %>% # HbA1c change
       arrange(id, visit) %>% group_by(id) %>% # make sure table is grouped by id and ordered by visit
-      mutate(y_lag = lag(y, default = NA)) %>% #HbA1 at visit j-1
-      mutate(y_0 = y[visit == 0]) # HbA1 at baseline as column for all visits (to be used later for outcome)
 
     # Run g-computation with bootstrap
     # We simulate Hba1c values under the intervention (no rescue) and then
