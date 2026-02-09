@@ -49,7 +49,7 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   # calculation of visit specific effects and the true effect
   eff <- condition$delta * (1 - exp(-condition$lambda * visit))
   rescue_effect <- condition$delta_resc * (1 - exp(-condition$lambda_resc * (visit)))
-  delta_true <- condition$delta / 2 * (1 - exp(-condition$lambda * condition$k))
+  delta_true <- condition$delta * (1 - exp(-condition$lambda * condition$k)) * 0.75
 
   # specifying parameters for sample size calculation
   alpha <- 0.05
@@ -59,7 +59,7 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   sigma_adj <- sqrt(sigma^2 * (1 - rho^2))
 
   n <- 2 * round(((qnorm(1 - alpha / 2) + qnorm(power))^2) * sigma_adj^2 * 2 / (delta_true^2))
-  if (condition$hyp == 1) {
+  if (condition$hyp == 0) {
     eff <- rep(0, condition$k + 1)
   }
 
@@ -68,18 +68,18 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   trt <- rbinom(n, 1, 0.5)
   age <- rnorm(n, mean = condition$mean_age, sd = condition$sd_age)
   age_slope <- 2 * exp(-condition$b_age * (age - 30))
-  response_trt <- runif(n)
+  response_trt <- runif(n, min = 0.5, max = 1)
   mu_ctr <- matrix(NA, nrow = n, ncol = length(visit))
   for (i in 1:length(visit)) {
     mu_ctr[, i] <- condition$mean_bl +
-      visit[i] / condition$k * age_slope
+      visit[i] / condition$k #* age_slope
   }
   mu <- matrix(NA, nrow = n, ncol = length(visit))
   for (i in 1:length(visit)) {
     mu[, i] <- mu_ctr[, i] +
       eff[i] * response_trt * trt
   }
-
+  # browser()
   # Implement the correlation structure of the repeated measurements using mvtnorm
   mu_resid <- rep(0, length(visit))
   sigma_resid <- diag(x = sigma^2, length(visit))
@@ -90,7 +90,8 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   Y <- mu + resid
 
   # Implement rescue medication and its effect
-  p_rescue <- plogis(condition$resc_0 + (Y - 10) * condition$resc_y + (age - condition$mean_age) * condition$resc_age)
+  p_rescue <- plogis(condition$resc_0 + (Y - condition$mean_bl) * condition$resc_y + (age - condition$mean_age) * condition$resc_age)
+  # p_rescue <- plogis(2 + (Y - 10) * condition$resc_y + (age - condition$mean_age) * condition$resc_age)
   p_rescue[, 1] <- 0
   p_rescue[, condition$k + 1] <- 0
 
@@ -98,13 +99,13 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   rescue <- t(apply(resc, 1, cumsum)) > 0
   rescue_start <- rowSums(!rescue)
   k_rescue <- rowSums(rescue)
-  response_rescue <- runif(n)
+  response_rescue <- runif(n, min = 0.5, max = 1)
   any_rescue <- c()
 
   for (i in 1:n) {
     if (k_rescue[i] > 0) {
       rescue_set <- (rescue_start[i] + 2):(condition$k + 1)
-      Y[i, rescue_set] <- mu_ctr[i, rescue_set] +
+      Y[i, rescue_set] <- mu[i, rescue_set] +
         response_rescue[i] * rescue_effect[rescue_set - rescue_start[i] + 1] +
         resid[rescue_set]
       any_rescue[i] <- TRUE
@@ -162,7 +163,7 @@ assumptions_diabetes_rescue <- function(print = interactive()) {
   delta       = -c(1,0.5),                # Maximal treatment effect
   lambda      = log(2)/2,                 # Rate of increasing treatment effect
   delta_resc  = -0.75,                    # Maximal effect of rescue medication
-  lambda_resc = 1,                        # Rate of increasing effect of rescue medication
+  lambda_resc = log(2),                   # Rate of increasing effect of rescue medication
   resc_0      = qlogis(c(0.05,0.02)),     # probability for rescue medication
   resc_y      = log(c(3,150)),            # strong effect due to high hba1c
   resc_age    = -log(1.01),               # weaker age effect than for dropout
@@ -183,7 +184,7 @@ assumptions_diabetes_rescue <- function(print = interactive()) {
       str2expression() |>
       eval()
   )
-  rbind(r |> dplyr::mutate(hyp = 0), r |> dplyr::mutate(hyp = 1))
+  rbind(r |> dplyr::mutate(hyp = 1), r |> dplyr::mutate(hyp = 0))
 }
 
 #' Calculate true summary statistics for scenarios with delayed treatment effect
@@ -221,7 +222,7 @@ true_summary_statistics_diabetes_rescue <- function(Design, cutoff_stats = 10, f
   #   mapply(FUN = true_summary_statistics_diabetes_rescue_rowwise, cutoff_stats = cutoff_stats, SIMPLIFY = FALSE)
   #
   # Design <- do.call(rbind, Design)
-  Design$eff_true <- Design$delta / 2 * (1 - exp(-Design$lambda * Design$k))
+  Design$eff_true <- Design$delta * (1 - exp(-Design$lambda * Design$k)) * 0.75
 
   Design
 }
