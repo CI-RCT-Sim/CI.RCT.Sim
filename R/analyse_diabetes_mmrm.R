@@ -27,7 +27,7 @@ analyse_diabetes_rescue_mmrm <- function(ci_level = 0.95) {
 
     long <- tidyr::pivot_longer(
       dat,
-      cols = tidyr::all_of(visit_vars),
+      cols = tidyselect::all_of(visit_vars),
       names_to = "visit",
       values_to = "y"
     )
