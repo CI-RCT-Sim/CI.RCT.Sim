@@ -5,7 +5,7 @@
 #' @return an analyse function that can be used in runSimulation
 #' @export
 #'
-#' @importFrom stats lm glm as.formula
+#' @importFrom stats lm glm as.formula binomial coef predict var
 #'
 #' @examples
 #' setting <- assumptions_diabetes_rescue()[1, ]
@@ -16,12 +16,7 @@ analyse_diabetes_demediation <- function(X) {
   function(condition, dat, fixed_objects = NULL) {
     # Convert the logical of receiving rescue at any point in to a longitudinal measurement in wide format
     dat <- dat |> dplyr::mutate(rescue_start = ifelse(is.na(rescue_start), condition$k + 2, rescue_start))
-    pred <- mice::make.predictorMatrix(dat)
-    pred[upper.tri(pred)] <- 0
-    dats <- mice::mice(dat,
-      m = 5, print = FALSE, seed = 2026,
-      formulas = mice::make.formulas(dat, blocks = mice::make.blocks(dat), predictorMatrix = pred)
-    )
+    dats <- mice::mice(dat, m = 5, print = FALSE)
 
     analysis <- function(dat, indicator) {
       dat_comp <- dat[indicator, ] |> dplyr::mutate(
@@ -48,9 +43,10 @@ analyse_diabetes_demediation <- function(X) {
     }
     effect <- rep(NA, dats$m)
     effect.var <- rep(NA, dats$m)
+    # browser()
     for (i in 1:dats$m) {
       dat <- mice::complete(dats, i)
-      res <- boot::boot(dat, analysis, R = 500)
+      res <- boot::boot(dat, analysis, R = 5)
       effect[i] <- res$t0[2]
       effect.var[i] <- var(res$t[, 2])
     }

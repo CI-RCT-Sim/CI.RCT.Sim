@@ -34,7 +34,7 @@
 #' and rescue_start (the visit at which rescue medication was started,
 #' NA if no rescue medication was received).
 #'
-#' @importFrom stats rbinom rnorm runif qnorm
+#' @importFrom stats rbinom rnorm runif qnorm qlogis plogis
 #'
 #' @export
 #' @describeIn generate_diabetes_rescue simulates a data set with n rows.
