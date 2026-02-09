@@ -51,15 +51,18 @@ analyse_ipw <- function(estimand = "tp", level = 0.95, alternative = "two.sided"
   # determine if the "alternative" statement can be incorporated
 
   function(condition, dat, fixed_objects = NULL) {
-    k<-condition$k[1]
+    k<-condition$k[1] #number of last visit
+
+    #reformate dat to long format with one outcome column 'y' and a time variable 'visit'
     dat_long <- pivot_longer(dat, y0:paste0("y",k), names_to = "visit", values_to = "y")
+
     dat_long<- dat_long %>%
       mutate(visit = as.numeric(sub('y', '', visit))) %>%
-      mutate(r = ifelse(!is.na(rescue_start)&rescue_start<=visit, 1L, 0L)) %>% #rescue
-      mutate(r_lag = lag(r, default = NA)) %>% #rescue j-1
+      mutate(r = ifelse(!is.na(rescue_start)&rescue_start<=visit, 1, 0)) %>% #new variable for rescue at visit j
+      mutate(r_lag = lag(r, default = NA)) %>% #rescue at visit j-1
       arrange(id, visit) %>% group_by(id) %>%
-      mutate(y_lag = lag(y, default = NA)) %>% #HbA1 j-1
-      mutate(y0 = y[visit == 0]) %>% # y0
+      mutate(y_lag = lag(y, default = NA)) %>% #HbA1 at visit j-1
+      mutate(y0 = y[visit == 0]) %>% # HbA1 at baseline
       filter(visit!=0) #do not include baseline visits
 
     if (estimand == "tp") {
