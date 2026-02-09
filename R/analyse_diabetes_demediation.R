@@ -20,8 +20,8 @@ analyse_diabetes_demediation <- function(X) {
 
     analysis <- function(dat, indicator) {
       dat_comp <- dat[indicator, ] |> dplyr::mutate(
-        across(
-          matches("^y[0-9]+$") & !y0,
+        dplyr::across(
+          dplyr::matches("^y[0-9]+$") & !y0,
           ~ .x - y0,
           .names = "yc{gsub('y', '', .col)}"
         )

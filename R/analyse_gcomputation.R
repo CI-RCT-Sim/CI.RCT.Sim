@@ -20,7 +20,6 @@
 #' @importFrom gfoRmula gformula_continuous_eof
 #' @importFrom dplyr filter lag arrange group_by
 #' @importFrom tidyr pivot_longer
-#' @importFrom magrittr `%>%`
 #'
 #' @details
 #' This function implements G-computation using `gformula_continuous_eof` to estimate the
@@ -61,8 +60,6 @@
 #'
 #' analyse_gestimation <- analyse_gestimation()
 #' analyse_gestimation(condition, dat)
-
-
 analyse_gestimation <- function(level = 0.95, alternative = "two.sided") {
   stopifnot(alternative %in% c("two.sided", "one.sided"))
   stopifnot(level > 0 & level < 1)
@@ -77,37 +74,38 @@ analyse_gestimation <- function(level = 0.95, alternative = "two.sided") {
   # determine if the "alternative" statement can be incorporated
 
   function(condition, dat, fixed_objects = NULL) {
-    k<-condition$k[1] #number of last visit
+    k <- condition$k[1] # number of last visit
 
-    #reformate dat to long format with one outcome column 'y' and a time variable 'visit'
-    dat_long <- pivot_longer(dat, y0:paste0("y",k), names_to = "visit", values_to = "y")
+    # reformate dat to long format with one outcome column 'y' and a time variable 'visit'
+    dat_long <- pivot_longer(dat, y0:paste0("y", k), names_to = "visit", values_to = "y")
 
-    dat_long<- dat_long %>%
-      mutate(visit = as.numeric(sub('hba1c', '', visit))) %>%
-      mutate(rescue = ifelse(!is.na(rescue_start)&rescue_start<=visit, 1, 0)) %>% #new variable for rescue at visit j
-      mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
-      mutate(y = hba1c - hba1c_0) %>% # HbA1c change
-      arrange(id, visit) %>% group_by(id) %>% # make sure table is grouped by id and ordered by visit
+    dat_long <- dat_long |>
+      dplyr::mutate(visit = as.numeric(sub("hba1c", "", visit))) |>
+      dplyr::mutate(rescue = ifelse(!is.na(rescue_start) & rescue_start <= visit, 1, 0)) |> # new variable for rescue at visit j
+      dplyr::mutate(hba1c_0 = hba1c[visit == 0]) |> # HbA1 at baseline
+      dplyr::mutate(y = hba1c - hba1c_0) |> # HbA1c change
+      dplyr::arrange(id, visit) |>
+      group_by(id) # make sure table is grouped by id and ordered by visit
 
     # Run g-computation with bootstrap
     # We simulate Hba1c values under the intervention (no rescue) and then
     # estimate the mean change in HbA1c at the final visit
-#library('Hmisc')
+    # library('Hmisc')
 
-    #create lists for bootstrap results
+    # create lists for bootstrap results
     coef_boot <- list()
 
-    for (b in 1:500) { #bootstrap
-      #draw bootstrap sample from patients
+    for (b in 1:500) { # bootstrap
+      # draw bootstrap sample from patients
       obs <- unique(dat_long$id)
-      obs_inds <- data.frame(id=sample(obs, length(obs), replace=TRUE))
-      boot_data <- merge(obs_inds, dat_long, all.x=TRUE)
+      obs_inds <- data.frame(id = sample(obs, length(obs), replace = TRUE))
+      boot_data <- merge(obs_inds, dat_long, all.x = TRUE)
 
-      gcomp_result<-list() #for each treatment
-      for (i in c(0,1)){ # for each treatment group
-        #gcomputation
-        gcomp_result[i+1] <- gfoRmula::gformula_continuous_eof(
-          obs_data = boot_data[boot_data$trt == i,],
+      gcomp_result <- list() # for each treatment
+      for (i in c(0, 1)) { # for each treatment group
+        # gcomputation
+        gcomp_result[i + 1] <- gfoRmula::gformula_continuous_eof(
+          obs_data = boot_data[boot_data$trt == i, ],
           id = "id",
           time_name = "visit",
           covnames = c("y", "rescue"),
@@ -115,34 +113,36 @@ analyse_gestimation <- function(level = 0.95, alternative = "two.sided") {
           outcome_name = "y",
           basecovs = c("age"),
           histories = c(lagged),
-          histvars = list(c('y')),
-          covparams = list(covmodels = c(y ~ lag1_y + age, #for y
-                                         rescue ~ y + age)), #for rescue
-          #restrictions=list(c("rescue",condition, function, value used by function))
+          histvars = list(c("y")),
+          covparams = list(covmodels = c(
+            y ~ lag1_y + age, # for y
+            rescue ~ y + age
+          )), # for rescue
+          # restrictions=list(c("rescue",condition, function, value used by function))
           ymodel = y ~ lag1_y + age,
           intervention1.rescue = list(static, rep(0, max(dat_long$visit) + 1)), # hypothetical: no rescue at any visit
           int_descript = c("hypothetical: no rescue was taken"),
-          nsimul = length(unique(boot_data[boot_data$trt == i,]$id)),
+          nsimul = length(unique(boot_data[boot_data$trt == i, ]$id)),
           seed = 1234,
-          nsamples = 0, #bootstrap will be conducted manually
-          sim_data_b=TRUE,
+          nsamples = 0, # bootstrap will be conducted manually
+          sim_data_b = TRUE,
           show_progress = TRUE
         )
         # Extract hypothetical final HbA1c and baseline HbA1c for each individual
-        sim_data[i+1] <- gcomp_result[i+1]$sim_data$`hypothetical: no rescue was taken` %>% # intervention: no rescue
-                          group_by(id) %>%
-                          mutate(y_k = y[visit == k])%>%
-                          mutate(y_0 = y[visit == 0])
+        sim_data[i + 1] <- gcomp_result[i + 1]$sim_data$`hypothetical: no rescue was taken` |> # intervention: no rescue
+          group_by(id) |>
+          dplyr::mutate(y_k = y[visit == k]) |>
+          dplyr::mutate(y_0 = y[visit == 0])
         # Compute individual change
-        sim_data[i+1] <-  sim_data[i+1] %>%
-          mutate(y_change = y_k - y_0)
+        sim_data[i + 1] <- sim_data[i + 1] |>
+          dplyr::mutate(y_change = y_k - y_0)
 
         # Compute mean change for each treatment group
-        mean_change[i+1] <- mean(sim_data[i+1]$y_change, na.rm = TRUE)
+        mean_change[i + 1] <- mean(sim_data[i + 1]$y_change, na.rm = TRUE)
       }
 
-    # Difference in mean change between groups
-    coef_boot[b] <- mean_change[1] - mean_change[0]
+      # Difference in mean change between groups
+      coef_boot[b] <- mean_change[1] - mean_change[0]
     }
 
     # mean of difference in mean change over bootstrap samples
@@ -161,5 +161,3 @@ analyse_gestimation <- function(level = 0.95, alternative = "two.sided") {
     )
   }
 }
-
-

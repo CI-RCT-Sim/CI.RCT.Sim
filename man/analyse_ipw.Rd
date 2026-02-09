@@ -27,9 +27,9 @@ condition <- Design[1, ]
 
 dat <- generate_diabetes_rescue(condition)
 
-analyse_ipw_tp  <- analyse_ipw(estimand="tp")
-analyse_ipw_tp (condition, dat)
+analyse_ipw_tp <- analyse_ipw(estimand = "tp")
+analyse_ipw_tp(condition, dat)
 
-analyse_ipw_hyp  <- analyse_ipw(estimand="hyp")
-analyse_ipw_hyp (condition, dat)
+analyse_ipw_hyp <- analyse_ipw(estimand = "hyp")
+analyse_ipw_hyp(condition, dat)
 }
