@@ -30,5 +30,6 @@ Imports:
     magrittr,
     tidyr,
     gfoRmula,
-    ipw
+    ipw,
+    data.table
 VignetteBuilder: knitr

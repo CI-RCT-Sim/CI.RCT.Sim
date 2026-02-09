@@ -1,26 +1,16 @@
 #' Analyse Dataset with G-estimation (G-computation via gformula_continuous_eof)
 #'
-#' @param level confidence level for CI computation (default: 0.95)
-#' @param alternative alternative hypothesis for the test (default: "two.sided")
-#'   - "two.sided": tests H0: treatment effect = 0 vs H1: treatment effect ≠ 0
-#'   - "one.sided": tests H0: treatment effect ≤ 0 vs H1: treatment effect > 0
-#'   (Note: No formal p-value is computed; inference is based on CI)
-#'
 #' @return A function that, when called with `condition` and `dat`, returns a list with:
-#' * `p`         NA (no formal p-value computed)
-#' * `alternative` the alternative hypothesis used
 #' * `coef`      estimated difference in mean change in HbA1c between treatment groups
-#' * `ci_lower`  lower CI for mean change in HbA1c
-#' * `ci_upper`  upper CI for mean change in HbA1c
-#' * `CI_level`  confidence level used
-#' * `N_pat`     number of patients in the dataset
+#' * `sd`       standard error for coef
 #'
 #' @export
 #'
 #' @importFrom gfoRmula gformula_continuous_eof
-#' @importFrom dplyr filter lag arrange group_by
+#' @importFrom dplyr arrange group_by
 #' @importFrom tidyr pivot_longer
 #' @importFrom magrittr `%>%`
+#' @importFrom data.table as.data.table
 #'
 #' @details
 #' This function implements G-computation using `gformula_continuous_eof` to estimate the
@@ -38,8 +28,8 @@
 #'   - *Treatment policy strategy*: Ignore treatment discontinuation (i.e., continue treatment in counterfactual)
 #'
 #' The joint distribution of age, HbA1c, and rescue medication is modeled over time:
-#' - HbA1c ~ lag1(HbA1c) + age + trt
-#' - Rescue ~ HbA1c + age + trt
+#' - change HbA1c ~ lag1(HbA1c) + age + trt
+#' - Rescue ~ change HbA1c + age + trt
 #'
 #' A restriction is applied: once rescue is initiated, it remains on (to reflect continuous use).
 #' The intervention sets rescue = 0 for all patients and all time points (no rescue allowed).
@@ -63,101 +53,97 @@
 #' analyse_gestimation(condition, dat)
 
 
-analyse_gestimation <- function(level = 0.95, alternative = "two.sided") {
-  stopifnot(alternative %in% c("two.sided", "one.sided"))
-  stopifnot(level > 0 & level < 1)
+analyse_gestimation <- function() {
 
   # What still remains to be done is
-  # delete
   # add restriction to gestimation function
-  # fix bootstrap (draw ids with replacement --> ids need to get new names otherwise the visits are messed up)
-  # calculate mean over bootstrap samples
-  # confidence interval
+  # find out what the output is we are interested in
   # documentation
-  # determine if the "alternative" statement can be incorporated
 
   function(condition, dat, fixed_objects = NULL) {
     k<-condition$k[1] #number of last visit
 
-    #reformate dat to long format with one outcome column 'y' and a time variable 'visit'
-    dat_long <- pivot_longer(dat, y0:paste0("y",k), names_to = "visit", values_to = "y")
+    #reformate dat to long format with outcome column 'y' for the change in HbA1c at each visit
+    dat_long <- pivot_longer(dat, y0:paste0("y",k), names_to = "visit", values_to = "hba1c")
 
     dat_long<- dat_long %>%
-      mutate(visit = as.numeric(sub('hba1c', '', visit))) %>%
-      mutate(rescue = ifelse(!is.na(rescue_start)&rescue_start<=visit, 1, 0)) %>% #new variable for rescue at visit j
-      mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
-      mutate(y = hba1c - hba1c_0) %>% # HbA1c change
+      mutate(visit = as.numeric(sub('y', '', visit))) %>%
+      mutate(rescue = ifelse(!is.na(rescue_start)&rescue_start<=visit, 1, 0))%>% #new variable for rescue at visit j
       arrange(id, visit) %>% group_by(id) %>% # make sure table is grouped by id and ordered by visit
+      mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
+      mutate(y = hba1c - hba1c_0) # HbA1c change
+
+    # Create a new column at second-to-last timepoint that hold y at last time point
+    # i.e. final outcome
+    # to preserve this value while deleting this last row for the model estimation
+    dat_long$y_k <- NA
+
+    for (i in 1:nrow(dat_long)) {
+      if(dat_long$visit[i] == k - 1){
+        dat_long$y_k[i] <- dat_long$y[i+1]
+      }
+    }
+    # Remove final visit i.e. visit k
+    dat_long <- dat_long[dat_long$visit!=k,]
+
 
     # Run g-computation with bootstrap
     # We simulate Hba1c values under the intervention (no rescue) and then
     # estimate the mean change in HbA1c at the final visit
-#library('Hmisc')
 
-    #create lists for bootstrap results
-    coef_boot <- list()
+        # Parameters for g-formula function
+        id <- "id"
+        obs_data <- as.data.table(dat_long)
+        time_name <- "visit"
+        time_points <- length(unique(obs_data$visit))
+        covnames <- c("y", "trt", "rescue")
+        outcome_name <- "y_k"
+        covtypes <- c("normal","binary","binary")
+        histories <- c(lagged)
+        histvars <- list("y")
+        basecovs <- "age"
+        covparams <- list(covmodels = c(y ~  trt + lag1_y + age, # + rescue??? (not in the protocol but would make sense to me)
+                                        trt ~ 1,
+                                        rescue ~ trt + y + age)) # correct to put treatment in here?
+        ymodel <- y_k ~ trt + rescue + lag1_y + age
+        intvars <- list(c('trt', 'rescue'),
+                        c('trt', 'rescue'))
+        interventions <- list(list(c(static, rep(1, time_points)), #treatment
+                                   c(static, rep(0, time_points))), #no rescue
+                              list(c(static, rep(0, time_points)), #no treatment
+                                   c(static, rep(0, time_points)))) #no rescue
+        int_descript <- c('Hypothetical treatment no rescue',
+                          'Hypothetical control no rescue')
+        # restrictions <- list(c("rescue",condition, function, value used by function))
+        nsamples <- 5 # 500
 
-    for (b in 1:500) { #bootstrap
-      #draw bootstrap sample from patients
-      obs <- unique(dat_long$id)
-      obs_inds <- data.frame(id=sample(obs, length(obs), replace=TRUE))
-      boot_data <- merge(obs_inds, dat_long, all.x=TRUE)
-
-      gcomp_result<-list() #for each treatment
-      for (i in c(0,1)){ # for each treatment group
-        #gcomputation
-        gcomp_result[i+1] <- gfoRmula::gformula_continuous_eof(
-          obs_data = boot_data[boot_data$trt == i,],
-          id = "id",
-          time_name = "visit",
-          covnames = c("y", "rescue"),
-          covtypes = c("normal", "binary"),
-          outcome_name = "y",
-          basecovs = c("age"),
-          histories = c(lagged),
-          histvars = list(c('y')),
-          covparams = list(covmodels = c(y ~ lag1_y + age, #for y
-                                         rescue ~ y + age)), #for rescue
-          #restrictions=list(c("rescue",condition, function, value used by function))
-          ymodel = y ~ lag1_y + age,
-          intervention1.rescue = list(static, rep(0, max(dat_long$visit) + 1)), # hypothetical: no rescue at any visit
-          int_descript = c("hypothetical: no rescue was taken"),
-          nsimul = length(unique(boot_data[boot_data$trt == i,]$id)),
-          seed = 1234,
-          nsamples = 0, #bootstrap will be conducted manually
-          sim_data_b=TRUE,
-          show_progress = TRUE
-        )
-        # Extract hypothetical final HbA1c and baseline HbA1c for each individual
-        sim_data[i+1] <- gcomp_result[i+1]$sim_data$`hypothetical: no rescue was taken` %>% # intervention: no rescue
-                          group_by(id) %>%
-                          mutate(y_k = y[visit == k])%>%
-                          mutate(y_0 = y[visit == 0])
-        # Compute individual change
-        sim_data[i+1] <-  sim_data[i+1] %>%
-          mutate(y_change = y_k - y_0)
-
-        # Compute mean change for each treatment group
-        mean_change[i+1] <- mean(sim_data[i+1]$y_change, na.rm = TRUE)
-      }
-
-    # Difference in mean change between groups
-    coef_boot[b] <- mean_change[1] - mean_change[0]
-    }
+        g.model <- gformula_continuous_eof(
+                                  obs_data = obs_data,
+                                  id = id,
+                                  time_name = time_name,
+                                  covnames = covnames,
+                                  outcome_name = outcome_name,
+                                  covtypes = covtypes,
+                                  covparams = covparams,
+                                  ymodel = ymodel,
+                                  intvars = intvars,
+                                  interventions = interventions,
+                                  int_descript = int_descript,
+                                  #restrictions=restrictions
+                                  ref_int = 1,
+                                  histvars = histvars,
+                                  histories = histories,
+                                  basecovs = basecovs,
+                                  nsamples = nsamples,
+                                  show_progress = F,
+                                  seed = 1)
 
     # mean of difference in mean change over bootstrap samples
-    # confidence interval via
+    # standard error
 
     list(
-      p = NA,
-      alternative = alternative,
-      coef = mean_coef_boot,
-      hr = NA,
-      ci_lower = ci_lower,
-      ci_upper = ci_upper,
-      CI_level = level,
-      N_pat = nrow(dat),
-      N_evt = NA
+      coef = NA,
+      se = NA
     )
   }
 }
