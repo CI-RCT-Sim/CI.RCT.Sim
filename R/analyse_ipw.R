@@ -15,7 +15,6 @@
 #' @importFrom ipw ipwtm
 #' @importFrom magrittr `%>%`
 #'
-#' @details
 #' @examples
 #' Design <- assumptions_diabetes_rescue() |>
 #'   true_summary_statistics_diabetes_rescue()

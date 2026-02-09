@@ -28,5 +28,7 @@ Imports:
     mvtnorm,
     estimatr,
     magrittr,
-    tidyr
+    tidyr,
+    gfoRmula,
+    ipw
 VignetteBuilder: knitr
