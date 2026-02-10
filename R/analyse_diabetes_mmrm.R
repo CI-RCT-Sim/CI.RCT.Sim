@@ -11,6 +11,8 @@
 #' @export
 #' @importFrom mmrm mmrm
 #' @importFrom stats coef vcov pnorm
+#' @importFrom tidyselect all_of
+#' @importFrom tidyr pivot_longer
 #'
 #' @examples
 #' Design <- assumptions_diabetes_rescue()
@@ -25,9 +27,9 @@ analyse_diabetes_rescue_mmrm <- function(ci_level = 0.95) {
     # reshape post-baseline only
     visit_vars <- paste0("y", 1:condition$k)
 
-    long <- tidyr::pivot_longer(
+    long <- pivot_longer(
       dat,
-      cols = tidyselect::all_of(visit_vars),
+      cols = all_of(visit_vars),
       names_to = "visit",
       values_to = "y"
     )
