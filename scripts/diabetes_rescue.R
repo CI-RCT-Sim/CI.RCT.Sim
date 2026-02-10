@@ -56,11 +56,11 @@ my_summarise <- create_summarise_function(
 # -------------------------------------------------------------------
 
 results <- runSimulation(
-  sim_parameters,
+  design      = sim_parameters,
   replications = N_sim,
-  generate = generate_diabetes_rescue,
-  analyse = my_analyse,
-  summarise = my_summarise
+  generate    = generate_diabetes_rescue,
+  analyse     = my_analyse,
+  summarise   = my_summarise
 )
 
 # -------------------------------------------------------------------
