@@ -29,7 +29,6 @@ Imports:
     estimatr,
     magrittr,
     tidyr,
-    gfoRmula,
     ipw,
     mmrm
 VignetteBuilder: knitr

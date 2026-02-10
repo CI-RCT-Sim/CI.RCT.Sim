@@ -1,5 +1,4 @@
-library("CI.RCT.Sim")
-library("SimDesign")
+devtools::load_all()
 
 # -------------------------------------------------------------------
 # Define parameter values and derived quantities
@@ -20,6 +19,9 @@ alpha <- 0.1
 # -------------------------------------------------------------------
 
 my_analyse <- list(
+  ipwtp = analyse_ipw(estimand = "tp"),
+  ipwhyp = analyse_ipw(estimand = "hyp"),
+  dm = analyse_diabetes_demediation(),
   mmrm = analyse_diabetes_rescue_mmrm(ci_level = 1 - alpha)
 )
 
@@ -30,8 +32,10 @@ my_analyse <- list(
 # functions from CI.RCT.Sim / SimDesign
 
 my_summarise <- create_summarise_function(
-
   # bias, SD, coverage etc. for the treatment effect at final visit
+  ipwtp = summarise_estimator(est = coef, real = eff_true),
+  ipwhyp = summarise_estimator(est = coef, real = eff_true),
+  dm = summarise_estimator(est = coef, real = eff_true),
   mmrm = summarise_estimator(
     est   = coef,
     real  = eff_true,
@@ -39,7 +43,6 @@ my_summarise <- create_summarise_function(
     upper = ci_upper,
     null  = 0
   ),
-
   # additional custom summary: mean CI width
   mmrm = function(condition, results, fixed_objects = NULL) {
     data.frame(
@@ -65,12 +68,14 @@ results <- runSimulation(
 # -------------------------------------------------------------------
 
 results |>
-  subset(
-    select = c(
-      names(sim_parameters),
-      "mmrm.bias",
-      "mmrm.sd_est",
-      "mmrm.coverage",
-      "mmrm.1.mean_ci_width"
-    )
-  )
+  subset(select = c(
+    # names(sim_parameters),
+    "ipw.bias",
+    "ipw.sd_est",
+    "dm.bias",
+    "dm.sd_est",
+    "mmrm.bias",
+    "mmrm.sd_est",
+    "mmrm.coverage",
+    "mmrm.1.mean_ci_width"
+  ))
