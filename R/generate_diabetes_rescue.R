@@ -223,5 +223,12 @@ true_summary_statistics_diabetes_rescue <- function(Design, cutoff_stats = 10, f
   # Design <- do.call(rbind, Design)
   Design$eff_true <- Design$delta / 2 * (1 - exp(-Design$lambda * Design$k))
 
+  # specifying parameters for sample size calculation
+  alpha <- 0.05
+  power <- 0.8
+
+  Design$n <- 2 * round(((qnorm(1 - alpha / 2) + qnorm(power))^2) * Design$sd_bl^2 * (1 - Design$rho^2) * 2 / (Design$eff_true^2))
+
+
   Design
 }
