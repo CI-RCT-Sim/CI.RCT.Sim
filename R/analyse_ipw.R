@@ -51,7 +51,6 @@ analyse_ipw <- function(estimand = "hyp") {
       mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
       mutate(hba1c_lag = lag(hba1c, default = NA)) %>% # HbA1 at visit j-1
       mutate(y = hba1c - hba1c_0) %>% # HbA1c change
-      mutate(y_lag = lag(y, default = NA)) %>% # HbA1 change at visit j-1
       filter(visit!=0) #do not include baseline visits
 
     if (estimand == "tp") {
@@ -68,7 +67,7 @@ analyse_ipw <- function(estimand = "hyp") {
         data = dat_long
       )
       model <- lm_robust( # OLS with HC2 variance estimator
-        as.formula(paste0("y_k ~ trt + hba1c_0 + age")),
+        as.formula(paste0("y ~ trt + hba1c_0 + age")),
         weights = temp$ipw.weights[dat_long$visit==k & dat_long$exposure==0],
         data = dat_long[dat_long$visit==k & dat_long$exposure==0,]
         )
@@ -84,7 +83,7 @@ analyse_ipw <- function(estimand = "hyp") {
         exposure = exposure, #indicator for missingness or rescue
         family = "binomial",
         link = "logit",
-        denominator = ~ trt + age + y_lag,
+        denominator = ~ trt + age + hba1c_lag,
         id = id,
         timevar = visit,
         type = "first", #  models are fitted only on observations up to and including the first time point where y is missing, afterwards weights will be constant
