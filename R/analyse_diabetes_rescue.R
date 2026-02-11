@@ -11,6 +11,7 @@
 #' @export
 #'
 #' @importFrom mmrm mmrm
+#' @importFrom tidyselect all_of
 #'
 #' @examples
 #' Design <- assumptions_diabetes_rescue() |>
