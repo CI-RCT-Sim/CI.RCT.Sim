@@ -29,13 +29,46 @@ analyse_diabetes_demediation <- function(X) {
 
       dat_comp[, "j11"] <- dat_comp$yc12
       for (k in 1:11) {
-        mod <- glm(as.formula(paste0("R", 12 - k, "~ trt + y0")), data = dat_comp, family = binomial(link = "probit"))
-        dat_comp[, paste0("pred_R", 12 - k)] <- predict(mod, type = "response")
-        model <- lm(as.formula(paste0("j", 12 - k, "~ trt + y0 + pred_R", 12 - k, " + R", 12 - k)), data = dat_comp)
-        dat_comp[, paste0("j", 12 - k - 1)] <- dat_comp[, paste0("j", 12 - k)] - dplyr::case_when(!is.na(coef(model)[paste0("R", 12 - k)]) ~ coef(model)[paste0("R", 12 - k)], TRUE ~ 0) * dat_comp[, paste0("R", 12 - k)]
+        # Fit a model to predict the probability of receiving rescue medication at visit 12 - k
+        # mod <- glm(
+        #   as.formula(paste0("R", 12 - k, "~ trt + age + y0", paste0("+ yc", 1:(12 - k), collapse = " "))),
+        #   data = dat_comp,
+        #   family = binomial(link = "probit")
+        # )
+        # dat_comp[, paste0("pred_R", 12 - k)] <- predict(mod, type = "response")
+
+        # Subset the data
+        daat <- dat_comp |>
+          dplyr::select(
+            trt,
+            age,
+            y0,
+            paste0("R", (12 - k):1),
+            paste0("yc", (12 - k):1),
+            # paste0("pred_R", 12 - k),
+            paste0("j", 12 - k)
+          )
+
+        # Fit a model for the outcome
+        model <- lm(
+          as.formula(
+            paste0("j", 12 - k, "~ .")
+            # paste0("j", 12 - k, "~ trt + age + y0 + pred_R", 12 - k, " + R", 12 - k)
+          ),
+          data = daat
+        )
+        dat_comp[, paste0("j", 12 - k - 1)] <-
+          dat_comp[, paste0("j", 12 - k)] -
+          dplyr::case_when(
+            !is.na(coef(model)[paste0("R", 12 - k)]) ~ coef(model)[paste0("R", 12 - k)],
+            TRUE ~ 0
+          ) *
+            dat_comp[, paste0("R", 12 - k)]
       }
 
+
       final.model <- lm(j0 ~ trt + y0, data = dat_comp)
+      # browser(expr = abs(final.model$coefficients["trt"]) > 1)
       c(
         p = summary(final.model)$coefficients["trt", "Pr(>|t|)"],
         coef = coef(final.model)["trt"]
@@ -46,13 +79,16 @@ analyse_diabetes_demediation <- function(X) {
     # browser()
     for (i in 1:dats$m) {
       dat <- mice::complete(dats, i)
-      res <- boot::boot(dat, analysis, R = 5)
+      res <- boot::boot(dat, analysis, R = 500)
       effect[i] <- res$t0[2]
       effect.var[i] <- var(res$t[, 2])
     }
     end_res <- mice::pool.scalar(effect, effect.var)
 
     list(
+      # effect,
+      # effect.var,
+      # coefs = end_res$qhat,
       coef = end_res$qbar,
       sd = sqrt(end_res$t)
     )
