@@ -73,16 +73,15 @@ analyse_gestimation <- function() {
       mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
       mutate(y = hba1c - hba1c_0) # HbA1c change
 
-    # Create a new column at second-to-last timepoint that hold y at last time point
+    # want to fit models on data up to time k-1, then simulate forward to predict the outcome at time k:
+    # create a new column at second-to-last timepoint that holds y at last time point
     # i.e. final outcome
-    # to preserve this value while deleting this last row for the model estimation
-    dat_long$y_k <- NA
+    # to preserve this value while deleting the last row for the model estimation
+    dat_long <- dat_long %>%
+      group_by(id) %>%
+      mutate(y_k = ifelse(visit == k - 1, lag(y), NA)) %>%
+      ungroup()
 
-    for (i in 1:nrow(dat_long)) {
-      if(dat_long$visit[i] == k - 1){
-        dat_long$y_k[i] <- dat_long$y[i+1]
-      }
-    }
     # Remove final visit i.e. visit k
     dat_long <- dat_long[dat_long$visit!=k,]
 
@@ -95,14 +94,14 @@ analyse_gestimation <- function() {
         id <- "id"
         obs_data <- as.data.table(dat_long)
         time_name <- "visit"
-        time_points <- length(unique(obs_data$visit))
+        time_points <- k + 1 # number of time-points (+1 because baseline is included)
         covnames <- c("y", "trt", "rescue")
         outcome_name <- "y_k"
-        covtypes <- c("normal","binary","binary")
+        covtypes <- c("normal","binary", "binary")
         histories <- c(lagged)
-        histvars <- list("y")
-        basecovs <- "age"
-        covparams <- list(covmodels = c(y ~  trt + lag1_y + age, # + rescue??? (not in the protocol but would make sense to me)
+        histvars <- list("y", "rescue")
+        basecovs <- c("age")
+        covparams <- list(covmodels = c(y ~  trt + rescue + lag1_y + age, # + rescue??? (not in the protocol but would make sense to me becasue recue is affected by y-1 and affects y in future)
                                         trt ~ 1,
                                         rescue ~ trt + y + age)) # correct to put treatment in here?
         ymodel <- y_k ~ trt + rescue + lag1_y + age
@@ -114,7 +113,7 @@ analyse_gestimation <- function() {
                                    c(static, rep(0, time_points)))) #no rescue
         int_descript <- c('Hypothetical treatment no rescue',
                           'Hypothetical control no rescue')
-        # restrictions <- list(c("rescue",condition, function, value used by function))
+        restrictions <- list(c("rescue","lag1_rescue == 1","replace",1))
         nsamples <- 5 # 500
 
         g.model <- gformula_continuous_eof(
@@ -129,7 +128,7 @@ analyse_gestimation <- function() {
                                   intvars = intvars,
                                   interventions = interventions,
                                   int_descript = int_descript,
-                                  #restrictions=restrictions
+                                  restrictions=restrictions,
                                   ref_int = 1,
                                   histvars = histvars,
                                   histories = histories,
