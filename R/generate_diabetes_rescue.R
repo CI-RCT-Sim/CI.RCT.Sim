@@ -170,20 +170,18 @@ assumptions_diabetes_rescue <- function(print = interactive()) {
   miss_y      = log(c(3,1,150)),          # moderate effect due to high hba1c
   miss_age    = c(log(1.02),0),           # older patients drop out more easily, let's say, stronger age effect than for rescue
   miss_resc   = c(log(1.5),0)             # notable effect due to rescue medication, increase to large value to have positivity violation, like 5 or 10
-  )
+  ) |>
+  merge(data.frame(hyp=c(0,1)), by=NULL)
 "
-
 
   if (print) {
     cat(skel)
   }
 
-  r <- invisible(
-    skel |>
+  invisible(skel |>
       str2expression() |>
       eval()
   )
-  rbind(r |> dplyr::mutate(hyp = 0), r |> dplyr::mutate(hyp = 1))
 }
 
 #' Calculate true summary statistics for scenarios with delayed treatment effect
