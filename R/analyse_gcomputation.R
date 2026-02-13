@@ -6,8 +6,8 @@
 #'
 #' @export
 #'
-#' @importFrom gfoRmula gformula_continuous_eof
-#' @importFrom dplyr arrange group_by
+#' @importFrom gfoRmula gformula_continuous_eof lagged
+#' @importFrom dplyr mutate arrange group_by
 #' @importFrom tidyr pivot_longer
 #' @importFrom magrittr `%>%`
 #' @importFrom data.table as.data.table
@@ -64,7 +64,7 @@ analyse_gestimation <- function() {
     k<-condition$k[1] #number of last visit
 
     #reformate dat to long format with outcome column 'y' for the change in HbA1c at each visit
-    dat_long <- pivot_longer(dat, y0:paste0("y",k), names_to = "visit", values_to = "hba1c")
+    dat_long <- tidyr::pivot_longer(dat, y0:paste0("y",k), names_to = "visit", values_to = "hba1c")
 
     dat_long<- dat_long %>%
       mutate(visit = as.numeric(sub('y', '', visit))) %>%
@@ -78,9 +78,8 @@ analyse_gestimation <- function() {
     # i.e. final outcome
     # to preserve this value while deleting the last row for the model estimation
     dat_long <- dat_long %>%
-      group_by(id) %>%
-      mutate(y_k = ifelse(visit == k - 1, lag(y), NA)) %>%
-      ungroup()
+      dplyr::group_by(id) %>%
+      dplyr::mutate(y_k = ifelse(visit == k - 1, lag(y), NA))
 
     # Remove final visit i.e. visit k
     dat_long <- dat_long[dat_long$visit!=k,]
@@ -92,13 +91,13 @@ analyse_gestimation <- function() {
 
         # Parameters for g-formula function
         id <- "id"
-        obs_data <- as.data.table(dat_long)
+        obs_data <- data.table::as.data.table(dat_long)
         time_name <- "visit"
-        time_points <- k + 1 # number of time-points (+1 because baseline is included)
+        time_points <- k # number of time-points (because baseline is included and last timepoint excluded)
         covnames <- c("y", "trt", "rescue")
         outcome_name <- "y_k"
         covtypes <- c("normal","binary", "binary")
-        histories <- c(lagged)
+        histories <- c(gfoRmula::lagged, gfoRmula::lagged)
         histvars <- list("y", "rescue")
         basecovs <- c("age")
         covparams <- list(covmodels = c(y ~  trt + rescue + lag1_y + age, # + rescue??? (not in the protocol but would make sense to me becasue recue is affected by y-1 and affects y in future)
@@ -111,12 +110,11 @@ analyse_gestimation <- function() {
                                    c(static, rep(0, time_points))), #no rescue
                               list(c(static, rep(0, time_points)), #no treatment
                                    c(static, rep(0, time_points)))) #no rescue
-        int_descript <- c('Hypothetical treatment no rescue',
-                          'Hypothetical control no rescue')
-        restrictions <- list(c("rescue","lag1_rescue == 1","replace",1))
+        int_descript <- c('treatment not rescue', 'control no rescue')
+        #restrictions <- list(c("rescue","lag1_rescue == 1","replace",1))
         nsamples <- 5 # 500
 
-        g.model <- gformula_continuous_eof(
+        g.model <- gfoRmula::gformula_continuous_eof(
                                   obs_data = obs_data,
                                   id = id,
                                   time_name = time_name,
@@ -128,8 +126,8 @@ analyse_gestimation <- function() {
                                   intvars = intvars,
                                   interventions = interventions,
                                   int_descript = int_descript,
-                                  restrictions=restrictions,
-                                  ref_int = 1,
+                                  #restrictions=restrictions,
+                                  ref_int = 2,
                                   histvars = histvars,
                                   histories = histories,
                                   basecovs = basecovs,
@@ -138,11 +136,14 @@ analyse_gestimation <- function() {
                                   seed = 1)
 
     # mean of difference in mean change over bootstrap samples
+    # summary(g.model)
+    coef <-  g.model$result$`Mean difference`[2] #mean difference between treatments (intervention - control) at visit k
+    se <- g.model$result$`MD SE`[2] # se for mean difference
     # standard error
 
     list(
-      coef = NA,
-      se = NA
+      coef = coef,
+      se = se
     )
   }
 }
