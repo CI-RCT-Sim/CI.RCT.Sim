@@ -59,7 +59,7 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   sigma_adj <- sqrt(sigma^2 * (1 - rho^2))
 
   n <- 2 * round(((qnorm(1 - alpha / 2) + qnorm(power))^2) * sigma_adj^2 * 2 / (delta_true^2))
-  if (condition$hyp == 1) {
+  if (condition$hyp == 0) {
     eff <- rep(0, condition$k + 1)
   }
 
@@ -69,14 +69,17 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   age <- rnorm(n, mean = condition$mean_age, sd = condition$sd_age)
   age_slope <- 2 * exp(-condition$b_age * (age - 30))
   response_trt <- runif(n)
-  mu_ctr <- matrix(NA, nrow = n, ncol = length(visit))
-  for (i in 1:length(visit)) {
-    mu_ctr[, i] <- condition$mean_bl +
-      visit[i] / condition$k * age_slope
-  }
+  # The mean trajectory for control patients. Was used previously, when the effect of rescue medication was used instead of treatment. Now it is used on top.
+  # mu_ctr <- matrix(NA, nrow = n, ncol = length(visit))
+  # for (i in 1:length(visit)) {
+  #   mu_ctr[, i] <- condition$mean_bl +
+  #     visit[i] / condition$k * age_slope
+  # }
+
   mu <- matrix(NA, nrow = n, ncol = length(visit))
   for (i in 1:length(visit)) {
-    mu[, i] <- mu_ctr[, i] +
+    mu[, i] <- condition$mean_bl +
+      visit[i] / condition$k * age_slope +
       eff[i] * response_trt * trt
   }
 
@@ -104,7 +107,7 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   for (i in 1:n) {
     if (k_rescue[i] > 0) {
       rescue_set <- (rescue_start[i] + 2):(condition$k + 1)
-      Y[i, rescue_set] <- mu_ctr[i, rescue_set] +
+      Y[i, rescue_set] <- mu[i, rescue_set] +
         response_rescue[i] * rescue_effect[rescue_set - rescue_start[i] + 1] +
         resid[rescue_set]
       any_rescue[i] <- TRUE
@@ -228,5 +231,6 @@ true_summary_statistics_diabetes_rescue <- function(Design, cutoff_stats = 10, f
   Design$n <- 2 * round(((qnorm(1 - alpha / 2) + qnorm(power))^2) * Design$sd_bl^2 * (1 - Design$rho^2) * 2 / (Design$eff_true^2))
 
 
+  Design$eff_true <- ifelse(Design$hyp == 1, Design$eff_true, 0)
   Design
 }

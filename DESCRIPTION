@@ -31,6 +31,9 @@ Imports:
     magrittr,
     tidyr,
     ipw,
-    mmrm, 
+    mmrm,
+    gfoRmula,
+    data.table,
+    logistf,
     tidyselect
 VignetteBuilder: knitr
