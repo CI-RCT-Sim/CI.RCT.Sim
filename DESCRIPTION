@@ -27,7 +27,7 @@ Imports:
     mice,
     purrr,
     mvtnorm,
-    miniPCH
+    miniPCH,
     estimatr,
     magrittr,
     tidyr,
