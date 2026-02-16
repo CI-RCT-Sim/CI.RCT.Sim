@@ -22,7 +22,8 @@ my_analyse <- list(
   ipwtp = analyse_ipw(estimand = "tp"),
   ipwhyp = analyse_ipw(estimand = "hyp"),
   dm = analyse_diabetes_demediation(),
-  mmrm = analyse_diabetes_rescue_mmrm(ci_level = 1 - alpha)
+  mmrm = analyse_diabetes_rescue_mmrm(ci_level = 1 - alpha),
+  gcom = analyse_diabetes_gcomputation()
 )
 
 # -------------------------------------------------------------------
@@ -48,7 +49,8 @@ my_summarise <- create_summarise_function(
     data.frame(
       mean_ci_width = mean(results$ci_upper - results$ci_lower, na.rm = TRUE)
     )
-  }
+  },
+  gcom = summarise_estimator(est = coef, real = eff_true)
 )
 
 # -------------------------------------------------------------------
@@ -79,5 +81,7 @@ results |>
     "mmrm.bias",
     "mmrm.sd_est",
     "mmrm.coverage",
-    "mmrm.1.mean_ci_width"
+    "mmrm.1.mean_ci_width",
+    "gcom.bias",
+    "gcom.sd_est"
   ))
