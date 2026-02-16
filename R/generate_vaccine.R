@@ -259,7 +259,7 @@ vaccine_scenario_set_true_eff <- function(Design){
         exp(condition$beta_V * v + condition$beta_W * w + y * theta_late)
       ) %*% lambda_0
 
-      miniPCH::spch(condition$follow_up, t_, lambda_vw)
+      miniPCH::ppch(condition$follow_up, t_, lambda_vw)
     })
 
     Pr <- \(a){

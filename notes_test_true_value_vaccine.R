@@ -1,4 +1,4 @@
-
+devtools::load_all()
 
 Design <- params_scenarios_grid(
   p_V = c(0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk
@@ -28,8 +28,9 @@ Design <- Design |>
   vaccine_scenario_set_true_eff()
 
 condition <- Design[7, ]
+n_sim <- 10000
 
-test <- replicate(10000, {
+test <- replicate(n_sim, {
   sample <- generate_vaccine(condition, fixed_objects = list(include_unobserved=TRUE))
 
   ps <- sample |>
@@ -41,12 +42,15 @@ test <- replicate(10000, {
       mean(grp$evt)
     })
 
-  list(
-    risks = risks,
-    rr = (risks[["1"]] / risks[["0"]]),
-    rr_calc = condition$rr_ps
-  )
-}, simplify = FALSE)
 
-hist(sapply(test, \(x){x$rr}))
-abline(v=1/test[[1]]$rr_calc, lwd=1.5, col="blue")
+    rr <- (risks[["1"]] / risks[["0"]])
+    rr
+})
+
+hist(test)
+abline(v=condition$rr_ps, lwd=1.5, col="blue")
+
+# significant difference between calculation and simulation?
+t.test(test, mu=condition$rr_ps)
+
+# close, but still quite a bit off with high confidence
