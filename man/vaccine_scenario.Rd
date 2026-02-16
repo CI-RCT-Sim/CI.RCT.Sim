@@ -4,7 +4,7 @@
 \alias{vaccine_scenario}
 \alias{generate_vaccine}
 \alias{vaccine_scenario_set_gamma_0}
-\title{Create an empty assumtions data.frame for generate_vaccine}
+\title{Create an empty assumptions data.frame for generate_vaccine}
 \usage{
 vaccine_scenario(print = interactive())
 
@@ -29,7 +29,7 @@ a simulated dataset
 a Design dataset with the added column gamma_0
 }
 \description{
-Create an empty assumtions data.frame for generate_vaccine
+Create an empty assumptions data.frame for generate_vaccine
 }
 \details{
 vaccine_scenario generates a default design \code{data.frame}

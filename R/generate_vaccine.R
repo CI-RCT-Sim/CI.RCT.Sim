@@ -1,4 +1,4 @@
-#' Create an empty assumtions data.frame for generate_vaccine
+#' Create an empty assumptions data.frame for generate_vaccine
 #'
 #' @param print print code to generate parameter set?
 #'
@@ -32,12 +32,20 @@ vaccine_scenario <- function(print=interactive()){
   gamma_AW = c(-0.3, 0),
   beta_V  = c(log(1.5), 0), # regression parameters for time to infection
   beta_W  = c(log(1.2), 0),
-  # beta_A1  = c(), # choosen according to beta_A2
-  beta_A2  = log(1-c(0, 0.5, 0.8, 0.9)), #
+  effect_before_d2 = c(1,0), # indicator whether there's any effect before d2, used to set beta_A1
+  beta_A2  = log(1-c(0.8, 0, 0.5, 0.9)), #
   beta_AW = c(log(0.8), 0),
   n_trt     = c(50), # study design parameters
   n_ctrl    = c(50),
   follow_up = c(365)
+) |>
+transform(
+  # either 0 (no effect before d2) or VE before dose 2 is VE after dose 2 - 0.3
+  beta_A1 = 1-(1-ifelse(
+    beta_A2 == 0,
+    0,
+    beta_A2 + 0.3
+  )*effect_before_d2)
 )
 "
 
@@ -61,7 +69,7 @@ invisible(
 #'
 #' @returns a simulated dataset
 #' @export
-generate_vaccine <- function(condition, fixed_objects = NULL){
+generate_vaccine <- function(condition, fixed_objects = list(include_unobserved=FALSE)){
   N <- condition$n_ctrl + condition$n_trt
   V <- rbinom(N, 1, condition$p_V)
   W <- rbinom(N, 1, condition$p_W)
@@ -92,23 +100,8 @@ generate_vaccine <- function(condition, fixed_objects = NULL){
   theta_early <- theta_1 * W
   theta_late  <- theta_1 * W + C * (theta_2*W - theta_1*W)
 
-
   t_ <- c(0, 14)
   lambda_0 <- diag(c(0, condition$lambda_post))
-
-  # under observed treamtent allocation
-  # time to event hazard
-  lambda <- cbind(
-    exp(condition$beta_V * V + condition$beta_W * W + A * theta_early),
-    exp(condition$beta_V * V + condition$beta_W * W + A * theta_late)
-  ) %*% lambda_0
-  # time to event outcome
-  T_ <- sapply(1:N, \(i){
-    rpch(1, t=t_, lambda = lambda[i,])
-  })
-  # binary outcome
-  Y <- T_ < condition$follow_up
-  T_ <- pmin(T_, condition$follow_up)
 
   # under potential treatment allocation to control
   # time to event hazard
@@ -138,15 +131,40 @@ generate_vaccine <- function(condition, fixed_objects = NULL){
   Y_a1 <- T_a1 < condition$follow_up
   T_a1 <- pmin(T_a1, condition$follow_up)
 
-  # TODO: check which counterfactuals are needed in the returned dataset
-  data.frame(
-    V=V,
-    W=W,
-    trt=A,
-    C=C,
-    t=T_,
-    evt=Y
-  )
+
+  # time to event outcome
+  T_ <- ifelse(A==0, T_a0, T_a1)
+  # binary outcome
+  Y <- T_ < condition$follow_up
+  # time to event
+  T_ <- pmin(T_, condition$follow_up)
+
+  if(fixed_objects$include_unobserved){
+    data.frame(
+      V=V,
+      W=W,
+      trt=A,
+      C=C,
+      t=T_,
+      evt=Y,
+      p=p(A),
+      C_1=C_1,
+      C_0=C_0,
+      evt_1=Y_a1,
+      evt_0=Y_a0,
+      t_1=T_a1,
+      t_0=T_a0
+    )
+  } else {
+    data.frame(
+      V=V,
+      W=W,
+      trt=A,
+      C=C,
+      t=T_,
+      evt=Y
+    )
+  }
 }
 
 
@@ -174,8 +192,6 @@ vaccine_scenario_set_gamma_0 <- function(Design){
     # derived with sympy
     log_solution_1 <-
       (-p*exp(A0) - p*exp(A1) + w0*exp(A0) + w1*exp(A1) - sqrt(p^2*exp(2*A0) + p^2*exp(2*A1) - 2*p^2*exp(A0 + A1) - 2*p*w0*exp(2*A0) + 2*p*w0*exp(A0 + A1) - 2*p*w1*exp(2*A1) + 2*p*w1*exp(A0 + A1) + w0^2*exp(2*A0) + 2*w0*w1*exp(A0 + A1) + w1^2*exp(2*A1)))*exp(-A0 - A1)/(p - w0 - w1)
-
-    # derived with sympy
     log_solution_2 <-
       (-p*exp(A0) - p*exp(A1) + w0*exp(A0) + w1*exp(A1) + sqrt(p^2*exp(2*A0) + p^2*exp(2*A1) - 2*p^2*exp(A0 + A1) - 2*p*w0*exp(2*A0) + 2*p*w0*exp(A0 + A1) - 2*p*w1*exp(2*A1) + 2*p*w1*exp(A0 + A1) + w0^2*exp(2*A0) + 2*w0*w1*exp(A0 + A1) + w1^2*exp(2*A1)))*exp(-A0 - A1)/(p - w0 - w1)
 
@@ -197,3 +213,69 @@ vaccine_scenario_set_gamma_0 <- function(Design){
 
   Design
 }
+
+
+
+#' @describeIn vaccine_scenario vaccine_scenario_set_true_eff calculate relative risk in the principal stratum of always compliers
+#'
+#' @returns a Design dataset with the added column rr_ps
+#' @export
+vaccine_scenario_set_true_eff <- function(Design){
+  set_true_eff_rowwise <- function(condition){
+    p <- \(a,v,w){
+      binomial()$linkinv(
+        condition$gamma_0 + condition$gamma_W*w + condition$gamma_V*v + condition$gamma_A*a + condition$gamma_AW*a*w
+      )
+    }
+
+    m <- \(v,w){
+      pmin(p(0,v,w), p(1,v,w))
+    }
+
+    Pr_vw <- \(v,w){
+      pr_V <- \(v){
+        ((v*condition$p_V)+(1-v)*(1-condition$p_V))
+      }
+
+      pr_W <- \(w){
+        (w*condition$p_W)+(1-w)*(1-condition$p_W)
+      }
+
+      (pr_V(v) * pr_W(w) * m(v,w)) /
+        sum(outer(0:1, 0:1, \(v_, w_){pr_V(v_)*pr_W(w_)*m(v_,w_)}))
+    }
+
+    #TODO: check
+    pi <- Vectorize(\(y,v,w){
+      t_ <- c(0, 14)
+      lambda_0 <- diag(c(0, condition$lambda_post))
+      theta_1 <- condition$beta_A1 + condition$beta_AW * w
+      theta_2 <- condition$beta_A2 + condition$beta_AW * w
+      theta_early <- theta_1 * w
+      theta_late  <- theta_1 * w + (theta_2*w - theta_1*w)
+
+      lambda_vw <- cbind(
+        exp(condition$beta_V * v + condition$beta_W * w + y * theta_early),
+        exp(condition$beta_V * v + condition$beta_W * w + y * theta_late)
+      ) %*% lambda_0
+
+      miniPCH::spch(condition$follow_up, t_, lambda_vw)
+    })
+
+    Pr <- \(a){
+      sum(outer(0:1, 0:1, \(v,w){
+        pi(a,v,w) * Pr_vw(v,w)
+      }))
+    }
+
+    rr_ps <- Pr(1)/Pr(0)
+    rr_ps
+  }
+
+  Design$rr_ps <- Design |>
+    split(1:nrow(Design)) |>
+    sapply(set_true_eff_rowwise)
+
+  Design
+}
+
