@@ -232,6 +232,7 @@ true_summary_statistics_diabetes_rescue <- function(Design, cutoff_stats = 10, f
 
   Design$n <- 2 * round(((qnorm(1 - alpha / 2) + qnorm(power))^2) * Design$sd_bl^2 * (1 - Design$rho^2) * 2 / (Design$eff_true^2))
 
+
   Design$eff_true <- ifelse(Design$hyp == 1, Design$eff_true, 0)
   Design
 }
