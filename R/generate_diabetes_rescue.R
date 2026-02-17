@@ -128,10 +128,13 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
 
   for (i in 1:n) {
     miss_start <- sum(!wd1[i, ]) + 1
-    if (miss_start <= (condition$k + 1)) Y[i, miss_start:(condition$k + 1)] <- NA
+    if (miss_start <= (condition$k + 1)) {
+      Y[i, miss_start:(condition$k + 1)] <- NA
+      rescue[i, miss_start:(condition$k + 1)] <- NA
+    }
   }
 
-  out <- data.frame(id, trt, age, Y, rescue_start, resc[, 2:condition$k])
+  out <- data.frame(id, trt, age, Y, rescue_start, rescue[, 2:condition$k]*1)
   names(out) <- c("id", "trt", "age", paste("y", visit, sep = ""), "rescue_start", paste("R", visit[-1][1:condition$k - 1], sep = ""))
   out
 }
