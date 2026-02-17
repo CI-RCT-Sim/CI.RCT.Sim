@@ -17,7 +17,7 @@
 analyse_diabetes_demediation <- function(X) {
   function(condition, dat, fixed_objects = NULL) {
     # Convert the logical of receiving rescue at any point in to a longitudinal measurement in wide format
-    dat <- dat |> dplyr::mutate(rescue_start = ifelse(is.na(rescue_start), condition$k + 2, rescue_start))
+    dat <- dat |> dplyr::mutate(rescue_start = ifelse(is.na(rescue_start), condition$k + 2, rescue_start),R0 = 0)
 
     dat1 <- dat |> dplyr::filter(trt == 1)
     pred1 <- mice::make.predictorMatrix(dat1)
@@ -41,6 +41,10 @@ analyse_diabetes_demediation <- function(X) {
 
       dat_comp[, "j11"] <- dat_comp$yc12
       for (k in 1:11) {
+        if (sum(dat_comp[, paste0("R", 12 - k)], na.rm = TRUE) == 0) {
+          dat_comp[, paste0("j", 12 - k - 1)] <- dat_comp[, paste0("j", 12 - k)]
+          next
+        }
         # Fit a model to predict the probability of receiving rescue medication at visit 12 - k
         # browser()
         # mod <- glm(
