@@ -6,8 +6,8 @@
 #'
 #' @export
 #'
-#' @importFrom gfoRmula gformula_continuous_eof
-#' @importFrom dplyr arrange group_by mutate
+#' @importFrom gfoRmula gformula_continuous_eof lagged static
+#' @importFrom dplyr mutate arrange group_by
 #' @importFrom tidyr pivot_longer
 #' @importFrom magrittr `%>%`
 #' @importFrom data.table as.data.table
@@ -49,11 +49,10 @@
 #'
 #' dat <- generate_diabetes_rescue(condition)
 #'
-#' analyse_gestimation <- analyse_gestimation()
-#' analyse_gestimation(condition, dat)
-analyse_gestimation <- function() {
+#' analyse_diabetes_gcomputation()(condition, dat)
+analyse_diabetes_gcomputation <- function() {
   # What still remains to be done is
-  # add restriction to gestimation function
+  # add restriction to gcomputation function
   # find out what the output is we are interested in
   # documentation
 
@@ -61,7 +60,7 @@ analyse_gestimation <- function() {
     k <- condition$k[1] # number of last visit
 
     # reformate dat to long format with outcome column 'y' for the change in HbA1c at each visit
-    dat_long <- pivot_longer(dat, y0:paste0("y", k), names_to = "visit", values_to = "hba1c")
+    dat_long <- tidyr::pivot_longer(dat, y0:paste0("y", k), names_to = "visit", values_to = "hba1c")
 
     dat_long <- dat_long %>%
       mutate(visit = as.numeric(sub("y", "", visit))) %>%
@@ -71,16 +70,22 @@ analyse_gestimation <- function() {
       mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
       mutate(y = hba1c - hba1c_0) # HbA1c change
 
-    # Create a new column at second-to-last timepoint that hold y at last time point
+    # want to fit models on data up to time k-1, then simulate forward to predict the outcome at time k:
+    # create a new column at second-to-last timepoint that holds y at last time point
     # i.e. final outcome
-    # to preserve this value while deleting this last row for the model estimation
-    dat_long$y_k <- NA
+    # to preserve this value while deleting the last row for the model estimation
+    dat_long <- dat_long %>%
+      dplyr::group_by(id) %>%
+      dplyr::mutate(y_k = ifelse(visit == k - 1, lag(y), NA))
 
-    for (i in 1:nrow(dat_long)) {
-      if (dat_long$visit[i] == k - 1) {
-        dat_long$y_k[i] <- dat_long$y[i + 1]
-      }
-    }
+    # <<<<<<< HEAD:scripts/analyse_gcomputation.R
+    #     for (i in 1:nrow(dat_long)) {
+    #       if (dat_long$visit[i] == k - 1) {
+    #         dat_long$y_k[i] <- dat_long$y[i + 1]
+    #       }
+    #     }
+    # =======
+    # >>>>>>> origin/dev_PS:R/analyse_gcomputation.R
     # Remove final visit i.e. visit k
     dat_long <- dat_long[dat_long$visit != k, ]
 
@@ -90,17 +95,17 @@ analyse_gestimation <- function() {
 
     # Parameters for g-formula function
     id <- "id"
-    obs_data <- as.data.table(dat_long)
+    obs_data <- data.table::as.data.table(dat_long)
     time_name <- "visit"
-    time_points <- length(unique(obs_data$visit))
+    time_points <- k # number of time-points (because baseline is included and last timepoint excluded)
     covnames <- c("y", "trt", "rescue")
     outcome_name <- "y_k"
     covtypes <- c("normal", "binary", "binary")
-    histories <- c(lagged)
-    histvars <- list("y")
-    basecovs <- "age"
+    histories <- c(gfoRmula::lagged, gfoRmula::lagged)
+    histvars <- list("y", "rescue")
+    basecovs <- c("age")
     covparams <- list(covmodels = c(
-      y ~ trt + lag1_y + age, # + rescue??? (not in the protocol but would make sense to me)
+      y ~ trt + rescue + lag1_y + age, # + rescue??? (not in the protocol but would make sense to me becasue recue is affected by y-1 and affects y in future)
       trt ~ 1,
       rescue ~ trt + y + age
     )) # correct to put treatment in here?
@@ -119,14 +124,11 @@ analyse_gestimation <- function() {
         c(static, rep(0, time_points))
       )
     ) # no rescue
-    int_descript <- c(
-      "Hypothetical treatment no rescue",
-      "Hypothetical control no rescue"
-    )
-    # restrictions <- list(c("rescue",condition, function, value used by function))
+    int_descript <- c("treatment not rescue", "control no rescue")
+    # restrictions <- list(c("rescue","lag1_rescue == 1","replace",1))
     nsamples <- 5 # 500
 
-    g.model <- gformula_continuous_eof(
+    g.model <- gfoRmula::gformula_continuous_eof(
       obs_data = obs_data,
       id = id,
       time_name = time_name,
@@ -138,8 +140,8 @@ analyse_gestimation <- function() {
       intvars = intvars,
       interventions = interventions,
       int_descript = int_descript,
-      # restrictions=restrictions
-      ref_int = 1,
+      # restrictions=restrictions,
+      ref_int = 2,
       histvars = histvars,
       histories = histories,
       basecovs = basecovs,
@@ -149,11 +151,14 @@ analyse_gestimation <- function() {
     )
 
     # mean of difference in mean change over bootstrap samples
+    # summary(g.model)
+    coef <- g.model$result$`Mean difference`[2] # mean difference between treatments (intervention - control) at visit k
+    se <- g.model$result$`MD SE`[2] # se for mean difference
     # standard error
 
     list(
-      coef = NA,
-      se = NA
+      coef = coef,
+      se = se
     )
   }
 }
