@@ -16,7 +16,7 @@ an analyse function that can be used in runSimulation
 Create Analyse Functions for ...
 }
 \examples{
-setting <- assumptions_diabetes_rescue()[1, ]
+setting <- assumptions_diabetes_rescue()[1, ] |> true_summary_statistics_diabetes_rescue()
 dat <- generate_diabetes_rescue(setting)
 analyse_diabetes_demediation()(setting, dat)
 
