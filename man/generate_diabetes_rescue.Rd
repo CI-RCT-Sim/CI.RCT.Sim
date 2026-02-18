@@ -2,13 +2,11 @@
 % Please edit documentation in R/generate_diabetes_rescue.R
 \name{generate_diabetes_rescue}
 \alias{generate_diabetes_rescue}
-\alias{assumptions_diabetes_rescue}
 \alias{true_summary_statistics_diabetes_rescue}
-\title{Generate Dataset ...}
+\title{Generate Dataset that simulates a diabetes trial in which rescue medication
+can be introduced}
 \usage{
 generate_diabetes_rescue(condition, fixed_objects = NULL)
-
-assumptions_diabetes_rescue(print = interactive())
 
 true_summary_statistics_diabetes_rescue(
   Design,
@@ -21,17 +19,17 @@ true_summary_statistics_diabetes_rescue(
 
 \item{fixed_objects}{fixed objects not used for now}
 
-\item{print}{print code to generate parameter set?}
-
 \item{Design}{Design data.frame for x}
 
 \item{cutoff_stats}{Cutoff time for rmst and average hazard ratios}
 }
 \value{
-For generate_diabetes_rescue: A data set with the columns id, trt
-(1=treatment, 0=control), evt (event, currently TRUE for all observations)
-
-For assumptions_diabetes_rescue: a design tibble with default values invisibly
+For generate_diabetes_rescue: A data set with n rows and the columns id, trt
+(1=treatment, 0=control), age, y0, y1, ..., yk
+(the repeated measurements of the outcome), R1, ..., Rk-1 (indicators for
+rescue medication at each visit except baseline and the last visit),
+and rescue_start (the visit at which rescue medication was started,
+NA if no rescue medication was received).
 
 For true_summary_statistics_x: the design data.frame
 passed as argument with the additional columns:
@@ -45,37 +43,43 @@ passed as argument with the additional columns:
 }
 }
 \description{
-Generate Dataset ...
-
-Create an empty assumptions data.frame for generate_diabetes_rescue
+Generate Dataset that simulates a diabetes trial in which rescue medication
+can be introduced
 
 Calculate true summary statistics for scenarios with delayed treatment effect
 }
 \details{
 Condition has to contain the following columns:
 \itemize{
-\item eff the effect size
-\item 
-\item ...
+\item k
+\item mean_age
+\item sd_age
+\item b_age
+\item mean_bl
+\item sd_bl
+\item rho
+\item delta
+\item lambda
+\item delta_resc
+\item lambda_resc
+\item resc_0
+\item resc_y
+\item resc_age
+\item miss_0
+\item miss_y
+\item miss_age
+\item miss_resc
 }
-
-assumptions_diabetes_rescue generates a default design \code{data.frame}
-for use with generate_diabetes_rescue If print is \code{TRUE} code to produce
-the template is also printed for copying, pasting and editing by the user.
-(This is the default when run in an interactive session.)
 }
 \section{Functions}{
 \itemize{
-\item \code{generate_diabetes_rescue()}: simulates a dataset with ...
-
-\item \code{assumptions_diabetes_rescue()}: generate default design tibble
+\item \code{generate_diabetes_rescue()}: simulates a data set with n rows.
 
 \item \code{true_summary_statistics_diabetes_rescue()}: calculate true summary statistics for ...
 
 }}
 \examples{
-generate_diabetes_rescue(assumptions_diabetes_rescue()[1, ])
 Design <- assumptions_diabetes_rescue()
-Design
+generate_diabetes_rescue(Design[1, ])
 true_summary_statistics_diabetes_rescue(assumptions_diabetes_rescue())
 }
