@@ -4,13 +4,16 @@
 \alias{vaccine_scenario}
 \alias{generate_vaccine}
 \alias{vaccine_scenario_set_gamma_0}
+\alias{vaccine_scenario_set_true_eff}
 \title{Create an empty assumptions data.frame for generate_vaccine}
 \usage{
 vaccine_scenario(print = interactive())
 
-generate_vaccine(condition, fixed_objects = NULL)
+generate_vaccine(condition, fixed_objects = list(include_unobserved = FALSE))
 
 vaccine_scenario_set_gamma_0(Design)
+
+vaccine_scenario_set_true_eff(Design)
 }
 \arguments{
 \item{print}{print code to generate parameter set?}
@@ -27,6 +30,8 @@ For vaccine_scenario: a design tibble with default values invisibly
 a simulated dataset
 
 a Design dataset with the added column gamma_0
+
+a Design dataset with the added column rr_ps
 }
 \description{
 Create an empty assumptions data.frame for generate_vaccine
@@ -44,6 +49,8 @@ the template is also printed for copying, pasting and editing by the user.
 \item \code{generate_vaccine()}: simulate a dataset from the vaccine scenario
 
 \item \code{vaccine_scenario_set_gamma_0()}: vaccine_scenario_set_gamma_0 calculate gamma_0 from other parameters
+
+\item \code{vaccine_scenario_set_true_eff()}: vaccine_scenario_set_true_eff calculate relative risk in the principal stratum of always compliers
 
 }}
 \examples{
