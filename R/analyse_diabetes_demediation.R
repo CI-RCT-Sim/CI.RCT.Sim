@@ -17,21 +17,29 @@
 analyse_diabetes_demediation <- function(X) {
   function(condition, dat, fixed_objects = NULL) {
     # Convert the logical of receiving rescue at any point in to a longitudinal measurement in wide format
-    dat <- dat |> dplyr::mutate(rescue_start = ifelse(is.na(rescue_start), condition$k + 2, rescue_start),R0 = 0)
+    daat <- dat |> dplyr::mutate(
+      rescue_start = ifelse(is.na(rescue_start), condition$k + 2, rescue_start),
+      R0 = 0,
+      across(
+        starts_with("R") & !R0 & !rescue_start,
+        ~ ifelse(is.na(.) & rescue_start <= as.numeric(gsub("R", "", cur_column())), 1, .),
+        .names = "R{gsub('R', '', .col)}"
+      )
+    )
 
-    dat1 <- dat |> dplyr::filter(trt == 1)
+    dat1 <- daat |> dplyr::filter(trt == 1)
     pred1 <- mice::make.predictorMatrix(dat1)
     pred1[, c("id", "rescue_start", "trt")] <- 0
-    dat0 <- dat |> dplyr::filter(trt == 0)
+    dat0 <- daat |> dplyr::filter(trt == 0)
     pred0 <- mice::make.predictorMatrix(dat0)
     pred0[, c("id", "rescue_start", "trt")] <- 0
     dats <- mice::rbind(
-      mice::mice(dat1, m = 5, print = FALSE, predictorMatrix = pred1),
-      mice::mice(dat0, m = 5, print = FALSE, predictorMatrix = pred0)
+      mice::mice(dat1, m = 5, print = FALSE, predictorMatrix = pred1, method = make.method(dat1), ridge = 1e-5, remove.collinear = FALSE),
+      mice::mice(dat0, m = 5, print = FALSE, predictorMatrix = pred0, method = make.method(dat0), ridge = 1e-5, remove.collinear = FALSE)
     )
-
-    analysis <- function(dat, indicator) {
-      dat_comp <- dat[indicator, ] |> dplyr::mutate(
+    # browser()
+    analysis <- function(dataa, indicator) {
+      dat_comp <- dataa[indicator, ] |> dplyr::mutate(
         dplyr::across(
           dplyr::matches("^y[0-9]+$") & !y0,
           ~ .x - y0,
@@ -53,11 +61,13 @@ analyse_diabetes_demediation <- function(X) {
         #   family = binomial(link = "probit"),
         #   method = "brglmFit"
         # )
-        # mod <- logistf(
-        #   as.formula(paste0("R", 12 - k, "~ trt + age + y0", paste0("+ yc", 1:(12 - k), collapse = " "))),
-        #   data = dat_comp
-        # )
-        # dat_comp[, paste0("pred_R", 12 - k)] <- predict(mod, type = "response")
+        mod <- logistf(
+          as.formula(paste0("R", 12 - k, "~ trt + age + y0", paste0("+ yc", 1:(12 - k), collapse = " "))),
+          data = dat_comp,
+          pl = FALSE
+        )
+        browser(expr = length(predict(mod, type = "response")) != nrow(dat_comp))
+        dat_comp[, paste0("pred_R", 12 - k)] <- predict(mod, type = "response")
 
         # Subset the data
         daat <- dat_comp |>
@@ -67,7 +77,7 @@ analyse_diabetes_demediation <- function(X) {
             y0,
             paste0("R", (12 - k):1),
             paste0("yc", (12 - k):1),
-            # paste0("pred_R", 12 - k),
+            paste0("pred_R", 12 - k),
             paste0("j", 12 - k)
           )
 
@@ -105,6 +115,7 @@ analyse_diabetes_demediation <- function(X) {
     # browser()
     for (i in 1:dats$m) {
       dat <- mice::complete(dats, i)
+      browser(expr = sum(is.na(dat)) != 0)
       res <- boot::boot(dat, analysis, R = 500)
       effect[i] <- res$t0[2]
       effect.var[i] <- var(res$t[, 2])

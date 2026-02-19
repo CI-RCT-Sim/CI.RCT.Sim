@@ -35,26 +35,27 @@ analyse_diabetes_ipw <- function(estimand = "hyp") {
   function(condition, dat, fixed_objects = NULL) {
     stopifnot(estimand %in% c("hyp", "tp"))
 
-    k <- condition$k[1] # number of last visit
+    k <- condition$k # number of last visit
 
     # reformate dat to long format with one Hba1c column, one outcome column 'y' (change of Hba1c) and a time variable 'visit'
     dat_long <- pivot_longer(
       dat,
-      y0:paste0("y", k),
+      starts_with("y"),
       names_to = "visit",
       values_to = "hba1c"
-    )
-    dat_long <- dat_long %>%
-      mutate(visit = as.numeric(sub("y", "", visit))) %>%
-      mutate(rescue = ifelse(!is.na(rescue_start) & rescue_start <= visit, 1, 0)) %>% # new variable for rescue at visit j
-      mutate(rescue_lag = lag(rescue, default = NA)) # rescue at visit j-1
-
-    dat_long <- dat_long %>%
+    ) %>%
+      mutate(
+        visit = as.numeric(sub("y", "", visit)),
+        rescue = ifelse(!is.na(rescue_start) & rescue_start <= visit, 1, 0), # new variable for rescue at visit j
+        rescue_lag = lag(rescue, default = NA)
+      ) %>% # rescue at visit j-1
       arrange(id, visit) %>%
       group_by(id) %>%
-      mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
-      mutate(hba1c_lag = lag(hba1c, default = NA)) %>% # HbA1 at visit j-1
-      mutate(y = hba1c - hba1c_0) %>% # HbA1c change
+      mutate(
+        hba1c_0 = hba1c[visit == 0], # HbA1 at baseline
+        hba1c_lag = lag(hba1c, default = NA), # HbA1 at visit j-1
+        y = hba1c - hba1c_0
+      ) %>% # HbA1c change
       filter(visit != 0) # do not include baseline visits
 
     if (estimand == "tp") {

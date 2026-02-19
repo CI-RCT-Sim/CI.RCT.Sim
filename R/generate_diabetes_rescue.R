@@ -73,11 +73,11 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   age_slope <- 2 * exp(-condition$b_age * (age - 30))
   response_trt <- runif(n)
   # The mean trajectory for control patients. Was used previously, when the effect of rescue medication was used instead of treatment. Now it is used on top.
-  # mu_ctr <- matrix(NA, nrow = n, ncol = length(visit))
-  # for (i in 1:length(visit)) {
-  #   mu_ctr[, i] <- condition$mean_bl +
-  #     visit[i] / condition$k * age_slope
-  # }
+  mu_ctr <- matrix(NA, nrow = n, ncol = length(visit))
+  for (i in 1:length(visit)) {
+    mu_ctr[, i] <- condition$mean_bl +
+      visit[i] / condition$k * age_slope
+  }
 
   mu <- matrix(NA, nrow = n, ncol = length(visit))
   for (i in 1:length(visit)) {
@@ -110,7 +110,7 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   for (i in 1:n) {
     if (k_rescue[i] > 0) {
       rescue_set <- (rescue_start[i] + 2):(condition$k + 1)
-      Y[i, rescue_set] <- mu[i, rescue_set] +
+      Y[i, rescue_set] <- mu_ctr[i, rescue_set] +
         response_rescue[i] * rescue_effect[rescue_set - rescue_start[i] + 1] +
         resid[rescue_set]
       any_rescue[i] <- TRUE
@@ -180,7 +180,7 @@ assumptions_diabetes_rescue <- function(print = interactive()) {
   c(-100000,0,0,0),                                # probability for missing data in the scenario with no dropout
   c(qlogis(0.04),log(150),log(1.02),log(1.5))# probability for missing data in the scenario with stronger dropout
   )) |>
-  merge(data.frame(hyp=c(0,1)), by=NULL)
+  merge(data.frame(hyp=c(1,0)), by=NULL)
 "
 
 
