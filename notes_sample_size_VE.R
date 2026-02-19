@@ -44,3 +44,5 @@ Design <- vaccine_scenario(print=FALSE) |>
   vaccine_scenario_set_gamma_0() |>
   vaccine_scenario_set_true_eff() |>
   vaccine_scenario_set_samplesize()
+
+Design

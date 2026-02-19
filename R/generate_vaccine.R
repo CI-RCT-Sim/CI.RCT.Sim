@@ -24,7 +24,7 @@ vaccine_scenario <- function(print=interactive()){
   skel <- "params_scenarios_grid(
   p_V = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk
   p_W = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk and modifying treatment effect
-  lambda_post = -log(1-(1/c(500, 1000, 2000)))/(365/12), # force of infection (baseline infection hazard) after 14 days, monthly incidence of 1/500, 1/1000, 1/2000
+  lambda_post = -log(1-(1/c(100, 200, 1000)))/(365/12), # force of infection (baseline infection hazard) after 14 days, monthly incidence of 1/500, 1/1000, 1/2000
   overall_compliance = c(0.95), # used to callibrate gamma0
   gamma_W  = c(-0.8, 0), # regression parameters for compliance
   gamma_V  = c(0.5, 0),
@@ -97,8 +97,8 @@ generate_vaccine <- function(condition, fixed_objects = list(include_unobserved=
   # beta_AW^(1) == beta_AW^(2) == beta_AW according to table 4.1. in the protocol
   theta_1 <- condition$beta_A1 + condition$beta_AW * W
   theta_2 <- condition$beta_A2 + condition$beta_AW * W
-  theta_early <- theta_1 * W
-  theta_late  <- theta_1 * W + C * (theta_2*W - theta_1*W)
+  theta_early <- theta_1
+  theta_late  <- theta_1 + C * (theta_2 - theta_1)
 
   t_ <- c(0, 14)
   lambda_0 <- diag(c(0, condition$lambda_post))
@@ -251,8 +251,8 @@ vaccine_scenario_set_true_eff <- function(Design){
       lambda_0 <- diag(c(0, condition$lambda_post))
       theta_1 <- condition$beta_A1 + condition$beta_AW * w
       theta_2 <- condition$beta_A2 + condition$beta_AW * w
-      theta_early <- theta_1 * w
-      theta_late  <- theta_1 * w + (theta_2*w - theta_1*w)
+      theta_early <- theta_1
+      theta_late  <- theta_1 + C * (theta_2 - theta_1)
 
       lambda_vw <- cbind(
         exp(condition$beta_V * v + condition$beta_W * w + y * theta_early),
