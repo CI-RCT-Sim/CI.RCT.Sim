@@ -252,7 +252,7 @@ vaccine_scenario_set_true_eff <- function(Design){
       theta_1 <- condition$beta_A1 + condition$beta_AW * w
       theta_2 <- condition$beta_A2 + condition$beta_AW * w
       theta_early <- theta_1
-      theta_late  <- theta_1 + C * (theta_2 - theta_1)
+      theta_late  <- theta_1 + (theta_2 - theta_1)
 
       lambda_vw <- cbind(
         exp(condition$beta_V * v + condition$beta_W * w + y * theta_early),
