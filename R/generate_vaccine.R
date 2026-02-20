@@ -316,7 +316,7 @@ vaccine_scenario_set_samplesize <- function(Design, alpha=0.025, CSE=0.3, power=
 
 
   set_samplesize_rowwise <- function(condition){
-    ns <- sample_size_formula_nauta(alpha, 1-condition$rr_ps, miniPCH::ppch(365, c(0, 14), c(0, condition$lambda_post)), CSE, power, r)
+    ns <- sample_size_formula_nauta(alpha, 1-exp(condition$beta_A2), miniPCH::ppch(365, c(0, 14), c(0, condition$lambda_post)), CSE, power, r)
     condition$n_trt <- ns[2]
     condition$n_ctrl <- ns[1]
     condition
