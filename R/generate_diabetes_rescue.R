@@ -110,7 +110,7 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   for (i in 1:n) {
     if (k_rescue[i] > 0) {
       rescue_set <- (rescue_start[i] + 2):(condition$k + 1)
-      Y[i, rescue_set] <- mu_ctr[i, rescue_set] +
+      Y[i, rescue_set] <- mu[i, rescue_set] +
         response_rescue[i] * rescue_effect[rescue_set - rescue_start[i] + 1] +
         resid[rescue_set]
       any_rescue[i] <- TRUE
@@ -182,7 +182,6 @@ assumptions_diabetes_rescue <- function(print = interactive()) {
   )) |>
   merge(data.frame(hyp=c(1,0)), by=NULL)
 "
-
 
   if (print) {
     cat(skel)
