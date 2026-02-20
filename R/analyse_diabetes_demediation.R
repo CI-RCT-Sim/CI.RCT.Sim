@@ -7,6 +7,7 @@
 #'
 #' @importFrom stats lm glm as.formula binomial coef predict var quantile
 #' @importFrom mice mice make.method make.predictorMatrix complete rbind pool.scalar
+#' @importFrom dplyr cur_column across matches mutate filter case_when select
 #' @importFrom logistf logistf
 #'
 #' @examples
@@ -17,7 +18,7 @@
 analyse_diabetes_demediation <- function(X) {
   function(condition, dat, fixed_objects = NULL) {
     # Convert the logical of receiving rescue at any point in to a longitudinal measurement in wide format
-    daat <- dat |> dplyr::mutate(
+    daat <- dat |> mutate(
       rescue_start = ifelse(is.na(rescue_start), condition$k + 2, rescue_start),
       R0 = 0,
       across(
@@ -27,21 +28,21 @@ analyse_diabetes_demediation <- function(X) {
       )
     )
 
-    dat1 <- daat |> dplyr::filter(trt == 1)
-    pred1 <- mice::make.predictorMatrix(dat1)
+    dat1 <- daat |> filter(trt == 1)
+    pred1 <- make.predictorMatrix(dat1)
     pred1[, c("id", "rescue_start", "trt")] <- 0
-    dat0 <- daat |> dplyr::filter(trt == 0)
-    pred0 <- mice::make.predictorMatrix(dat0)
+    dat0 <- daat |> filter(trt == 0)
+    pred0 <- make.predictorMatrix(dat0)
     pred0[, c("id", "rescue_start", "trt")] <- 0
-    dats <- mice::rbind(
-      mice::mice(dat1, m = 5, print = FALSE, predictorMatrix = pred1, method = make.method(dat1), ridge = 1e-5, remove.collinear = FALSE),
-      mice::mice(dat0, m = 5, print = FALSE, predictorMatrix = pred0, method = make.method(dat0), ridge = 1e-5, remove.collinear = FALSE)
+    dats <- rbind(
+      mice(dat1, m = 5, print = FALSE, predictorMatrix = pred1, method = make.method(dat1), ridge = 1e-5, remove.collinear = FALSE),
+      mice(dat0, m = 5, print = FALSE, predictorMatrix = pred0, method = make.method(dat0), ridge = 1e-5, remove.collinear = FALSE)
     )
     # browser()
     analysis <- function(dataa, indicator) {
-      dat_comp <- dataa[indicator, ] |> dplyr::mutate(
-        dplyr::across(
-          dplyr::matches("^y[0-9]+$") & !y0,
+      dat_comp <- dataa[indicator, ] |> mutate(
+        across(
+          matches("^y[0-9]+$") & !y0,
           ~ .x - y0,
           .names = "yc{gsub('y', '', .col)}"
         )
@@ -54,13 +55,6 @@ analyse_diabetes_demediation <- function(X) {
           next
         }
         # Fit a model to predict the probability of receiving rescue medication at visit 12 - k
-        # browser()
-        # mod <- glm(
-        #   as.formula(paste0("R", 12 - k, "~ trt + age + y0", paste0("+ yc", 1:(12 - k), collapse = " "))),
-        #   data = dat_comp,
-        #   family = binomial(link = "probit"),
-        #   method = "brglmFit"
-        # )
         mod <- logistf(
           as.formula(paste0("R", 12 - k, "~ trt + age + y0", paste0("+ yc", 1:(12 - k), collapse = " "))),
           data = dat_comp,
@@ -71,7 +65,7 @@ analyse_diabetes_demediation <- function(X) {
 
         # Subset the data
         daat <- dat_comp |>
-          dplyr::select(
+          select(
             trt,
             age,
             y0,
@@ -91,7 +85,7 @@ analyse_diabetes_demediation <- function(X) {
         )
         dat_comp[, paste0("j", 12 - k - 1)] <-
           dat_comp[, paste0("j", 12 - k)] -
-          dplyr::case_when(
+          case_when(
             !is.na(coef(model)[paste0("R", 12 - k)]) ~ coef(model)[paste0("R", 12 - k)],
             TRUE ~ 0
           ) *
@@ -114,7 +108,7 @@ analyse_diabetes_demediation <- function(X) {
     # res <- vector("list", dats$m)
     # browser()
     for (i in 1:dats$m) {
-      dat <- mice::complete(dats, i)
+      dat <- complete(dats, i)
       browser(expr = sum(is.na(dat)) != 0)
       res <- boot::boot(dat, analysis, R = 500)
       effect[i] <- res$t0[2]
@@ -122,7 +116,7 @@ analyse_diabetes_demediation <- function(X) {
       cil[i] <- quantile(res$t[, 2], probs = c(0.025))
       ciu[i] <- quantile(res$t[, 2], probs = c(0.975))
     }
-    end_res <- mice::pool.scalar(effect, effect.var)
+    end_res <- pool.scalar(effect, effect.var)
 
     list(
       effect,
