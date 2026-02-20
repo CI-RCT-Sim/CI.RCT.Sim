@@ -122,7 +122,7 @@ analyse_diabetes_gcomputation <- function() {
       )
     ) # no rescue
     int_descript <- c("treatment not rescue", "control no rescue")
-    # restrictions <- list(c("rescue", "lag1_rescue == 1", gfoRmula::carry_forward))
+    # restrictions <- list(c("rescue",  "lag1_rescue == 1", gfoRmula::carry_forward))
     nsamples <- 500
 
     g.model <- gfoRmula::gformula_continuous_eof(
