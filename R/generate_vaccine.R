@@ -14,7 +14,9 @@
 #'
 #' @examples
 #' Design <- vaccine_scenario() |>
-#'   vaccine_scenario_set_gamma_0()
+#'   vaccine_scenario_set_gamma_0() |>
+#'   vaccine_scenario_set_true_eff() |>
+#'   vaccine_scenario_set_samplesize()
 #' Design
 #'
 #' Design$beta_A1 <- 0.1
@@ -24,7 +26,7 @@ vaccine_scenario <- function(print=interactive()){
   skel <- "params_scenarios_grid(
   p_V = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk
   p_W = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk and modifying treatment effect
-  lambda_post = -log(1-(1/c(500, 1000, 2000)))/365.25, # force of infection (baseline infection hazard) after 14 days, yearly incidence of 1/500, 1/1000, 1/2000
+  lambda_post = -log(1-(1/c(100, 200, 1000)))/(365/12), # force of infection (baseline infection hazard) after 14 days, monthly incidence of 1/500, 1/1000, 1/2000
   overall_compliance = c(0.95), # used to callibrate gamma0
   gamma_W  = c(-0.8, 0), # regression parameters for compliance
   gamma_V  = c(0.5, 0),
@@ -35,8 +37,6 @@ vaccine_scenario <- function(print=interactive()){
   effect_before_d2 = c(1,0), # indicator whether there's any effect before d2, used to set beta_A1
   beta_A2  = log(1-c(0.8, 0, 0.5, 0.9)), #
   beta_AW = c(log(0.8), 0),
-  n_trt     = c(50), # study design parameters
-  n_ctrl    = c(50),
   follow_up = c(365)
 ) |>
 transform(
@@ -97,8 +97,8 @@ generate_vaccine <- function(condition, fixed_objects = list(include_unobserved=
   # beta_AW^(1) == beta_AW^(2) == beta_AW according to table 4.1. in the protocol
   theta_1 <- condition$beta_A1 + condition$beta_AW * W
   theta_2 <- condition$beta_A2 + condition$beta_AW * W
-  theta_early <- theta_1 * W
-  theta_late  <- theta_1 * W + C * (theta_2*W - theta_1*W)
+  theta_early <- theta_1
+  theta_late  <- theta_1 + C * (theta_2 - theta_1)
 
   t_ <- c(0, 14)
   lambda_0 <- diag(c(0, condition$lambda_post))
@@ -169,12 +169,13 @@ generate_vaccine <- function(condition, fixed_objects = list(include_unobserved=
 
 
 #' @param Design Design dataset as returned by `vaccine_scenario`
+#' @param r for setting gamm_0 and sample size calculation: allocation ratio
 #'
 #' @describeIn vaccine_scenario vaccine_scenario_set_gamma_0 calculate gamma_0 from other parameters
 #'
 #' @returns a Design dataset with the added column gamma_0
 #' @export
-vaccine_scenario_set_gamma_0 <- function(Design){
+vaccine_scenario_set_gamma_0 <- function(Design, r=1){
   set_gamma_0_rowwise <- function(condition){
     # plug-in mean for W, V
     A0 <- condition$gamma_W * condition$p_W +
@@ -185,8 +186,8 @@ vaccine_scenario_set_gamma_0 <- function(Design){
       condition$gamma_A +
       condition$gamma_AW * condition$p_W
 
-    w1 <- condition$n_trt  / (condition$n_trt + condition$n_ctrl)
-    w0 <- condition$n_ctrl / (condition$n_trt + condition$n_ctrl)
+    w1 <- 1/(1+r)
+    w0 <- 1-1/(1+r)
     p <- condition$overall_compliance
 
     # derived with sympy
@@ -251,8 +252,8 @@ vaccine_scenario_set_true_eff <- function(Design){
       lambda_0 <- diag(c(0, condition$lambda_post))
       theta_1 <- condition$beta_A1 + condition$beta_AW * w
       theta_2 <- condition$beta_A2 + condition$beta_AW * w
-      theta_early <- theta_1 * w
-      theta_late  <- theta_1 * w + (theta_2*w - theta_1*w)
+      theta_early <- theta_1
+      theta_late  <- theta_1 + (theta_2 - theta_1)
 
       lambda_vw <- cbind(
         exp(condition$beta_V * v + condition$beta_W * w + y * theta_early),
@@ -279,3 +280,52 @@ vaccine_scenario_set_true_eff <- function(Design){
   Design
 }
 
+
+
+
+
+#' @describeIn vaccine_scenario vaccine_scenario_set_samplesize calculate sample size as if the true effect was correctly guessed
+#'
+#' @param alpha for sample size calculation: one-sided alpha level
+#' @param CSE for sample size calculation: super-superiority margin on the VE scale
+#' @param power for sample size calculation: target power
+#'
+#' @returns a Design dataset with the added columns n_trt and n_ctrl
+#' @export
+vaccine_scenario_set_samplesize <- function(Design, alpha=0.025, CSE=0.3, power=0.9, r=1){
+  sample_size_formula_nauta <- function(alpha, VE, AR0, CSE, power, r){
+    theta0 <- 1-CSE
+    p0 <- AR0
+    p1 <- p0*(1-VE)
+    Zalpha <- qnorm(1-alpha)
+    Zbeta <- qnorm(power)
+    A <- 1+1/r
+    B <- -(theta0*(1+p0/r)+1/r+p1)
+    C <- theta0*(p1+p0/r)
+    R1 <- (-B-sqrt(B*B-4*A*C))/(2*A)
+    R0 <- R1/theta0
+    n1 <- ((
+      Zalpha*sqrt(R1*(1-R1) + ((theta0^2)*r)*R0*(1-R0)) +
+        Zbeta*sqrt(p1*(1-p1) + ((theta0^2)*r)*p0*(1-p0))
+    ) / (p1-theta0*p0))^2
+    n0 <- floor(n1/r)+1
+    n1 <- floor(n1)+1
+
+    c(n0, n1)
+  }
+
+
+  set_samplesize_rowwise <- function(condition){
+    ns <- sample_size_formula_nauta(alpha, 1-exp(condition$beta_A2), miniPCH::ppch(365, c(0, 14), c(0, condition$lambda_post)), CSE, power, r)
+    condition$n_trt <- ns[2]
+    condition$n_ctrl <- ns[1]
+    condition
+  }
+
+  Design <- Design |>
+    split(1:nrow(Design)) |>
+    lapply(set_samplesize_rowwise) |>
+    do.call(rbind, args=_)
+
+  Design
+}
