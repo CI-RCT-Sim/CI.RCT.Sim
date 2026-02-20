@@ -1,0 +1,90 @@
+---
+title: "Data Generation Vaccine Scenario"
+author: "Tobias Fellinger"
+output: 
+  beamer_presentation: 
+    keep_tex: true
+classoption: aspectratio=169
+bibliography: "ve_calculations.bib"
+date: "2026-02-23"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+# Introduction
+
+* Defined in the protocol
+  * Data generation model
+  * Most parameters
+* Parameters not defined
+  * $\gamma_0$
+  * Sample Size
+* Needed as comparison
+  * True effect size: marginal vaccine efficacy (VE) in the principal stratum (PS) of always complieres
+  
+# Calculation of $\gamma_0$
+
+* Protocol: "Chosen to achieve typical two-dose completion ($\sim 95\%$ overall), given the remaining $\gamma$ parameters."
+* Idea: plug into model for compliance and solve for $gamma_0$
+* Formula for compliance probability $logit\{Pr(C|W,V,A)\}=\gamma_0 + \gamma_W W + \gamma_V V + \gamma_A A + \gamma_{AW}A\cdot W$
+* Define
+  * $A_0 := \gamma_W p_W + \gamma_V p_V$
+  * $A_1 := \gamma_W p_W + \gamma_V p_V + \gamma_A + \gamma_{AW}p_W$
+  * $w_1:=\frac{1}{(1+r)}$, $w_0:=1-\frac{1}{(1+r)}$, with the allocation ratio $r$
+* Plugging in the defintion of the logistic function $x\mapsto \frac{1}{1+\exp(x)}$ 
+* And writing  
+  $Pr(C|W,V)= Pr(A=0|W,V)Pr(C|W,V,A=0) + Pr(A=1|W,V)Pr(C|W,V,A=1)$ 
+* Gives $Pr(C)= w_1\frac{1}{1+\exp(-\gamma_0-A_1)} + w_0\frac{1}{\exp(-\gamma_0-A_0)}$
+
+---
+
+* Solving for $\gamma_0$ with symbolic math package gives a formula for $\gamma_0$ in terms of $p:=Pr(C)$, $p_V$, $p_W$, $r$:
+
+$$
+{\scriptstyle
+\gamma_0 = -A_0 - A_1 + \log\left(\frac{-p\cdot\exp(A_0) - p\cdot\exp(A_1) + w_0\cdot \exp(A_0) + w_1\cdot \exp(A1) \pm \sqrt{X}}{(p - w_0 - w_1)}\right) - \log(2)
+}
+$$
+
+with 
+
+$$
+\begin{aligned}
+\scriptstyle X= &\scriptstyle p^2\cdot exp(2A_0) + p^2 \cdot \exp(2A_1) - 2p^2\cdot \exp(A_0 + A_1) - 2p\cdot w_0 \cdot \exp(2A_0) + 2p\cdot w_0\exp(A_0 + A_1)\\ 
+               &\scriptstyle- 2p\cdot w_1 \cdot \exp(2A_1) + 2p\cdot w_1 \cdot \exp(A_0 + A_1) + w_0^2 \cdot \exp(2A_0) + 2w_0\cdot w_1 \cdot \exp(A_0 + A_1) + w_1^2\cdot \exp(2A_1)
+\end{aligned}
+$$
+
+# Setting the Sample Size
+
+* Equal allocation to both arms $r=1$
+* Endpoint is super-superiority with $VE>0.3$
+* Sample size formula from [@farrington1990binomial], as implemented in SAS Code I4 in [@nauta2020vaccinestudies]
+* Effect size used for sample size planning is VE after second dose: $\scriptstyle 1-\exp\left(\beta_A^{(2)}\right)$
+* Event rate uses for sample size planning is calculated from baseline hazard $0$ in the first $14$ days, $\lambda_{post}$ after
+* Other parameters are:
+  * One-sided significance level $\alpha = 0.025$
+  * Margin: $VE > 0.3$
+  * Target power: $90\%$
+  * Allocation ratio $r=1$
+
+# Caclulating the Population Average Marginal Effect in the PS
+
+* Calculated according to the formulas given in the protocol
+* Used `miniPCH::ppch` to calculate event probability
+
+# Code 
+
+* Implementation can be found in the git-branch `scenario3`, file `R/generate_vaccine.R`, functions:
+  * `vaccine_scenario_set_gamma_0`
+  * `vaccine_scenario_set_true_eff`
+  * `vaccine_scenario_set_samplesize`
+* Documentation and test scripts can be found in the git-branch `scenario3_doc`:
+  * `notes_test_true_value_vaccine.R` check if calculation gives the same result as simulating and keeping unobserved variables
+  * `notes_vaccine_sample_size.R` check if the sample size gives approximately the correct power
+  * `test_vaccine_gamma0.Rmd`, `test_vaccine_gamma0.html` symbolic calculations for the calculation of $\gamma_0$ and check by comparing to solution via numeric root-finding
+  * `presentation_data_generation_vaccine.Rmd`, `ve_calculations.bib`, `presentation_data_generation_vaccine.pdf` this presentation
+
+# References
