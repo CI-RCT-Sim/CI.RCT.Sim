@@ -246,7 +246,6 @@ vaccine_scenario_set_true_eff <- function(Design){
         sum(outer(0:1, 0:1, \(v_, w_){pr_V(v_)*pr_W(w_)*m(v_,w_)}))
     }
 
-    #TODO: check
     pi <- Vectorize(\(y,v,w){
       t_ <- c(0, 14)
       lambda_0 <- diag(c(0, condition$lambda_post))

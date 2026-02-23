@@ -4,14 +4,14 @@ devtools::load_all()
 # Define parameter values and derived quantities
 # -------------------------------------------------------------------
 
-sim_parameters <- assumptions_diabetes_rescue() |>
+sim_parameters <- assumptions_diabetes_rescue()[1, ] |>
   true_summary_statistics_diabetes_rescue()
 
 # -------------------------------------------------------------------
 # Constants for simulation
 # -------------------------------------------------------------------
 
-N_sim <- 1000
+N_sim <- 10 # 00
 alpha <- 0.1
 
 # -------------------------------------------------------------------
