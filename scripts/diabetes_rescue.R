@@ -37,6 +37,12 @@ my_summarise <- create_summarise_function(
   ipwtp = summarise_estimator(est = coef, real = eff_true),
   ipwhyp = summarise_estimator(est = coef, real = eff_true),
   dm = summarise_estimator(est = coef, real = eff_true),
+  # additional custom summary: mean CI width
+  dm = function(condition, results, fixed_objects = NULL) {
+    data.frame(
+      mean_ci_width = mean(results$ciu - results$cil, na.rm = TRUE)
+    )
+  },
   mmrm = summarise_estimator(
     est   = coef,
     real  = eff_true,

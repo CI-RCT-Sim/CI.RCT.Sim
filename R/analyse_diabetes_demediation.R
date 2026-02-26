@@ -105,6 +105,7 @@ analyse_diabetes_demediation <- function(X) {
     effect.var <- rep(NA, dats$m)
     cil <- rep(NA, dats$m)
     ciu <- rep(NA, dats$m)
+    ests <- list()
     # res <- vector("list", dats$m)
     # browser()
     for (i in 1:dats$m) {
@@ -113,17 +114,16 @@ analyse_diabetes_demediation <- function(X) {
       res <- boot::boot(dat, analysis, R = 500)
       effect[i] <- res$t0[2]
       effect.var[i] <- var(res$t[, 2])
-      cil[i] <- quantile(res$t[, 2], probs = c(0.025))
-      ciu[i] <- quantile(res$t[, 2], probs = c(0.975))
+      ests[[i]] <- res$t[, 2]
     }
     end_res <- pool.scalar(effect, effect.var)
 
     list(
-      effect,
-      effect.var,
-      cil,
-      ciu,
-      coefs = end_res$qhat,
+      # effect,
+      # effect.var,
+      cil = quantile(unlist(ests), 0.025),
+      ciu = quantile(unlist(ests), 0.975),
+      # coefs = end_res$qhat,
       coef = end_res$qbar,
       sd = sqrt(end_res$t)
     )
