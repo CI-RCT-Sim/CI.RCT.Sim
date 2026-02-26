@@ -36,7 +36,13 @@ my_summarise <- create_summarise_function(
   # bias, SD, coverage etc. for the treatment effect at final visit
   ipwtp = summarise_estimator(est = coef, real = eff_true),
   ipwhyp = summarise_estimator(est = coef, real = eff_true),
-  dm = summarise_estimator(est = coef, real = eff_true),
+  dm = summarise_estimator(
+    est = coef,
+    real = eff_true,
+    lower = ci_lower,
+    upper = ci_upper,
+    null = 0
+  ),
   # additional custom summary: mean CI width
   dm = function(condition, results, fixed_objects = NULL) {
     data.frame(
