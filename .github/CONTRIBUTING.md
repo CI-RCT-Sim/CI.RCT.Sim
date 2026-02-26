@@ -30,10 +30,10 @@ To contribute code:
 3. create a new branch from there `git checkout -b <new_branch_name>` (replace
    <new_branch_name> with the name of your branch)
 4. write your code
-5. Run `renv::status()` to check if any pacakges need to be installed, updated
-   or added to renv. If necessary use `renv::snapshot` to add packages you
-   installed to renv or `renv::restore` if you are missing pacakges others have
-   added.
+5. Run `renv::status(dev=TRUE)` to check if any pacakges need to be installed,
+   updated or added to renv. If necessary use `renv::snapshot(dev=TRUE)` to add
+   packages you installed to renv or `renv::restore` if you are missing pacakges
+   others have added.
 6. run `devtools::document()` to generate documentation and update `DESCRIPTION`
    and `NAMESPACE`
 7. run `devtools::test()` and `devtools::check()`, if there are any errors, fix

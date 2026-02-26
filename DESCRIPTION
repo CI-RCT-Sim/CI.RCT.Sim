@@ -13,7 +13,8 @@ Suggests:
     knitr,
     rmarkdown,
     roxygen2,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    covr
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 URL: https://ci-rct-sim.github.io/CI.RCT.Sim/
@@ -29,7 +30,16 @@ Imports:
     estimatr,
     magrittr,
     tidyr,
+<<<<<<< HEAD
     gfoRmula,
     ipw,
     data.table
+=======
+    ipw,
+    mmrm,
+    gfoRmula,
+    data.table,
+    logistf,
+    tidyselect
+>>>>>>> origin/main
 VignetteBuilder: knitr
