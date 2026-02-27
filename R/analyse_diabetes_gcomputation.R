@@ -79,7 +79,7 @@ analyse_diabetes_gcomputation <- function() {
         # create a new column at second-to-last timepoint that holds y at last time point
         # i.e. final outcome
         # to preserve this value while deleting the last row for the model estimation
-        y_k = ifelse(visit == k - 1, lag(y), NA)
+        y_k = ifelse(visit == k - 1, lead(y), NA)
       ) |>
       dplyr::select(-R)
 
@@ -102,11 +102,11 @@ analyse_diabetes_gcomputation <- function() {
     histvars <- list("y", "rescue")
     basecovs <- c("age")
     covparams <- list(covmodels = c(
-      y ~ trt + rescue + lag1_y + age, # + rescue??? (not in the protocol but would make sense to me becasue recue is affected by y-1 and affects y in future)
+      y ~ trt + rescue + lag1_y + age, # include trt + rescue (protocol deviation)
       trt ~ 1,
-      rescue ~ trt + y + age
-    )) # correct to put treatment in here?
-    ymodel <- y_k ~ trt + rescue + lag1_y + age
+      rescue ~ y + age
+    ))
+    ymodel <- y_k ~ trt + rescue + lag1_y + age # include trt + rescue (protocol deviation)
     intvars <- list(
       c("trt", "rescue"),
       c("trt", "rescue")
@@ -121,8 +121,8 @@ analyse_diabetes_gcomputation <- function() {
         c(static, rep(0, time_points))
       )
     ) # no rescue
-    int_descript <- c("treatment not rescue", "control no rescue")
-    # restrictions <- list(c("rescue",  "lag1_rescue == 1", gfoRmula::carry_forward))
+    int_descript <- c("treatment no rescue", "control no rescue")
+    restrictions <- list(c("rescue",  "lag1_rescue != 1", gfoRmula::carry_forward))
     nsamples <- 500
 
     g.model <- gfoRmula::gformula_continuous_eof(
