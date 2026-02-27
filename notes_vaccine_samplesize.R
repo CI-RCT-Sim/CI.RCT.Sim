@@ -1,13 +1,17 @@
 # renv::deactivate()
 
+Sys.setenv(RENV_WATCHDOG_ENABLED = FALSE)
+
 library(parallel)
-devtools::load_all()
+# devtools::install()
+library(CI.RCT.Sim)
 library(gsDesign)
 
+# works, though quite slow
 cl <- makeCluster(parallel::detectCores()-1)
 
 clusterEvalQ(cl, {
-  devtools::load_all()
+  library(CI.RCT.Sim)
   library(gsDesign)
 })
 
