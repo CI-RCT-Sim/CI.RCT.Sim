@@ -20,7 +20,7 @@ analyse_diabetes_demediation <- function(X) {
     # Convert the logical of receiving rescue at any point in to a longitudinal measurement in wide format
     daat <- dat |> mutate(
       rescue_start = ifelse(is.na(rescue_start), condition$k + 2, rescue_start),
-      R0 = 0,
+      R0 = 0, .before = R1,
       across(
         starts_with("R") & !R0 & !rescue_start,
         ~ ifelse(is.na(.) & rescue_start <= as.numeric(gsub("R", "", cur_column())), 1, .),
@@ -31,16 +31,18 @@ analyse_diabetes_demediation <- function(X) {
     dat1 <- daat |> filter(trt == 1)
     pred1 <- make.predictorMatrix(dat1)
     pred1[, c("id", "rescue_start", "trt")] <- 0
+    meth1 <- make.method(dat1)
     dat0 <- daat |> filter(trt == 0)
     pred0 <- make.predictorMatrix(dat0)
     pred0[, c("id", "rescue_start", "trt")] <- 0
+    meth0 <- make.method(dat0)
     dats <- rbind(
-      mice(dat1, m = 5, print = FALSE, predictorMatrix = pred1, method = make.method(dat1), ridge = 1e-5, remove.collinear = FALSE),
-      mice(dat0, m = 5, print = FALSE, predictorMatrix = pred0, method = make.method(dat0), ridge = 1e-5, remove.collinear = FALSE)
+      mice(dat1, m = 10, print = FALSE, predictorMatrix = pred1, method = meth1, ridge = 1e-5, remove.collinear = FALSE),
+      mice(dat0, m = 10, print = FALSE, predictorMatrix = pred0, method = meth0, ridge = 1e-5, remove.collinear = FALSE)
     )
     # browser()
-    analysis <- function(dataa, indicator) {
-      dat_comp <- dataa[indicator, ] |> mutate(
+    analysis <- function(dataa) {
+      dat_comp <- dataa |> mutate(
         across(
           matches("^y[0-9]+$") & !y0,
           ~ .x - y0,
@@ -110,19 +112,28 @@ analyse_diabetes_demediation <- function(X) {
     # browser()
     for (i in 1:dats$m) {
       dat <- complete(dats, i)
-      browser(expr = sum(is.na(dat)) != 0)
+      dat[is.na(dat)] <- 0
+      # browser(expr = sum(is.na(dat)) != 0)
       res <- boot::boot(dat, analysis, R = 500)
-      effect[i] <- res$t0[2]
-      effect.var[i] <- var(res$t[, 2])
-      ests[[i]] <- res$t[, 2]
+      res <- analysis(dat)
+      # effect[i] <- res$t0[2]
+      # effect.var[i] <- var(res$t[, 2])
+      # ests[[i]] <- res$t[, 2]
+      effect[i] <- res["coef.trt"]
+      effect.var[i] <- res["se"]^2
     }
     end_res <- pool.scalar(effect, effect.var)
-
+    ci <- c(
+      end_res$qbar - 1.96 * sqrt(end_res$t),
+      end_res$qbar + 1.96 * sqrt(end_res$t)
+    )
+    # browser()
     list(
       # effect,
       # effect.var,
-      cil = quantile(unlist(ests), 0.025),
-      ciu = quantile(unlist(ests), 0.975),
+      ci,
+      # cil = quantile(unlist(ests), 0.025),
+      # ciu = quantile(unlist(ests), 0.975),
       # coefs = end_res$qhat,
       coef = end_res$qbar,
       sd = sqrt(end_res$t)

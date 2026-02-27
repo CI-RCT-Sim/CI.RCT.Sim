@@ -46,7 +46,7 @@ my_summarise <- create_summarise_function(
   # additional custom summary: mean CI width
   dm = function(condition, results, fixed_objects = NULL) {
     data.frame(
-      mean_ci_width = mean(results$ciu - results$cil, na.rm = TRUE)
+      mean_ci_width = mean(results$ci[2] - results$ci[1], na.rm = TRUE)
     )
   },
   mmrm = summarise_estimator(
@@ -74,7 +74,8 @@ results <- runSimulation(
   replications = N_sim,
   generate = generate_diabetes_rescue,
   analyse = my_analyse,
-  summarise = my_summarise
+  summarise = my_summarise,
+  parallel = TRUE
 )
 
 # -------------------------------------------------------------------
@@ -97,3 +98,6 @@ results |>
     "gcom.bias",
     "gcom.sd_est"
   ))
+
+saveRDS(results, "results.rds")
+save.image("final_workspace.RData")
