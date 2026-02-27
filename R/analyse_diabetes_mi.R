@@ -1,27 +1,85 @@
-analyse_diabetes_rescue_mi <- function(m = 10,
-                                       maxit = 20,
-                                       ci_level = 0.95,
-                                       seed = 123) {
+#' Analysis for hypothetical and treatment policy estimands
+#'
+#' Creates an analysis function for the diabetes rescue simulation.
+#' Depending on the chosen estimand, either a hypothetical strategy
+#' with multiple imputation after rescue initiation is applied,
+#' or a treatment policy strategy using observed data only.
+#'
+#' @param estimand Either `"hypothetical"` or `"treatment_policy"`.
+#' @param m Number of imputations (used for hypothetical only).
+#' @param maxit Maximum number of MICE iterations.
+#' @param ci_level Confidence level.
+#' @param seed Random seed for imputation.
+#'
+#' @return A function with arguments `(condition, dat, fixed_objects = NULL)`
+#'   returning a list with elements `coef`, `p`, `ci_lower`, `ci_upper`.
+#'
+#' @importFrom mice mice make.method make.predictorMatrix complete as.mira pool
+#' @importFrom dplyr filter select bind_rows all_of
+#' @importFrom stats lm
+#' @export
+analyse_diabetes_rescue <- function(
+    estimand = c("hypothetical", "treatment_policy"),
+    m = 10,
+    maxit = 20,
+    ci_level = 0.95,
+    seed = 123) {
+
+  estimand <- match.arg(estimand)
 
   function(condition, dat, fixed_objects = NULL) {
 
-    library(mice)
-    library(dplyr)
-
     k <- condition$k
 
-    vars_y <- paste0("y", 0:k)
-    vars_R <- paste0("R", 1:(k - 1))
+    ############################################################
+    # TREATMENT POLICY ESTIMAND
+    ############################################################
+    if (estimand == "treatment_policy") {
 
+      dat$chg <- dat[[paste0("y", k)]] - dat$y0
+
+      fit <- stats::lm(chg ~ trt + age + y0, data = dat)
+
+      sum_fit <- summary(fit)
+      ci <- confint(fit, level = ci_level)["trt", ]
+
+      return(list(
+        coef     = coef(fit)["trt"],
+        p        = sum_fit$coefficients["trt", "Pr(>|t|)"],
+        ci_lower = ci[1],
+        ci_upper = ci[2]
+      ))
+    }
+
+    ############################################################
+    # HYPOTHETICAL ESTIMAND
+    # Set post-rescue data to missing, then MI
+    ############################################################
+
+    dat_hyp <- dat
+
+    # Set all post-rescue Y values to NA
+    for (i in seq_len(nrow(dat_hyp))) {
+
+      rs <- dat_hyp$rescue_start[i]
+
+      if (!is.na(rs) && rs < k) {
+
+        miss_visits <- (rs + 1):k
+
+        for (v in miss_visits) {
+          dat_hyp[i, paste0("y", v)] <- NA
+        }
+      }
+    }
+
+    vars_y <- paste0("y", 0:k)
+    vars_R <- if (k > 1) paste0("R", 1:(k - 1)) else character(0)
     vars_imp <- c(vars_y, vars_R, "age", "trt")
 
-    # Methods
-    meth <- make.method(dat[vars_imp])
-
-    # HbA1c imputation
+    meth <- mice::make.method(dat_hyp[vars_imp])
     meth[vars_y] <- "pmm"
 
-    # Rescue: monotone via passive imputation
     if (k >= 2) {
       meth["R1"] <- "logreg"
     }
@@ -33,36 +91,29 @@ analyse_diabetes_rescue_mi <- function(m = 10,
       }
     }
 
-    # age and trt not imputed
     meth[c("age", "trt")] <- ""
 
-    # Predictor matrix
-    pred <- make.predictorMatrix(dat[vars_imp])
-
+    pred <- mice::make.predictorMatrix(dat_hyp[vars_imp])
     diag(pred) <- 0
-
-    # trt not used as predictor (impute by arm)
     pred[, "trt"] <- 0
-
-    # baseline always predictor
     pred[, "y0"] <- 1
 
-    # Imputation by treatment group
     imp_list <- vector("list", 2)
 
     for (g in 0:1) {
 
-      dat_g <- dat %>%
-        filter(trt == g) %>%
-        select(all_of(vars_imp))
+      dat_g <- dat_hyp |>
+        dplyr::filter(trt == g) |>
+        dplyr::select(dplyr::all_of(vars_imp))
 
-      # ✅ Convert rescue variables to factors BEFORE imputation
       if (length(vars_R) > 0) {
-        dat_g[vars_R] <- lapply(dat_g[vars_R],
-                                function(x) factor(x, levels = c(0, 1)))
+        dat_g[vars_R] <- lapply(
+          dat_g[vars_R],
+          function(x) factor(x, levels = c(0, 1))
+        )
       }
 
-      imp_list[[g + 1]] <- mice(
+      imp_list[[g + 1]] <- mice::mice(
         dat_g,
         m = m,
         method = meth,
@@ -73,23 +124,20 @@ analyse_diabetes_rescue_mi <- function(m = 10,
       )
     }
 
-    # Recombine completed datasets
-    imp_full <- lapply(1:m, function(i) {
-      bind_rows(
-        complete(imp_list[[1]], i),
-        complete(imp_list[[2]], i)
+    imp_full <- lapply(seq_len(m), function(i) {
+      dplyr::bind_rows(
+        mice::complete(imp_list[[1]], i),
+        mice::complete(imp_list[[2]], i)
       )
     })
 
-    # Fit ANCOVA model in each imputed dataset
     fit_models <- lapply(imp_full, function(d) {
       d$chg <- d[[paste0("y", k)]] - d$y0
-      lm(chg ~ trt + age + y0, data = d)
+      stats::lm(chg ~ trt + age + y0, data = d)
     })
 
-    # Pool results
-    imp_obj <- as.mira(fit_models)
-    pooled <- pool(imp_obj)
+    imp_obj <- mice::as.mira(fit_models)
+    pooled <- mice::pool(imp_obj)
 
     sum_pooled <- summary(
       pooled,
@@ -108,11 +156,8 @@ analyse_diabetes_rescue_mi <- function(m = 10,
   }
 }
 
-Design <- assumptions_diabetes_rescue()
-condition <- Design[1, ]
-
-dat <- generate_diabetes_rescue(condition)
-
-analyse_mi <- analyse_diabetes_rescue_mi()
-
-analyse_mi(condition, dat)
+# Design <- assumptions_diabetes_rescue()
+# dat <- generate_diabetes_rescue(Design[1, ])
+#
+# analyse_mi <- analyse_diabetes_rescue(estimand = "treatment_policy",m = 5)
+# analyse_mi(Design[1, ], dat)
