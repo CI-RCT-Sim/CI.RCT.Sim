@@ -1,0 +1,7 @@
+{
+    "installOptions": {
+        "installFromRepository": true,
+        "libraryPath": "C:/Users/starke10/AppData/Local/R/cache/R/renv/library/CI.RCT.Sim-cd22cad8/windows/R-4.4/x86_64-w64-mingw32",
+        "installDependencies": true
+    }
+}
