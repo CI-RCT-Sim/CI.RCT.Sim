@@ -152,14 +152,14 @@ analyse_diabetes_demediation <- function(X) {
 #'
 #' @examples
 #' summarise_diabetes_demediation("tell")
-summarise_diabetes_demediation <- function(name = NULL) {
-  # res <- function(condition, results, fixed_objects = NULL) {
-  res <- data.frame(
-    "Y" = NA_real_
-  )
-  # }
-
-  attr(res, "name") <- name
-
-  res
-}
+# summarise_diabetes_demediation <- function(name = NULL) {
+#   # res <- function(condition, results, fixed_objects = NULL) {
+#   res <- data.frame(
+#     "Y" = NA_real_
+#   )
+#   # }
+#' #
+#   attr(res, "name") <- name
+#' #
+#   res
+# }
