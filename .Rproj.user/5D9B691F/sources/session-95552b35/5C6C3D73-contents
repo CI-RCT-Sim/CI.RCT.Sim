@@ -1,0 +1,38 @@
+dat<-generate_diabetes_rescue(assumptions_diabetes_rescue()[1,])
+
+#libraries
+library(stats)
+library(estimatr)
+library(dplyr)
+library(tidyr)
+library(ipw)
+library(magrittr)
+library(gfoRmula)
+library(data.table)
+
+# Testing
+Design <- assumptions_diabetes_rescue()
+condition <- Design[1, ]
+dat <- generate_diabetes_rescue(condition)
+analyse_ipw_tp  <- analyse_ipw(estimand="tp")
+analyse_ipw_tp (condition, dat)
+
+analyse_ipw_hyp  <- analyse_ipw(estimand="hyp")
+analyse_ipw_hyp (condition, dat)
+
+
+analyse_gestimation <- analyse_gestimation()
+analyse_gestimation(condition, dat)
+
+
+#how to update everything
+git merge origin/develop_lj
+
+renv::status()
+renv::restore() #install and update everything others have added
+renv::snapshot() #add new packages I need
+
+devtools::document()
+devtools::test()
+devtools::check()
+

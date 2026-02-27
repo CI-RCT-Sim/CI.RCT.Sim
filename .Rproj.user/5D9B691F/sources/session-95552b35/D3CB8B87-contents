@@ -1,0 +1,4561 @@
+---
+title: "Diabetes Trial - Hypothetical Estimands"
+output:
+  html_document: default
+  word_document: default
+  pdf_document: default
+---
+
+
+# Package and data loading and preparation
+
+```{r Setup, include=FALSE}
+
+temp <- .libPaths()
+temp <- 
+  c(temp, "C:/Program Files/R/R-4.1.1/library")
+.libPaths(temp)
+remove(temp)
+
+#memory.limit(1e13)
+
+library(tidyverse)
+library(haven)
+library(mice)
+library(table1)
+library(nlme)
+library(gfoRmula)
+library(Hmisc)
+library(multcomp) 
+library("boot")
+library("data.table")
+library(ipw)
+library("parallel")
+library("knitr")
+library(mmrm)
+library(multcomp)
+
+```
+
+
+```{r Loading datasets, include=FALSE}
+
+# Subject-Level Analysis Dataset
+subject.level <- read_sas("V:\\D1689C00014\\IPD\\deid_adsl.sas7bdat")
+
+# Efficacy Summary
+efficacy <- read_sas("V:\\D1689C00014\\IPD\\deid_adeff.sas7bdat")
+
+# Laboratory Test Results
+laboratory <- read_sas("V:\\D1689C00014\\IPD\\deid_adlb.sas7bdat")
+
+# Exposure, analysis data
+exposure <- read_sas("V:\\D1689C00014\\IPD\\deid_adex.sas7bdat")
+
+
+```
+
+
+```{r Baseline Characteristics, include=FALSE}
+
+# New Age variable
+table(subject.level$AGE)
+# Continuous using mid-point for each category
+# First category 18-30: 18+(30-18)/2 = 24 
+# Then every 5 years: 32.5-72.5
+subject.level$AGE.cont <- 
+  as.numeric(as.character(
+    factor(subject.level$AGE,
+           labels = c(24,seq(32.5,72.5,5)))))
+label(subject.level$AGE.cont) <- 
+  "Age (years)"
+summary(subject.level$AGE.cont)
+
+# Indicator of use of rescue medication
+# at any point during follow-up
+subject.level$RESCUE <-
+  as.factor(ifelse(
+    is.na(subject.level$RESCDT), 0, 1))
+levels(subject.level$RESCUE) <- 
+  c("No","Yes")
+label(subject.level$RESCUE) <- 
+  "Use of resue medication" 
+table(subject.level$RESCUE)
+
+# No deaths
+table(subject.level$DTHFL)
+
+# Recode NA for BMI
+table(subject.level$BMIBL)
+subject.level$BMI <- 
+  na_if(subject.level$BMIBL, ".")
+table(subject.level$BMI)
+
+# Baseline covariates of interest
+characteristics <- 
+  c("AGE.cont", 
+    "SEX", 
+    "BMI", 
+    "SYSBPBL", 
+    "WSTCIRBL", 
+    "HIPCIRBL", 
+    "FDIASDIY",
+    "HBA1CBL",
+    "FPGBL",
+    "EGFRBL",
+    "CPEPBL",
+    "EOSSTT",
+    "RESCUE")
+
+# baseline.summary <-
+  # table1(~ .|
+           # ARM,
+         # data = subject.level[,c("ARM",characteristics)])
+
+```
+
+
+```{r Baseline summary, echo=FALSE, results='asis'}
+
+# print(baseline.summary)
+
+```
+
+```{r Baseline summary latex}
+
+# kable(baseline.summary, format = "latex", linesep = "")
+
+# \begin{tabular}{l|l|l|l|l|l}
+# \hline
+#   & Dapagliflozin 10mg & Glimepiride 1mg/2mg/4mg & Saxagliptin 5mg and Dapagliflozin 10mg & Screen Failure & Overall\\
+# \hline
+#  & (N=299) & (N=302) & (N=305) & (N=412) & (N=1318)\\
+# \hline
+# Age (years) &  &  &  &  & \\
+# \hline
+#   Mean (SD) & 56.9 (9.59) & 58.2 (8.43) & 58.8 (7.98) & 58.7 (10.3) & 58.2 (9.25)\\
+# \hline
+#   Median [Min, Max] & 57.5 [24.0, 72.5] & 57.5 [37.5, 72.5] & 57.5 [37.5, 72.5] & 62.5 [24.0, 72.5] & 57.5 [24.0, 72.5]\\
+# \hline
+# Sex &  &  &  &  & \\
+# \hline
+#   F & 108 (36.1\%) & 98 (32.5\%) & 119 (39.0\%) & 144 (35.0\%) & 469 (35.6\%)\\
+# \hline
+#   M & 191 (63.9\%) & 204 (67.5\%) & 186 (61.0\%) & 268 (65.0\%) & 849 (64.4\%)\\
+# \hline
+# Baseline Body Mass Index (kg/m**2) &  &  &  &  & \\
+# \hline
+#   19 < x <= 25 & 9 (3.0\%) & 9 (3.0\%) & 20 (6.6\%) & 23 (5.6\%) & 61 (4.6\%)\\
+# \hline
+#   25 < x <= 30 & 76 (25.4\%) & 83 (27.5\%) & 87 (28.5\%) & 85 (20.6\%) & 331 (25.1\%)\\
+# \hline
+#   30 < x <= 80 & 212 (70.9\%) & 210 (69.5\%) & 198 (64.9\%) & 235 (57.0\%) & 855 (64.9\%)\\
+# \hline
+#   Missing & 2 (0.7\%) & 0 (0\%) & 0 (0\%) & 69 (16.7\%) & 71 (5.4\%)\\
+# \hline
+# Baseline Systolic Blood Pressure (mmHg) &  &  &  &  & \\
+# \hline
+#   Mean (SD) & 138 (14.4) & 139 (13.0) & 139 (14.0) & 139 (14.6) & 139 (14.0)\\
+# \hline
+#   Median [Min, Max] & 138 [96.7, 185] & 140 [96.0, 176] & 140 [100, 193] & 138 [102, 194] & 139 [96.0, 194]\\
+# \hline
+#   Missing & 1 (0.3\%) & 0 (0\%) & 0 (0\%) & 65 (15.8\%) & 66 (5.0\%)\\
+# \hline
+# Baseline Waist Circumference (cm) &  &  &  &  & \\
+# \hline
+#   Mean (SD) & 111 (14.0) & 112 (13.2) & 109 (12.4) & NA (NA) & 111 (13.2)\\
+# \hline
+#   Median [Min, Max] & 110 [71.0, 189] & 110 [77.0, 153] & 109 [76.0, 150] & NA [NA, NA] & 110 [71.0, 189]\\
+# \hline
+#   Missing & 2 (0.7\%) & 3 (1.0\%) & 2 (0.7\%) & 412 (100\%) & 419 (31.8\%)\\
+# \hline
+# Baseline Hip Circumference (cm) &  &  &  &  & \\
+# \hline
+#   Mean (SD) & 113 (12.5) & 112 (11.9) & 111 (11.4) & NA (NA) & 112 (11.9)\\
+# \hline
+#   Median [Min, Max] & 112 [76.0, 150] & 110 [80.0, 156] & 110 [77.0, 147] & NA [NA, NA] & 110 [76.0, 156]\\
+# \hline
+#   Missing & 4 (1.3\%) & 2 (0.7\%) & 3 (1.0\%) & 412 (100\%) & 421 (31.9\%)\\
+# \hline
+# Yrs Since First Diagnose, Study Disease &  &  &  &  & \\
+# \hline
+#   Mean (SD) & 6.88 (5.24) & 6.73 (5.14) & 7.39 (5.95) & 7.35 (5.61) & 7.10 (5.50)\\
+# \hline
+#   Median [Min, Max] & 5.94 [0.189, 25.9] & 5.52 [0.0602, 29.5] & 6.40 [0.178, 44.6] & 6.34 [0.0739, 35.3] & 6.00 [0.0602, 44.6]\\
+# \hline
+#   Missing & 1 (0.3\%) & 0 (0\%) & 0 (0\%) & 59 (14.3\%) & 60 (4.6\%)\\
+# \hline
+# Baseline HbA1c (\%) &  &  &  &  & \\
+# \hline
+#   Mean (SD) & 8.29 (0.718) & 8.31 (0.753) & 8.25 (0.661) & 8.30 (1.35) & 8.29 (0.951)\\
+# \hline
+#   Median [Min, Max] & 8.20 [6.60, 10.7] & 8.20 [6.90, 10.9] & 8.20 [6.80, 10.5] & 7.80 [5.20, 14.4] & 8.10 [5.20, 14.4]\\
+# \hline
+#   Missing & 1 (0.3\%) & 3 (1.0\%) & 0 (0\%) & 15 (3.6\%) & 19 (1.4\%)\\
+# \hline
+# Baseline FPG (mmol/L) &  &  &  &  & \\
+# \hline
+#   Mean (SD) & 10.6 (2.31) & 10.4 (2.11) & 10.4 (1.99) & 11.2 (3.47) & 10.7 (2.64)\\
+# \hline
+#   Median [Min, Max] & 10.2 [5.70, 23.0] & 10.1 [5.30, 18.0] & 10.3 [5.40, 16.6] & 10.2 [5.40, 23.5] & 10.2 [5.30, 23.5]\\
+# \hline
+#   Missing & 0 (0\%) & 0 (0\%) & 0 (0\%) & 15 (3.6\%) & 15 (1.1\%)\\
+# \hline
+# Baseline eGFR (MDRD) (mL/min/1.73m2) &  &  &  &  & \\
+# \hline
+#   Mean (SD) & 86.8 (18.8) & 85.8 (17.5) & 88.1 (19.7) & 85.0 (21.2) & 86.3 (19.5)\\
+# \hline
+#   Median [Min, Max] & 84.8 [17.2, 167] & 85.5 [47.1, 136] & 85.8 [37.7, 171] & 84.2 [16.7, 173] & 85.0 [16.7, 173]\\
+# \hline
+#   Missing & 0 (0\%) & 0 (0\%) & 0 (0\%) & 8 (1.9\%) & 8 (0.6\%)\\
+# \hline
+# Baseline C-Peptide (nmol/L) &  &  &  &  & \\
+# \hline
+#   Mean (SD) & 0.925 (0.356) & 0.936 (0.345) & 0.920 (0.375) & 0.997 (0.462) & 0.948 (0.394)\\
+# \hline
+#   Median [Min, Max] & 0.884 [0.163, 2.30] & 0.891 [0.331, 2.14] & 0.846 [0.308, 2.55] & 0.911 [0.184, 3.37] & 0.888 [0.163, 3.37]\\
+# \hline
+#   Missing & 5 (1.7\%) & 4 (1.3\%) & 4 (1.3\%) & 29 (7.0\%) & 42 (3.2\%)\\
+# \hline
+# End of Study Status &  &  &  &  & \\
+# \hline
+#   COMPLETED & 281 (94.0\%) & 288 (95.4\%) & 298 (97.7\%) & 0 (0\%) & 867 (65.8\%)\\
+# \hline
+#   DISCONTINUED & 18 (6.0\%) & 14 (4.6\%) & 7 (2.3\%) & 412 (100\%) & 451 (34.2\%)\\
+# \hline
+# Use of resue medication &  &  &  &  & \\
+# \hline
+#   No & 254 (84.9\%) & 265 (87.7\%) & 286 (93.8\%) & 412 (100\%) & 1217 (92.3\%)\\
+# \hline
+#   Yes & 45 (15.1\%) & 37 (12.3\%) & 19 (6.2\%) & 0 (0\%) & 101 (7.7\%)\\
+# \hline
+# \end{tabular}
+
+```
+
+
+```{r Outcome variable, include=FALSE}
+
+outcome <- laboratory |>
+  # HbA1c change from baseline
+  filter(PARAMCD=="HBA1CHGB",
+         !is.na(CHG)) |>
+  # Relevant variables
+  dplyr::select("USUBJID",
+                "AVISITN",
+                "ANL02FL",
+                "CHG") |>
+  # Analysis visit coding 1001:1012
+  # Making baseline visit 0
+  # As required for some packages
+  mutate(AVISITN = AVISITN - 1001) |>
+  # Measurements used for each patient and visit
+  # indicated by ANL02FL when more than one available
+  # Using ANL01FL results in fewer assessments chosen
+  filter(ANL02FL=="Y") |>
+  # Flag indicator no longer needed
+  dplyr::select(-"ANL02FL") |>
+  # Wide format
+  pivot_wider(id_cols = "USUBJID",
+              names_from = "AVISITN",
+              values_from = "CHG",
+              names_prefix = "Y") |>
+  # Remove Visit 11 (AVISIT1012) as it corresponds to follow-up after treatment stop
+  # i.e. beyond week 52
+  dplyr::select(!Y11)
+
+```
+
+
+```{r Follow-up measurements, include=FALSE}
+
+# Laboratories
+# HBA1C
+HBA1C <- laboratory |>
+  filter(PARAMCD=="HBA1CHGB",
+         !is.na(AVAL)) |>
+  # Wide format
+  dplyr::select("USUBJID",
+                "AVISITN", 
+                "ANL01FL",
+                "ANL02FL",
+                "AVAL", 
+                "PARAMCD") |>
+  mutate(PARAMCD = "HBA1C")
+
+HBA1C <- HBA1C |>  
+  filter(!duplicated(HBA1C[
+    ,c("USUBJID","AVISITN")]) &
+      !duplicated(HBA1C[
+        ,c("USUBJID","AVISITN")], fromLast = T) |
+           ANL01FL=="Y" & ANL02FL=="N" |
+           ANL01FL=="N" & ANL02FL=="Y" ) |>
+  dplyr::select(-"ANL01FL",-"ANL02FL") 
+
+# FPG
+FPG <- laboratory |>
+  filter(PARCAT1=="EFFICACY ASSESSMENTS",
+         PARAMCD=="GLUC",
+         AVALU=="mmol/L",
+         !is.na(AVAL)) |>
+  dplyr::select("USUBJID",
+                "AVISITN",
+                "ANL01FL",
+                "AVAL",
+                "PARAMCD")  
+# Removing duplicates
+# Keeping only those with
+# analysis flag ANL01FL
+# equivalent to using ANL02FL as filter
+FPG <- FPG |>  
+  filter(!duplicated(FPG[
+    ,c("USUBJID","AVISITN")]) &
+      !duplicated(FPG[
+        ,c("USUBJID","AVISITN")], fromLast = T) |
+           ANL01FL=="Y") |>
+  dplyr::select(-"ANL01FL") 
+
+# GFR
+GFR <- laboratory |>
+  filter(PARCAT1=="CLINICAL CHEMISTRY",
+         PARAMCD=="GFR",
+         AVALU=="mL/min/1.73 m2",
+         !is.na(AVAL)) |>
+  dplyr::select("USUBJID",
+                "AVISITN",
+                "ANL01FL",
+                "ANL02FL",
+                "AVAL",
+                "PARAMCD")  
+
+# Removing duplicates
+# Keeping only those with
+# analysis flag ANL01FL and ANL02FL 
+GFR <- GFR |>  
+  filter(!duplicated(GFR[
+    ,c("USUBJID","AVISITN")]) &
+      !duplicated(GFR[
+        ,c("USUBJID","AVISITN")], fromLast = T) |
+           ANL01FL=="Y" & ANL02FL=="N" |
+           ANL01FL=="N" & ANL02FL=="Y" ) |>
+  dplyr::select(-"ANL01FL",-"ANL02FL") 
+
+lab.values <- rbind(HBA1C,FPG,GFR) |>
+  # Only measurements while on treatment
+  # Visit 0 baseline (already in dataset)
+  filter(AVISITN > 1,
+         !is.na(AVISITN)) |>
+  mutate(AVISITN = AVISITN - 1001) |>
+  # Wide format
+  pivot_wider(id_cols = "USUBJID",
+              names_from = c("PARAMCD","AVISITN"),
+              values_from = "AVAL",
+              names_sep = "") |>
+  # Remove AVISIT11 follow-up after treatment stop
+  # i.e. beyond week 52
+  dplyr::select(!ends_with("11")) 
+
+
+```
+
+
+```{r Rescue as time-varying treatment, include=FALSE}
+
+# Rescue can happen at any point during follow-up
+# Not AVISIT1 as it is baseline
+visit <- 1:10
+
+# Mapping AVISIT with VISITINUM
+# VISITNUM 1 was enrollment, not included
+# VISITNUM 2 baseline (AVISITN 1)
+# VISITNUM 12 last visit (AVISIT 11) with treatment
+# VISITNUM 13 follow-up (AVISIT12) after treatment
+
+visit.cutoff <- rep(NA, length(visit))
+i <- 1
+for (i in 1:length(visit)) {
+  visit.cutoff[i] <- 
+    min(exposure$VISITDY[exposure$VISITNUM==i+2], na.rm = T)
+}
+
+visit.cutoff
+# 15  29  43  57  71  85 169 253 337 Inf
+# Last visit at 52 weeks
+visit.cutoff[length(visit.cutoff)] <- 364
+
+visit.indicator <-
+  rep(NA, nrow(subject.level))
+
+i <- 1
+for (i in 1:length(visit.indicator)) {
+  visit.indicator[i] <-
+    max(visit[visit.cutoff<subject.level$RESCDT[i]])
+}
+
+rescue <-
+  data.frame(
+    matrix(0, nrow=length(visit.indicator),
+           ncol = (length(visit))))
+
+colnames(rescue) <- paste0("RESCUE",visit)
+
+i <- 1
+for (i in 1:length(visit.indicator)) {
+  if(!is.na(visit.indicator[i])){ 
+    rescue[i,] <-
+      c(rep(0,(visit.indicator[i]-1)),
+        rep(1,(ncol(rescue)-visit.indicator[i]+1)))}
+}
+
+# Check
+colSums(rescue)
+# RESCUE1  RESCUE2  RESCUE3  RESCUE4 
+#       4        7       11       11 
+# RESCUE5  RESCUE6  RESCUE7  RESCUE8 
+#      13       21       46       91 
+# RESCUE9 RESCUE10 
+#     101      101 
+
+# Number of rescued patients increasing over time
+# Up to expected 101
+
+# Wide format
+rescue <- data.frame(
+  USUBJID = subject.level$USUBJID,
+  rescue)
+
+# Long format
+rescue.long <- rescue |>
+  pivot_longer(cols = paste0("RESCUE",visit),
+               names_to = "time",
+               names_prefix = "RESCUE",
+               values_to = "RESCUE") |>
+  mutate(time = as.numeric(time),
+         RESCUE = as.factor(RESCUE))
+
+```
+
+
+```{r Discontinuation variable longitudinal, include=FALSE}
+
+visit.indicator <-
+  rep(NA, nrow(subject.level))
+
+i <- 1
+for (i in 1:length(visit.indicator)) {
+  visit.indicator[i] <-
+    max(visit[visit.cutoff<subject.level$TRTEDT[i]])
+}
+
+# Discontinuation before Visit 2 (First 2 weeks)
+visit.indicator[visit.indicator=="-Inf"] <- 1
+# Completed status
+visit.indicator[subject.level$EOSSTT=="COMPLETED"] <- NA
+
+discontinuation <-
+  data.frame(matrix(0, nrow = length(visit.indicator), 
+                    ncol = length(visit)))
+
+i <- 1
+for (i in 1:length(visit.indicator)) {
+  if(!is.na(visit.indicator[i]) &
+     visit.indicator[i]!=1){ 
+    discontinuation[i,] <-
+      c(rep(0,(visit.indicator[i]-2)),
+        rep(1,(ncol(discontinuation)-visit.indicator[i]+2)))}
+}
+
+# Check
+colSums(discontinuation)
+#  X1  X2  X3  X4  X5  X6  X7  X8  X9 X10  
+#  2   6   8  10  12  17  18  30  33  33   
+# Number of patients who discontinue increasing over time
+colnames(discontinuation) <- paste0("DISC",visit)
+discontinuation <- 
+  data.frame(USUBJID = subject.level$USUBJID,
+             discontinuation)
+
+# Long format
+discontinuation.long <- discontinuation |>
+  pivot_longer(cols = paste0("DISC",visit),
+               names_to = "time",
+               names_prefix = "DISC",
+               values_to = "DISC") |>
+  mutate(time = as.numeric(time),
+         DISC = as.factor(DISC))
+
+```
+
+
+```{r Combined ICE variable, include=FALSE}
+
+ICE.long <- rescue.long 
+ICE.long$ICE <-
+  ifelse(rescue.long$RESCUE==0 & 
+           discontinuation.long$DISC==0, 0, 1)
+ICE.long <- ICE.long[,names(ICE.long)!="RESCUE"]
+ICE <- ICE.long |>
+  pivot_wider(names_from = "time", 
+              values_from = "ICE",
+              names_prefix = "ICE")
+
+```
+
+
+```{r Categorical ICE variable, include=FALSE}
+
+ICE.cat.long <- rescue.long[,c("USUBJID","time")] 
+
+# Indicator for ICE: 0 None, 1: Only rescue, 
+# 2: only disc, 3: both
+ICE.cat.long$ICE.cat <- 
+  ifelse(rescue.long$RESCUE==0 & 
+           discontinuation.long$DISC==0, 0,
+         ifelse(rescue.long$RESCUE==1 & 
+                  discontinuation.long$DISC==0, 1,
+                ifelse(rescue.long$RESCUE==0 & 
+                         discontinuation.long$DISC==1, 2, 3)))
+
+ICE.cat <- ICE.cat.long |>
+  pivot_wider(names_from = "time", 
+              values_from = "ICE.cat",
+              names_prefix = "ICE.cat")
+
+# Both ICE happening simultaneously
+sum(rescue.long$RESCUE==1 & 
+      discontinuation.long$DISC==1)
+# 22 patient/visit
+
+# To assessing order of ICE
+both.ICE <-
+  left_join(rescue.long,
+            discontinuation.long,
+            by = c("USUBJID","time"))
+
+# Identifying subjects with both ICE
+both.ICE2 <-
+  both.ICE[both.ICE$RESCUE==1 & 
+          both.ICE$DISC==1,]
+
+length(unique(both.ICE2$USUBJID))
+# 5 subjects in total
+
+# both.ICE[both.ICE$USUBJID==unique(both.ICE2$USUBJID)[1],]
+# In all 5 cases, discontinuation first followed by
+# rescue in the next visit
+
+```
+
+
+```{r Merging variables, include=FALSE}
+
+# Merge data
+merged.data <- subject.level |>
+  # Only patients with baseline HbA1CBL
+  filter(!is.na(HBA1CBL)) |>
+  # who received at least one dose of treatment
+  # i.e. full analysis set
+  filter(!is.na(FASFL=="Y")) |>
+  dplyr::select(
+    # Patient ID
+    USUBJID, 
+    # Baseline characteristics
+    all_of(characteristics), 
+    # Treatment arm
+    ARM, ARMCD, 
+    # Day of rescue
+    RESCDT, 
+    # Day of last exposure to treatment
+    TRTEDT) |>
+  # Include outcome
+  left_join(outcome, by = "USUBJID") |> 
+  # Remove screen fail records
+  filter(ARMCD!="SCRNFAIL") |> 
+  # Including repeated measurements of FPG and eGFR
+  left_join(lab.values,
+            by = "USUBJID") |>
+  mutate(
+    # Baseline measurement of HbA1c as 
+    # Visit 0 (Baseline)
+    HBA1C0 = HBA1CBL,
+    # Baseline measurement of FPG as 
+    # Visit 0 (Baseline)
+    GLUC0 = FPGBL,
+    # Baseline measurement of eGFR as 
+    # Visit 0 (Baseline)
+    GFR0 = EGFRBL) |>
+  # Remove HBA1CBL
+  dplyr::select(!HBA1CBL) |>
+  # Remove FPGBL 
+  dplyr::select(!FPGBL) |>
+  # Remove EGFRBL 
+  dplyr::select(!EGFRBL) |>
+  # Including composite ICE indicator
+  left_join(ICE,
+            by = "USUBJID") |>
+  # Including rescue indicator
+  left_join(rescue,
+            by = "USUBJID") |>
+  # Including discontinuation indicator
+  left_join(discontinuation,
+            by = "USUBJID") |>
+  # Including ICE categorical indicator
+  left_join(ICE.cat,
+            by = "USUBJID")
+
+# Change label in baseline vector
+characteristics[
+  characteristics=="HBA1CBL"] <- 
+  "HBA1C0"
+characteristics[
+  characteristics=="FPGBL"] <- 
+  "GLUC0"
+characteristics[
+  characteristics=="EGFRBL"] <- 
+  "GFR0"
+
+# New baseline summary
+# merged.data.summary <-
+#   table1(~ .|
+#            ARM,
+#          data = merged.data[,c("ARM",characteristics)])
+
+```
+
+
+```{r Summary Merged data, echo=FALSE, results='asis'}
+
+# print(merged.data.summary)
+
+```
+
+
+```{r Summary Merged data latex}
+
+# kable(merged.data.summary, format = "latex", linesep = "")
+
+# \begin{tabular}{l|l|l|l|l}
+# \hline
+#   & Dapagliflozin 10mg & Glimepiride 1mg/2mg/4mg & Saxagliptin 5mg and Dapagliflozin 10mg & Overall\\
+# \hline
+#  & (N=298) & (N=299) & (N=305) & (N=902)\\
+# \hline
+# Age (years) &  &  &  & \\
+# \hline
+#   Mean (SD) & 57.0 (9.59) & 58.2 (8.44) & 58.8 (7.98) & 58.0 (8.71)\\
+# \hline
+#   Median [Min, Max] & 57.5 [24.0, 72.5] & 57.5 [37.5, 72.5] & 57.5 [37.5, 72.5] & 57.5 [24.0, 72.5]\\
+# \hline
+# Sex &  &  &  & \\
+# \hline
+#   F & 107 (35.9\%) & 97 (32.4\%) & 119 (39.0\%) & 323 (35.8\%)\\
+# \hline
+#   M & 191 (64.1\%) & 202 (67.6\%) & 186 (61.0\%) & 579 (64.2\%)\\
+# \hline
+# Baseline Body Mass Index (kg/m**2) &  &  &  & \\
+# \hline
+#   19 < x <= 25 & 9 (3.0\%) & 9 (3.0\%) & 20 (6.6\%) & 38 (4.2\%)\\
+# \hline
+#   25 < x <= 30 & 76 (25.5\%) & 82 (27.4\%) & 87 (28.5\%) & 245 (27.2\%)\\
+# \hline
+#   30 < x <= 80 & 211 (70.8\%) & 208 (69.6\%) & 198 (64.9\%) & 617 (68.4\%)\\
+# \hline
+#   Missing & 2 (0.7\%) & 0 (0\%) & 0 (0\%) & 2 (0.2\%)\\
+# \hline
+# Baseline Systolic Blood Pressure (mmHg) &  &  &  & \\
+# \hline
+#   Mean (SD) & 138 (14.4) & 139 (13.1) & 139 (14.0) & 139 (13.8)\\
+# \hline
+#   Median [Min, Max] & 138 [96.7, 185] & 140 [96.0, 176] & 140 [100, 193] & 139 [96.0, 193]\\
+# \hline
+#   Missing & 1 (0.3\%) & 0 (0\%) & 0 (0\%) & 1 (0.1\%)\\
+# \hline
+# Baseline Waist Circumference (cm) &  &  &  & \\
+# \hline
+#   Mean (SD) & 111 (14.0) & 112 (13.2) & 109 (12.4) & 111 (13.2)\\
+# \hline
+#   Median [Min, Max] & 110 [71.0, 189] & 110 [77.0, 153] & 109 [76.0, 150] & 110 [71.0, 189]\\
+# \hline
+#   Missing & 2 (0.7\%) & 2 (0.7\%) & 2 (0.7\%) & 6 (0.7\%)\\
+# \hline
+# Baseline Hip Circumference (cm) &  &  &  & \\
+# \hline
+#   Mean (SD) & 113 (12.5) & 112 (11.9) & 111 (11.4) & 112 (11.9)\\
+# \hline
+#   Median [Min, Max] & 112 [76.0, 150] & 110 [80.0, 156] & 110 [77.0, 147] & 110 [76.0, 156]\\
+# \hline
+#   Missing & 4 (1.3\%) & 1 (0.3\%) & 3 (1.0\%) & 8 (0.9\%)\\
+# \hline
+# Yrs Since First Diagnose, Study Disease &  &  &  & \\
+# \hline
+#   Mean (SD) & 6.88 (5.25) & 6.68 (5.03) & 7.39 (5.95) & 6.98 (5.43)\\
+# \hline
+#   Median [Min, Max] & 5.90 [0.189, 25.9] & 5.51 [0.0602, 29.5] & 6.40 [0.178, 44.6] & 5.86 [0.0602, 44.6]\\
+# \hline
+#   Missing & 1 (0.3\%) & 0 (0\%) & 0 (0\%) & 1 (0.1\%)\\
+# \hline
+# Baseline HbA1c (\%) &  &  &  & \\
+# \hline
+#   Mean (SD) & 8.29 (0.718) & 8.31 (0.753) & 8.25 (0.661) & 8.28 (0.711)\\
+# \hline
+#   Median [Min, Max] & 8.20 [6.60, 10.7] & 8.20 [6.90, 10.9] & 8.20 [6.80, 10.5] & 8.20 [6.60, 10.9]\\
+# \hline
+# Baseline FPG (mmol/L) &  &  &  & \\
+# \hline
+#   Mean (SD) & 10.6 (2.31) & 10.4 (2.11) & 10.4 (1.99) & 10.5 (2.14)\\
+# \hline
+#   Median [Min, Max] & 10.2 [5.70, 23.0] & 10.1 [5.30, 18.0] & 10.3 [5.40, 16.6] & 10.2 [5.30, 23.0]\\
+# \hline
+# Baseline eGFR (MDRD) (mL/min/1.73m2) &  &  &  & \\
+# \hline
+#   Mean (SD) & 86.8 (18.8) & 85.9 (17.5) & 88.1 (19.7) & 86.9 (18.7)\\
+# \hline
+#   Median [Min, Max] & 84.8 [17.2, 167] & 85.5 [47.1, 136] & 85.8 [37.7, 171] & 85.4 [17.2, 171]\\
+# \hline
+# Baseline C-Peptide (nmol/L) &  &  &  & \\
+# \hline
+#   Mean (SD) & 0.925 (0.356) & 0.937 (0.346) & 0.920 (0.375) & 0.928 (0.359)\\
+# \hline
+#   Median [Min, Max] & 0.884 [0.163, 2.30] & 0.891 [0.331, 2.14] & 0.846 [0.308, 2.55] & 0.866 [0.163, 2.55]\\
+# \hline
+#   Missing & 4 (1.3\%) & 2 (0.7\%) & 4 (1.3\%) & 10 (1.1\%)\\
+# \hline
+# End of Study Status &  &  &  & \\
+# \hline
+#   COMPLETED & 280 (94.0\%) & 285 (95.3\%) & 298 (97.7\%) & 863 (95.7\%)\\
+# \hline
+#   DISCONTINUED & 18 (6.0\%) & 14 (4.7\%) & 7 (2.3\%) & 39 (4.3\%)\\
+# \hline
+# Use of resue medication &  &  &  & \\
+# \hline
+#   No & 253 (84.9\%) & 262 (87.6\%) & 286 (93.8\%) & 801 (88.8\%)\\
+# \hline
+#   Yes & 45 (15.1\%) & 37 (12.4\%) & 19 (6.2\%) & 101 (11.2\%)\\
+# \hline
+# \end{tabular}
+
+```
+
+# Replicating original analysis
+
+```{r Original dataset, include=FALSE}
+
+# Only comparing Daxa + Saxa "B" vs Glimeperide "C"
+original.data <- merged.data |>
+   filter(!ARMCD=="A") 
+
+# Comparison with Glimeperide as reference
+original.data$ARMCD <- 
+  as.factor(original.data$ARMCD)
+original.data$ARMCD <- 
+  relevel(original.data$ARMCD, ref = "C")
+
+# Sex as factor variable
+original.data$SEX <- as.factor(original.data$SEX)
+
+# BMI as factor
+original.data$BMI <- as.factor(original.data$BMI)
+
+# Original data discarding post-ICE values
+# Deleting all post-ICE outcomes
+sum(is.na(original.data[,paste0("Y",1:10)]))
+# 230
+i <- 1
+j <- 1
+for (i in 1:length(unique(ICE.long$time))) {
+  for (j in 1:nrow(original.data)) {
+    if(original.data[j,paste0("ICE",i)]==1){
+    original.data[j,paste0("Y",i)] <- NA}
+  }
+}
+sum(is.na(original.data[,paste0("Y",1:10)]))
+# 474
+
+# Baseline characteristics of interest for analysis
+baseline <-
+    c("AGE.cont", 
+    "SEX", 
+    "BMI", 
+    "SYSBPBL", 
+    "WSTCIRBL", 
+    "HIPCIRBL", 
+    "FDIASDIY",
+    "HBA1C0",
+    "GLUC0",
+    "GFR0",
+    "CPEPBL")
+
+# Centering baseline HbA1c
+original.data$HBA1C0 <-
+  as.numeric(original.data$HBA1C0 - mean(original.data$HBA1C0))
+
+```
+
+```{r Estimand 1 table, include=FALSE}
+
+# Summary of potential outcomes and
+# treatment effect under the different methods
+treatment.effect <-
+  data.frame(matrix(NA, nrow = 18, ncol = 6))
+colnames(treatment.effect) <-
+  c("Method", "Type", "Dapa_Saxa", 
+    "Glimeperide", "Effect", "Time")
+# Sequentially numbering methods
+# Method L published results for reference 
+rownames(treatment.effect) <- 
+  paste0("Method",0:(nrow(treatment.effect)-1))
+treatment.effect$Method <- 
+  c(rep("MMRM",2),
+    rep("MI",3),
+    rep("IPW",4),
+    rep("G-formula",3),
+    rep("G-formula via MI",3),
+    rep("G-estimation",3))
+
+treatment.effect$Type <-
+  c("Original published analysis",
+    "Replicating original analysis",
+    rep(c("Alternative method",
+          "Including baseline covariates",
+          "Including other covariates"), 2),
+    "Separate ICE mechanisms",
+    rep(c("Exploiting post-ICE information",
+          "Including additional covariates",
+          "Separate ICE mechanisms"), 3))
+
+# From published paper
+treatment.effect[1,3] <- 
+  "-1.20 (0.05)"
+treatment.effect[1,4] <- 
+  "-0.99 (0.05)"
+treatment.effect$Effect[1] <- 
+  "-0.21 (0.07)"
+# SE (-0.21+0.34)/1.96 ~ 0.07
+
+
+```
+
+```{r MMRM with package, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+# Data to be used
+mmrm.data <- original.data |>
+  dplyr::select(USUBJID,
+                ARMCD,
+                HBA1C0, 
+                paste0("Y",1:10)) |>
+  pivot_longer(cols = starts_with("Y"),
+               names_to = "time",
+               names_prefix = "Y",
+               values_to = "Y") |>
+  # To use mmrm package time and id 
+  # should be factors
+  mutate(time = as.factor(time),
+         USUBJID = as.factor(USUBJID))
+
+mmrm.model <- mmrm::mmrm(
+  Y ~ HBA1C0*time + ARMCD*time + 
+    us(time|USUBJID),
+  data = mmrm.data)
+
+# Mean outcome under dapa + saxa
+dapa.CI.test <- 
+  matrix(0, nrow = 1,
+         ncol = length(coef(mmrm.model)))
+colnames(dapa.CI.test) <- 
+  names(coef(mmrm.model))
+
+dapa.CI.test[,"(Intercept)"] <- 1
+dapa.CI.test[,"time10"] <- 1
+dapa.CI.test[,"ARMCDB"] <- 1
+dapa.CI.test[,"time10:ARMCDB"] <- 1
+
+dapa.CI <- 
+  confint(glht(mmrm.model, 
+               linfct = dapa.CI.test))
+
+dapa.CI$confint[,"Estimate"]
+# -1.230229
+
+sqrt(dapa.CI.test%*%
+       vcov(mmrm.model)%*%
+       t(dapa.CI.test))
+# 0.043033015
+
+# Mean potential outcome under glimeperide
+glim.CI.test <- 
+  matrix(0, nrow = 1,
+         ncol = length(coef(mmrm.model)))
+colnames(glim.CI.test) <- 
+  names(coef(mmrm.model))
+
+glim.CI.test[,"(Intercept)"] <- 1
+glim.CI.test[,"time10"] <- 1
+
+glim.CI <- 
+  confint(glht(mmrm.model, 
+               linfct = glim.CI.test))
+
+glim.CI$confint[,"Estimate"]
+# -1.092884
+
+sqrt(glim.CI.test%*%
+       vcov(mmrm.model)%*%
+       t(glim.CI.test))
+# 0.0448703
+
+# Treatment effect
+effect.CI.test <- 
+  matrix(0, nrow = 1,
+         ncol = length(coef(mmrm.model)))
+colnames(effect.CI.test) <- 
+  names(coef(mmrm.model))
+
+effect.CI.test[,"ARMCDB"] <- 1
+effect.CI.test[,"time10:ARMCDB"] <- 1
+
+effect.CI <- 
+  confint(glht(mmrm.model,
+               linfct = effect.CI.test))
+
+effect.CI$confint[,"Estimate"]
+# -0.1373453
+
+sqrt(effect.CI.test%*%
+       vcov(mmrm.model)%*%
+       t(effect.CI.test))
+# 0.06213514
+
+# Results in summary table
+treatment.effect$Dapa_Saxa[2] <-
+  paste0(format(dapa.CI$confint[,"Estimate"],
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(dapa.CI.test%*%
+                        vcov(mmrm.model)%*%
+                        t(dapa.CI.test)),
+                 digits = 3, nsmall = 3), ")")
+
+treatment.effect$Glimeperide[2] <-
+  paste0(format(glim.CI$confint[,"Estimate"],
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(glim.CI.test%*%
+                       vcov(mmrm.model)%*%
+                       t(glim.CI.test)),
+                digits = 3, nsmall = 3), ")")
+
+treatment.effect$Effect[2] <-
+  paste0(format(effect.CI$confint[,"Estimate"],
+                digits = 3, nsmall = 3), " (",
+         format(sqrt(effect.CI.test%*%
+                        vcov(mmrm.model)%*%
+                        t(effect.CI.test)),
+                digits = 3, nsmall = 3), ")")
+
+treatment.effect$Time[2] <-
+  round(as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[2]
+# 0.464
+
+```
+
+# Not exploiting post-ICE data
+
+## Multiple imputation
+
+```{r Common first step: Imputation, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+# Creating 100 imputed datasets to use
+# in the alternate methods
+imputed.original.data <-
+  original.data |>
+  dplyr::select(ARMCD,
+                HBA1C0, 
+                paste0("Y",1:10)) |>
+      mice(m = 100,
+           # m = 5,
+           defaultMethod = c("norm", 
+                             "logreg", 
+                             "polyreg",
+                             "polr"),
+           printFlag = F,
+           seed = 2022) 
+
+imputation.time <-
+  round(as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+```
+
+
+```{r MI function, include=FALSE}
+
+MI.function <- 
+  function(data){
+    # Computing potential outcomes and
+    # treatment effect in each
+    # imputed dataset
+    dapa <- rep(NA,data$m)
+    glim <- rep(NA,data$m)
+    effect <- rep(NA,data$m)
+    # and variance
+    dapa.var <- rep(NA,data$m)
+    glim.var <- rep(NA,data$m)
+    effect.var <- rep(NA,data$m)
+    
+    for (i in 1:data$m) {
+      ipw.imputed <- data |>
+        complete(i)
+      MI.model <- 
+        lm(Y10 ~ as.factor(ARMCD) + 
+             HBA1C0, data = ipw.imputed)
+      
+      dapa.MI.test <- 
+        matrix(0, nrow = 1,
+               ncol = length(coef(MI.model)))
+      colnames(dapa.MI.test) <- 
+        names(coef(MI.model))
+      
+      dapa.MI.test[,"(Intercept)"] <- 1
+      dapa.MI.test[,"as.factor(ARMCD)B"] <- 1
+      
+      # Mean outcome under dapa+saxa
+      dapa[i] <- 
+        confint(glht(MI.model, 
+                     dapa.MI.test))$
+        confint[,"Estimate"]
+      dapa.var[i] <- 
+        dapa.MI.test%*%
+        vcov(MI.model)%*%
+        t(dapa.MI.test)
+      
+      # Mean outcome under glimeperide
+      glim.MI.test <- 
+        matrix(0, nrow = 1,
+               ncol = length(coef(MI.model)))
+      colnames(glim.MI.test) <- 
+        names(coef(MI.model))
+      
+      glim.MI.test[,"(Intercept)"] <- 1
+      
+      glim[i] <- 
+        confint(glht(MI.model, 
+                     glim.MI.test))$
+        confint[,"Estimate"]
+      
+      glim.var[i] <- 
+        glim.MI.test%*%
+        vcov(MI.model)%*%
+        t(glim.MI.test)
+      
+      # Mean treatement effect
+      effect.MI.test <- 
+        matrix(0, nrow = 1,
+               ncol = length(coef(MI.model)))
+      colnames(effect.MI.test) <- 
+        names(coef(MI.model))
+      
+      effect.MI.test[,"as.factor(ARMCD)B"] <- 1
+      
+      effect[i] <-
+        confint(glht(MI.model, 
+                     effect.MI.test))$
+        confint[,"Estimate"]
+      effect.var[i] <-
+        effect.MI.test%*%
+        vcov(MI.model)%*%
+        t(effect.MI.test)
+      
+    }
+    
+    # Dapa + Saxa
+    dapa.MI.pool <-
+      pool.scalar(Q = dapa,
+                  U = dapa.var)
+    
+    # Glimeperide
+    glim.MI.pool <-
+      pool.scalar(Q = glim,
+                  U = glim.var)
+    
+    effect.MI.pool <-
+      pool.scalar(Q = effect,
+                  U = effect.var)
+    
+    # Point estimates of mean outcome
+    estimates <- c(
+      # Dapagliflozin + Saxagliptin
+      dapa.MI.pool$qbar,
+      # Glimepiride 
+      glim.MI.pool$qbar,
+      # Treatment effect 
+      effect.MI.pool$qbar)
+    se <- c(
+      # Dapagliflozin + Saxagliptin
+      sqrt(dapa.MI.pool$t),
+      # Glimepiride
+      sqrt(glim.MI.pool$t),
+      # Treatment effect
+      sqrt(effect.MI.pool$t))
+    results <- cbind(estimates,se)
+    row.names(results) <- c(
+      "Dapa_Saxa", 
+      "Glimeperide", 
+      "Effect")
+    colnames(results) <- c(
+      "Estimates", 
+      "SE")
+    return(results)
+    
+  }
+
+```
+
+
+```{r MI, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+
+# Impute missing observed values and post-ICE values
+MI.original  <- 
+  MI.function(data = imputed.original.data)
+
+MI.original
+#              Estimates         SE
+# Dapa_Saxa   -1.2342276 0.04245375
+# Glimeperide -1.1147787 0.04426052
+# Effect      -0.1194489 0.06146544
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[3] <- paste0(
+  format(MI.original["Dapa_Saxa","Estimates"],
+         digits = 4, nsmall = 3), " (",
+  format(MI.original["Dapa_Saxa","SE"], 
+         digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[3] <- paste0(
+  format(MI.original["Glimeperide","Estimates"],
+         digits = 4, nsmall = 3), " (",
+  format(MI.original["Glimeperide","SE"], 
+         digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[3] <- paste0(
+  format(MI.original["Effect","Estimates"],
+         digits = 3, nsmall = 3), " (",
+  format(MI.original["Effect","SE"], 
+         digits = 3, nsmall = 3), ")")
+
+# Computation time
+# Accounting for imputation step
+treatment.effect$Time[3] <- 
+  round(imputation.time + as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[3]
+# 0.474
+
+```
+
+## IPW
+
+```{r IPW function, include=FALSE}
+
+# IPW function
+ipw.function <- function(data,
+                         indices){
+  ipw.imputed <- data[indices,]
+  
+  # Creating lagged history
+  lag_Y <- ipw.imputed |>
+    dplyr::select(starts_with("Y")) 
+  
+  # Lag for the following visit
+  colnames(lag_Y) <- paste0("lag_Y",2:11)
+  # Remove lag for visit 11 i.e. after end of study
+  lag_Y <- lag_Y[,-ncol(lag_Y)]
+  # Lag for first visit is 0
+  lag_Y1 <- rep(0,nrow(lag_Y))
+  # Attach as first column
+  lag_Y <- cbind(lag_Y1,
+                 lag_Y)
+  # Creating lagged average
+  lagavg_Y <- 
+    t(apply(lag_Y, 1, cummean))
+  colnames(lagavg_Y) <- paste0("lagavg_Y",1:10)
+  
+  # Long format
+  ipw.imputed <- ipw.imputed |>
+    cbind(lag_Y,lagavg_Y) |>
+    reshape(varying = c(paste0("ICE",1:10),
+                        paste0("Y",1:10),
+                        paste0("lag_Y",1:10),
+                        paste0("lagavg_Y",1:10)),
+            direction = "long",
+            sep="",
+            idvar = "id") 
+  
+  # Ordering data by treatment arm, patient and visit
+  ipw.imputed <- 
+    ipw.imputed[order(ipw.imputed$ARMCD,
+                      ipw.imputed$id,
+                      ipw.imputed$time),]
+  
+  ipw.weights <- 
+    ipwtm(exposure = ICE,
+          family = "binomial",
+          link = "logit",
+          numerator = ~ 1,
+          denominator = ~ 
+            ARMCD + 
+            HBA1C0 + 
+            Y + 
+            lag_Y +
+            lagavg_Y,
+          id = "id",
+          timevar = "time",
+          type = "first",
+          data = ipw.imputed)
+  
+  ipw.model <-
+    lm(Y ~ 0 + as.factor(ARMCD) + HBA1C0,
+       data = ipw.imputed[
+         ipw.imputed$time==10 &
+           ipw.imputed$ICE==0,],
+       weights = ipw.weights$ipw.weights[
+         ipw.imputed$time==10  &
+           ipw.imputed$ICE==0])
+  
+  return(c(summary(ipw.model)[[5]][
+    ,"Estimate"]["as.factor(ARMCD)B"],
+    summary(ipw.model)[[5]][,"Estimate"][
+      "as.factor(ARMCD)C"],
+    summary(ipw.model)[[5]][,"Estimate"][
+      "as.factor(ARMCD)B"] - 
+      summary(ipw.model)[[5]][,"Estimate"][
+        "as.factor(ARMCD)C"]))
+}
+
+```
+
+
+```{r IPW, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+
+# Using last seed after common imputation step
+# to continue analysis
+.Random.seed <-
+  imputed.original.data$lastSeedValue
+
+# Computing potential outcomes and
+# treatment effect in each
+# imputed dataset
+dapa <- rep(NA,imputed.original.data$m)
+glim <- rep(NA,imputed.original.data$m)
+effect <- rep(NA,imputed.original.data$m)
+# and variance
+dapa.var <- rep(NA,imputed.original.data$m)
+glim.var <- rep(NA,imputed.original.data$m)
+effect.var <- rep(NA,imputed.original.data$m)
+
+for (i in 1:imputed.original.data$m) {
+  ipw.imputed <- imputed.original.data |>
+    complete(i) |>
+    # Include longitudinal ICE indicator
+    cbind(original.data[,paste0("ICE",1:10)])
+  
+  ipw.boot <-
+    boot(ipw.imputed,
+         ipw.function,
+         R = 5)
+         # R = 5)
+    
+  dapa[i] <-
+    ipw.boot$t0[1]
+  dapa.var[i] <- 
+    var(ipw.boot$t[,1])
+  
+  glim[i] <- 
+    ipw.boot$t0[2]
+  glim.var[i] <- 
+    var(ipw.boot$t[,2])
+  
+  effect[i] <-
+    ipw.boot$t0[3]
+  effect.var[i] <-
+    var(ipw.boot$t[,3])
+
+}
+
+# Dapa + Saxa
+dapa.pool <-
+  pool.scalar(Q = dapa,
+              U = dapa.var)
+
+# Point estimate
+dapa.pool$qbar
+# -1.248954
+# SE
+sqrt(dapa.pool$t)
+# 0.0430367
+
+# Glimeperide
+glim.pool <-
+  pool.scalar(Q = glim,
+              U = glim.var)
+
+# Point estimate
+glim.pool$qbar
+# -1.143766
+# SE
+sqrt(glim.pool$t)
+# 0.04619914
+
+# Treatment effect
+effect.pool <-
+  pool.scalar(Q = effect,
+              U = effect.var)
+
+# Point estimate
+effect.pool$qbar
+# -0.1051881
+# SE
+sqrt(effect.pool$t)
+# 0.06300482
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[6] <- 
+  paste0(format(dapa.pool$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(dapa.pool$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[6] <- 
+  paste0(format(glim.pool$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(glim.pool$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[6] <- 
+  paste0(format(effect.pool$qbar,
+                digits = 3, nsmall = 3), " (",
+         format(sqrt(effect.pool$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Computational time
+treatment.effect$Time[6] <- 
+    round(imputation.time + as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[6]
+
+# 18.261
+
+```
+
+## Including baseline covariates
+
+### Multiple imputation
+
+```{r Common first step: Imputation+baseline, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+# Creating 100 imputed datasets to use
+# in the alternate methods
+imputed.original.data <-
+  original.data |>
+  dplyr::select(ARMCD, 
+                all_of(baseline),
+                paste0("Y",1:10)) |>
+      mice(m = 100,
+           # m = 5,
+           defaultMethod = 
+             c("norm", 
+               "logreg", 
+               "polyreg",
+               "polr"),
+           printFlag = F,
+           seed = 2022) 
+
+imputation.time <-
+  round(as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+```
+
+
+```{r MI+baseline, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+
+# Impute missing observed values and post-ICE values
+MI.baseline  <- 
+  MI.function(data = imputed.original.data)
+
+MI.baseline 
+#             Estimates         SE
+# Dapa_Saxa   -1.234102 0.04212397
+# Glimeperide -1.114859 0.04445306
+# Effect      -0.119243 0.06108284
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[4] <- paste0(
+  format(MI.baseline["Dapa_Saxa","Estimates"],
+         digits = 4, nsmall = 3), " (",
+  format(MI.baseline["Dapa_Saxa","SE"],
+         digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[4] <- paste0(
+  format(MI.baseline["Glimeperide","Estimates"],
+         digits = 4, nsmall = 3), " (",
+  format(MI.baseline["Glimeperide","SE"],
+         digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[4] <- paste0(
+  format(MI.baseline["Effect","Estimates"],
+         digits = 3, nsmall = 3), " (",
+  format(MI.baseline["Effect","SE"],
+         digits = 3, nsmall = 3), ")")
+
+# Computation time
+# Accounting for imputation step
+treatment.effect$Time[4] <- 
+  round(imputation.time + as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[4]
+# 0.811
+
+
+```
+
+### IPW
+
+```{r IPW function+baseline, include=FALSE}
+
+# IPW function
+ipw.function <- function(data,
+                         indices){
+  ipw.imputed <- data[indices,]
+  
+  # Creating lagged history
+  lag_Y <- ipw.imputed |>
+    dplyr::select(starts_with("Y")) 
+  
+  # Lag for the following visit
+  colnames(lag_Y) <- paste0("lag_Y",2:11)
+  # Remove lag for visit 11 i.e. after end of study
+  lag_Y <- lag_Y[,-ncol(lag_Y)]
+  # Lag for first visit is 0
+  lag_Y1 <- rep(0,nrow(lag_Y))
+  # Attach as first column
+  lag_Y <- cbind(lag_Y1,
+                 lag_Y)
+  # Creating lagged average
+  lagavg_Y <- 
+    t(apply(lag_Y, 1, cummean))
+  colnames(lagavg_Y) <- paste0("lagavg_Y",1:10)
+  
+  # Long format
+  ipw.imputed <- ipw.imputed |>
+    cbind(lag_Y,lagavg_Y) |>
+    reshape(varying = c(paste0("ICE",1:10),
+                        paste0("Y",1:10),
+                        paste0("lag_Y",1:10),
+                        paste0("lagavg_Y",1:10)),
+            direction = "long",
+            sep="",
+            idvar = "id") 
+  
+  # Ordering data by treatment arm, patient and visit
+  ipw.imputed <- 
+    ipw.imputed[order(ipw.imputed$ARMCD,
+                      ipw.imputed$id,
+                      ipw.imputed$time),]
+  
+  ipw.weights <- 
+    ipwtm(exposure = ICE,
+          family = "binomial",
+          link = "logit",
+          numerator = ~ 1,
+          denominator = ~
+            ARMCD + 
+            HBA1C0 +
+            Y + 
+            lag_Y +
+            lagavg_Y +
+            AGE.cont + 
+            SEX + 
+            BMI + 
+            SYSBPBL + 
+            WSTCIRBL +
+            HIPCIRBL + 
+            FDIASDIY + 
+            GLUC0 +
+            GFR0 +
+            CPEPBL,
+          id = "id",
+          timevar = "time",
+          type = "first",
+          data = ipw.imputed)
+  
+  ipw.model <-
+    lm(Y ~ 0 + as.factor(ARMCD) + HBA1C0,
+       data = ipw.imputed[
+         ipw.imputed$time==10 &
+           ipw.imputed$ICE==0,],
+       weights = ipw.weights$ipw.weights[
+         ipw.imputed$time==10  &
+           ipw.imputed$ICE==0])
+  return(c(summary(ipw.model)[[5]][
+    ,"Estimate"]["as.factor(ARMCD)B"],
+    summary(ipw.model)[[5]][,"Estimate"][
+      "as.factor(ARMCD)C"],
+    summary(ipw.model)[[5]][,"Estimate"][
+      "as.factor(ARMCD)B"] - 
+      summary(ipw.model)[[5]][,"Estimate"][
+        "as.factor(ARMCD)C"]))
+}
+
+```
+
+```{r IPW+baseline, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+
+# Using last seed after common imputation step
+# to continue analysis
+.Random.seed <-
+  imputed.original.data$lastSeedValue
+
+# Computing potential outcomes and
+# treatment effect in each
+# imputed dataset
+dapa <- rep(NA,imputed.original.data$m)
+glim <- rep(NA,imputed.original.data$m)
+effect <- rep(NA,imputed.original.data$m)
+# and variance
+dapa.var <- rep(NA,imputed.original.data$m)
+glim.var <- rep(NA,imputed.original.data$m)
+effect.var <- rep(NA,imputed.original.data$m)
+
+for (i in 1:imputed.original.data$m) {
+  ipw.imputed <- imputed.original.data |>
+    complete(i) |>
+    # Include longitudinal ICE indicator
+    cbind(original.data[,paste0("ICE",1:10)]) 
+  
+  ipw.boot <-
+    boot(ipw.imputed,
+         ipw.function,
+         R = 100)
+         # R = 5)
+
+  dapa[i] <-
+    ipw.boot$t0[1]
+  dapa.var[i] <- 
+    var(ipw.boot$t[,1])
+  
+  glim[i] <- 
+    ipw.boot$t0[2]
+  glim.var[i] <- 
+    var(ipw.boot$t[,2])
+  
+  effect[i] <-
+    ipw.boot$t0[3]
+  effect.var[i] <-
+    var(ipw.boot$t[,3])
+  
+}
+
+# Dapa + Saxa
+dapa.baseline.pool <-
+  pool.scalar(Q = dapa,
+              U = dapa.var)
+# Point estimate
+dapa.baseline.pool$qbar
+# -1.247355
+# SE
+sqrt(dapa.baseline.pool$t)
+# 0.04365858
+
+# Glimeperide
+glim.baseline.pool <-
+  pool.scalar(Q = glim,
+              U = glim.var)
+# Point estimate
+glim.baseline.pool$qbar
+# -1.143128
+# SE
+sqrt(glim.baseline.pool$t)
+# 0.04676229
+
+# Effect
+effect.baseline.pool <-
+  pool.scalar(Q = effect,
+              U = effect.var)
+effect.baseline.pool$qbar
+# -0.1042277
+# SE
+sqrt(effect.baseline.pool$t)
+# 0.06379098
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[7] <- 
+  paste0(format(dapa.baseline.pool$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(dapa.baseline.pool$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[7] <- 
+  paste0(format(glim.baseline.pool$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(glim.baseline.pool$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[7] <- 
+  paste0(format(effect.baseline.pool$qbar,
+                digits = 3, nsmall = 3), " (",
+         format(sqrt(effect.baseline.pool$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Computational time
+treatment.effect$Time[7] <- 
+    round(imputation.time + as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[7]
+# 31.765
+
+```
+
+## Including other covariates
+
+### Multiple imputation
+
+```{r Common first step: Imputation+covariates, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+# Creating 100 imputed datasets to use
+# in the alternate methods
+imputed.original.data <-
+  original.data |>
+  dplyr::select(ARMCD,
+                all_of(baseline),
+                paste0("GLUC",1:10),
+                paste0("GFR",1:10),
+                paste0("Y",1:10)) |>
+      mice(m = 100,
+           # m = 5,
+           defaultMethod = 
+             c("norm", 
+               "logreg", 
+               "polyreg",
+               "polr"),
+           printFlag = F,
+           seed = 2022) 
+
+imputation.time <-
+  round(as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+```
+
+```{r MI + covariates, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+
+# Impute missing observed values and post-ICE values
+MI.covariates  <- 
+  MI.function(data = imputed.original.data)
+
+MI.covariates
+#              Estimates         SE
+# Dapa_Saxa   -1.2339472 0.04197984
+# Glimeperide -1.1200343 0.04389895
+# Effect      -0.1139129 0.06043536
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[5] <- 
+  paste0(format(MI.covariates[
+    "Dapa_Saxa","Estimates"],
+    digits = 4, nsmall = 3), " (",
+    format(MI.covariates["Dapa_Saxa","SE"], 
+           digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[5] <- 
+  paste0(format(MI.covariates[
+    "Glimeperide","Estimates"],
+    digits = 4, nsmall = 3), " (",
+    format(MI.covariates["Glimeperide","SE"], 
+           digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[5] <- 
+  paste0(format(MI.covariates[
+    "Effect","Estimates"],
+    digits = 3, nsmall = 3), " (",
+    format(MI.covariates["Effect","SE"],
+           digits = 3, nsmall = 3), ")")
+
+# Computation time
+# Accounting for imputation step
+treatment.effect$Time[5] <- 
+  round(imputation.time + as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[5]
+# 3.572
+
+
+```
+
+### IPW
+
+```{r IPW function+covariates, include=FALSE}
+
+# IPW function
+ipw.function <- function(data,
+                         indices){
+  ipw.imputed <- data[indices,]
+  
+  # Creating lagged history
+  lag_Y <- ipw.imputed |>
+    dplyr::select(starts_with("Y")) 
+  
+  # Lag for the following visit
+  colnames(lag_Y) <- paste0("lag_Y",2:11)
+  # Remove lag for visit 11 i.e. after end of study
+  lag_Y <- lag_Y[,-ncol(lag_Y)]
+  # Lag for first visit is 0
+  lag_Y1 <- rep(0,nrow(lag_Y))
+  # Attach as first column
+  lag_Y <- cbind(lag_Y1,
+                 lag_Y)
+  # Creating lagged average
+  lagavg_Y <- 
+    t(apply(lag_Y, 1, cummean))
+  colnames(lagavg_Y) <- paste0("lagavg_Y",1:10)
+  
+  # Long format
+  ipw.imputed <- ipw.imputed |>
+    cbind(lag_Y,lagavg_Y) |>
+    reshape(varying = c(paste0("ICE",1:10),
+                        paste0("GLUC",1:10),
+                        paste0("GFR",1:10),
+                        paste0("Y",1:10),
+                        paste0("lag_Y",1:10),
+                        paste0("lagavg_Y",1:10)),
+            direction = "long",
+            sep="",
+            idvar = "id") 
+  
+  # Ordering data by treatment arm, patient and visit
+  ipw.imputed <- 
+    ipw.imputed[order(ipw.imputed$ARMCD,
+                      ipw.imputed$id,
+                      ipw.imputed$time),]
+  
+  ipw.weights <- 
+    ipwtm(exposure = ICE,
+          family = "binomial",
+          link = "logit",
+          numerator = ~ 1,
+          denominator = ~
+            ARMCD + 
+            HBA1C0 + 
+            Y + 
+            lag_Y +
+            lagavg_Y +
+            AGE.cont + 
+            SEX + 
+            BMI + 
+            SYSBPBL + 
+            WSTCIRBL +
+            HIPCIRBL + 
+            FDIASDIY + 
+            GLUC +
+            GFR +
+            CPEPBL,
+          id = "id",
+          timevar = "time",
+          type = "first",
+          data = ipw.imputed)
+  
+  ipw.model <-
+    lm(Y ~ 0 + as.factor(ARMCD) + HBA1C0,
+       data = ipw.imputed[
+         ipw.imputed$time==10 &
+           ipw.imputed$ICE==0,],
+       weights = ipw.weights$ipw.weights[
+         ipw.imputed$time==10  &
+           ipw.imputed$ICE==0])
+  return(c(summary(ipw.model)[[5]][
+    ,"Estimate"]["as.factor(ARMCD)B"],
+    summary(ipw.model)[[5]][,"Estimate"][
+      "as.factor(ARMCD)C"],
+    summary(ipw.model)[[5]][,"Estimate"][
+      "as.factor(ARMCD)B"] - 
+      summary(ipw.model)[[5]][,"Estimate"][
+        "as.factor(ARMCD)C"]))
+}
+
+```
+
+
+```{r IPW + covariates, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+
+# Using last seed after common imputation step
+# to continue analysis
+.Random.seed <-
+  imputed.original.data$lastSeedValue
+
+# Computing potential outcomes and
+# treatment effect in each
+# imputed dataset
+dapa <- rep(NA,imputed.original.data$m)
+glim <- rep(NA,imputed.original.data$m)
+effect <- rep(NA,imputed.original.data$m)
+# and variance
+dapa.var <- rep(NA,imputed.original.data$m)
+glim.var <- rep(NA,imputed.original.data$m)
+effect.var <- rep(NA,imputed.original.data$m)
+
+for (i in 1:imputed.original.data$m) {
+  ipw.imputed <- imputed.original.data |>
+    complete(i) |>
+    # Include longitudinal ICE indicator
+    cbind(original.data[,paste0("ICE",1:10)]) 
+  
+  ipw.boot <-
+    boot(ipw.imputed,
+         ipw.function,
+         R = 100)
+         # R = 5)
+
+  dapa[i] <-
+    ipw.boot$t0[1]
+  dapa.var[i] <- 
+    var(ipw.boot$t[,1])
+  
+  glim[i] <- 
+    ipw.boot$t0[2]
+  glim.var[i] <- 
+    var(ipw.boot$t[,2])
+  
+  effect[i] <-
+    ipw.boot$t0[3]
+  effect.var[i] <-
+    var(ipw.boot$t[,3])
+  
+}
+
+# Dapa + Saxa
+dapa.covariates.pool <-
+  pool.scalar(Q = dapa,
+              U = dapa.var)
+# Point estimate
+dapa.covariates.pool$qbar
+# -1.215426
+# SE
+sqrt(dapa.covariates.pool$t)
+# 0.05207603
+
+# Glimeperide
+glim.covariates.pool <-
+  pool.scalar(Q = glim,
+              U = glim.var)
+# Point estimate
+glim.covariates.pool$qbar
+# -1.133269
+# SE
+sqrt(glim.covariates.pool$t)
+# 0.04884666
+
+# Effect
+effect.covariates.pool <-
+  pool.scalar(Q = effect,
+              U = effect.var)
+effect.covariates.pool$qbar
+# -0.08215676
+# SE
+sqrt(effect.covariates.pool$t)
+# 0.071724
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[8] <- 
+  paste0(format(dapa.covariates.pool$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(dapa.covariates.pool$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[8] <- 
+  paste0(format(glim.covariates.pool$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(glim.covariates.pool$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[8] <- 
+  paste0(format(effect.covariates.pool$qbar,
+                digits = 3, nsmall = 3), " (",
+         format(sqrt(effect.covariates.pool$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Computational time
+treatment.effect$Time[8] <- 
+    round(imputation.time + as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[8]
+# 34.76
+
+
+```
+
+## IPW separate ICE
+
+```{r IPW separate function, include=FALSE}
+
+# IPW function
+ipw.function <- function(data,
+                         indices){
+  ipw.imputed <- data[indices,]
+  
+  # Creating lagged history
+  lag_Y <- ipw.imputed |>
+    dplyr::select(starts_with("Y")) 
+  
+  # Lag for the following visit
+  colnames(lag_Y) <- paste0("lag_Y",2:11)
+  # Remove lag for visit 11 i.e. after end of study
+  lag_Y <- lag_Y[,-ncol(lag_Y)]
+  # Lag for first visit is 0
+  lag_Y1 <- rep(0,nrow(lag_Y))
+  # Attach as first column
+  lag_Y <- cbind(lag_Y1,
+                 lag_Y)
+  # Creating lagged average
+  lagavg_Y <- 
+    t(apply(lag_Y, 1, cummean))
+  colnames(lagavg_Y) <- paste0("lagavg_Y",1:10)
+  
+  # Long format
+  ipw.imputed <- ipw.imputed |>
+    cbind(lag_Y,lagavg_Y) |>
+    reshape(varying = c(paste0("ICE.cat",1:10),
+                        paste0("GLUC",1:10),
+                        paste0("GFR",1:10),
+                        paste0("Y",1:10),
+                        paste0("lag_Y",1:10),
+                        paste0("lagavg_Y",1:10)),
+            direction = "long",
+            sep="",
+            idvar = "id") 
+  
+  # Ordering data by treatment arm, patient and visit
+  ipw.imputed <- 
+    ipw.imputed[order(ipw.imputed$ARMCD,
+                      ipw.imputed$id,
+                      ipw.imputed$time),]
+  
+  ipw.weights <- 
+    ipwtm(exposure = ICE.cat,
+          family = "multinomial",
+          numerator = ~ 1,
+          denominator = ~
+            ARMCD + 
+            HBA1C0 +
+            Y + 
+            lag_Y +
+            lagavg_Y +
+            AGE.cont + 
+            SEX + 
+            BMI + 
+            SYSBPBL + 
+            WSTCIRBL +
+            HIPCIRBL + 
+            FDIASDIY + 
+            GLUC +
+            GFR +
+            CPEPBL,
+          id = "id",
+          timevar = "time",
+          type = "first",
+          data = ipw.imputed)
+  
+  ipw.model <-
+    lm(Y ~ 0 + as.factor(ARMCD) + HBA1C0,
+       data = ipw.imputed[
+         ipw.imputed$time==10 &
+           ipw.imputed$ICE.cat==0,],
+       weights = ipw.weights$ipw.weights[
+         ipw.imputed$time==10  &
+           ipw.imputed$ICE.cat==0])
+  return(c(summary(ipw.model)[[5]][
+    ,"Estimate"]["as.factor(ARMCD)B"],
+    summary(ipw.model)[[5]][,"Estimate"][
+      "as.factor(ARMCD)C"],
+    summary(ipw.model)[[5]][,"Estimate"][
+      "as.factor(ARMCD)B"] - 
+      summary(ipw.model)[[5]][,"Estimate"][
+        "as.factor(ARMCD)C"]))
+}
+
+```
+
+```{r IPW separate, include=FALSE, warning=FALSE}
+
+# Timing process
+start <- Sys.time()
+
+# Using last seed after common imputation step
+# to continue analysis
+.Random.seed <-
+  imputed.original.data$lastSeedValue
+
+# Computing potential outcomes and
+# treatment effect in each
+# imputed dataset
+dapa <- rep(NA,imputed.original.data$m)
+glim <- rep(NA,imputed.original.data$m)
+effect <- rep(NA,imputed.original.data$m)
+# and variance
+dapa.var <- rep(NA,imputed.original.data$m)
+glim.var <- rep(NA,imputed.original.data$m)
+effect.var <- rep(NA,imputed.original.data$m)
+
+for (i in 1:imputed.original.data$m) {
+  ipw.imputed <- imputed.original.data |>
+    complete(i) |>
+    # Include longitudinal ICE indicator
+    cbind(original.data[,paste0("ICE.cat",1:10)]) 
+  
+  ipw.boot <-
+    boot(ipw.imputed,
+         ipw.function,
+         R = 100)
+         # R = 5)
+  
+  dapa[i] <-
+    ipw.boot$t0[1]
+  dapa.var[i] <- 
+    var(ipw.boot$t[,1])
+  
+  glim[i] <- 
+    ipw.boot$t0[2]
+  glim.var[i] <- 
+    var(ipw.boot$t[,2])
+  
+  effect[i] <-
+    ipw.boot$t0[3]
+  effect.var[i] <-
+    var(ipw.boot$t[,3])
+  
+}
+
+# Dapa + Saxa
+dapa.separate.pool <-
+  pool.scalar(Q = dapa,
+              U = dapa.var)
+# Point estimate
+dapa.separate.pool$qbar
+# -1.206853
+# SE
+sqrt(dapa.separate.pool$t)
+# 0.06112234
+
+# Glimeperide
+glim.separate.pool <-
+  pool.scalar(Q = glim,
+              U = glim.var)
+# Point estimate
+glim.separate.pool$qbar
+# -1.135631
+# SE
+sqrt(glim.separate.pool$t)
+# 0.0492555
+
+# Effect
+effect.separate.pool <-
+  pool.scalar(Q = effect,
+              U = effect.var)
+effect.separate.pool$qbar
+# -0.07122135
+# SE
+sqrt(effect.separate.pool$t)
+# 0.0782944
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[9] <- 
+  paste0(format(dapa.separate.pool$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(dapa.separate.pool$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[9] <- 
+  paste0(format(glim.separate.pool$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(glim.separate.pool$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[9] <- 
+  paste0(format(effect.separate.pool$qbar,
+                digits = 3, nsmall = 3), " (",
+         format(sqrt(effect.separate.pool$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Computational time
+treatment.effect$Time[9] <- 
+  round(imputation.time + as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[9]
+# 367.641
+```
+
+# Exploiting post-ICE information
+
+```{r Outcome variable including post-ICE values, include=FALSE}
+
+outcome.post.ICE <- laboratory |>
+  # HbA1c change from baseline
+  filter(PARAMCD=="HBA1CHGB",
+         !is.na(CHG)) |>
+  # Wide format
+  dplyr::select("USUBJID","VISITNUM","CHG") |>
+  # Only scheduled visits
+  # Here Visit 2 is baseline (AVISIT1)
+  # In merged data baseline is 0 to use available 
+  # R packages that need time 0
+  # Last visit is 12 (AVISIT11)
+  # it corresponds to follow-up after treatment stop
+  # i.e. beyond week 52
+  mutate(VISITNUM = VISITNUM-2) |>
+  pivot_wider(id_cols = "USUBJID",
+              names_from = "VISITNUM", 
+              values_from = "CHG",
+              names_prefix = "Y") |>
+  dplyr::select("USUBJID",
+                num_range("Y",1:10))
+merged.post.ICE <-
+  left_join(original.data,
+            outcome.post.ICE,
+            by = "USUBJID")
+
+# If in original data outcome Y_k is NA
+# Then use 'new' outcome Y_k from 
+# outcome post ICE dataset
+# Otherwise keep as before
+
+for (j in 1:length(1:10)) {
+  for (i in 1:nrow(merged.post.ICE)) {
+    merged.post.ICE[i,paste0("Y",j,".x")] <-
+      ifelse(is.na(original.data[i,paste0("Y",j)]),
+             merged.post.ICE[i,paste0("Y",j,".y")],
+             original.data[i,paste0("Y",j)])
+  }
+}
+
+# NA in Y_{1:10} before merging
+sum(is.na(original.data[,paste0("Y",1:10)]))
+# 474
+
+# NA in Y_{1:10} after merging
+sum(is.na(merged.post.ICE[,paste0("Y",1:10,".x")]))
+# 183
+
+# Removes .x suffix and extra visit columns
+merged.post.ICE <- merged.post.ICE |>
+  rename_with(~str_remove(., ".x")) |>
+  dplyr::select(!ends_with(".y"))
+
+# Patients rescued by arm
+table(merged.post.ICE$RESCUE,merged.post.ICE$ARM)
+# Follow-up after rescue?
+sum(merged.post.ICE$RESCUE=="Yes") 
+# Of 56 patients rescued
+sum(is.na(merged.post.ICE$Y10[
+  merged.post.ICE$RESCUE=="Yes"])) 
+# Only 4 do not have outcome measured at last visit
+sum(rowSums(!is.na(
+  merged.post.ICE[
+    merged.post.ICE$RESCUE=="Yes",
+    paste0("Y",1:10)]))==0)
+# All patients have at least one measurement of the outcome
+
+# ICE: Discontinuation
+# Patients who discontinue by arm
+table(merged.post.ICE$EOSSTT,merged.post.ICE$ARM)
+# Follow-up after discontinuation?
+sum(merged.post.ICE$EOSSTT=="DISCONTINUED") 
+# Of 21 patients who discontinued treatment
+sum(is.na(merged.post.ICE$Y10[
+  merged.post.ICE$EOSSTT=="DISCONTINUED"])) 
+# 8 do not have outcome measured at last visit
+sum(rowSums(!is.na(merged.post.ICE[
+  merged.post.ICE$EOSSTT=="DISCONTINUED",
+  paste0("Y",1:10)]))==0)
+# Only 2 patients have no outcome measured 
+# during follow-up
+
+# Rescue + Discontinuation
+table(merged.post.ICE$RESCUE[
+  merged.post.ICE$EOSSTT=="DISCONTINUED"],
+  merged.post.ICE$ARM[
+    merged.post.ICE$EOSSTT=="DISCONTINUED"])
+# Only 2 patients, one per arm
+
+```
+
+```{r Missing outcomes values, include=FALSE}
+
+# Outcome values missing per visit
+Y.missing <- 
+  merged.post.ICE |>
+  dplyr::select(starts_with("Y")) |>
+  map(~sum(is.na(.))) |>
+  unlist()
+
+# In Dapagliflozin and Saxagliptin arm
+Y.dapa.missing <- 
+  merged.post.ICE |>
+  filter(ARMCD == "B") |>
+  dplyr::select(starts_with("Y")) |>
+  map(~sum(is.na(.))) |>
+  unlist()
+
+# In Glimeperide arm
+Y.glim.missing <- 
+  merged.post.ICE |>
+  filter(ARMCD == "C") |>
+  dplyr::select(starts_with("Y")) |>
+  map(~sum(is.na(.))) |>
+  unlist()
+
+# Summary 
+kable(rbind(Y.dapa.missing,
+            Y.glim.missing,
+            Y.missing), 
+      format = "latex", linesep = "")
+
+# \begin{tabular}{l|r|r|r|r|r|r|r|r|r|r}
+# \hline
+# & Y1 & Y2 & Y3 & Y4 & Y5 & Y6 & Y7 & Y8 & Y9 & Y10\\
+# \hline
+# Y.dapa.missing & 5 & 2 & 5 & 7 & 5 & 10 & 7 & 7 & 14 & 4\\
+# Y.glim.missing & 9 & 8 & 8 & 12 & 10 & 14 & 11 & 15 & 16 & 14\\
+# Y.missing & 14 & 10 & 13 & 19 & 15 & 24 & 18 & 22 & 30 & 18\\
+# \hline
+# \end{tabular}
+
+```
+
+```{r Positivity check for rescue, echo=FALSE}
+
+# According to protocol, rescue was indicated if
+rescue.eligibility <- cbind(
+  # FPG (GLUC) > 13.3 in first 12 weeks
+  # i.e. Visit 1-6
+  original.data[,paste0("GLUC", 1:6)]>13.3,
+  # FPG (GLUC) > 11.1 in weeks 12-24
+  # i.e. Visit 7-8
+  original.data[,paste0("GLUC", 7:8)]>11.1,
+  # HbA1c > 8 in weeks 24-52
+  # i.e. Visit 9-10
+  original.data[,paste0("HBA1C",9:10)] > 8
+  )
+
+sum(rescue.eligibility, na.rm = T)
+# There were 186 patients/visit eligible
+sum(is.na(rescue.eligibility))
+# 428 NA
+
+rescue.indicated <-
+  original.data[,paste0("RESCUE",1:10)]==1
+
+sum(rescue.indicated, na.rm = T)
+# Rescue indicate in 226 cases
+
+sum(rescue.eligibility==rescue.indicated, na.rm = T)
+# Mismatch in 253 cases
+# Agreement 5359
+# 428
+
+#Histogram
+FPG.rescue <- original.data |>
+  dplyr::select(USUBJID,
+                num_range("GLUC",1:8),
+                num_range("RESCUE",1:8)) |>
+  pivot_longer(-USUBJID,
+               names_to = c(".value", "Visit"),
+               names_pattern = "(.+)(.+)") |>
+  mutate(RESCUE = factor(RESCUE,
+                         levels = c(1,0),
+                         labels = c("Yes","No")))
+
+ggplot(FPG.rescue) +
+  geom_jitter(aes(Visit, GLUC, 
+                 colour = RESCUE)) +
+  geom_segment(aes(x=0, xend=6.5,
+                   y=13.3, yend=13.3)) + 
+  geom_segment(aes(x=6.5, xend=9,
+                   y=11.1, yend=11.1)) +
+  ylab("Fasting plasma glucose (FPG, mmol/L)")
+
+```
+
+## G-formula
+
+```{r G-formula function, include=FALSE}
+
+g.function <-
+  function(data,
+           indices){
+    # Data for g-formula function
+    g.data <- data[indices,] |>
+      # Include indicator for weeks since ICE started
+      cbind(week.ICE) |>
+      # Baseline values
+      # Time variable should start in 0
+      # to use g-formula package
+      mutate(ICE0 = 0,
+             week.ICE0 = 0,
+             Y0 = 0) |>
+      # Long format
+      reshape(varying = c(paste0("ICE",0:10),
+                          paste0("week.ICE",0:10),
+                          paste0("Y",0:10)),
+              direction = "long",
+              sep="") |>
+      mutate(
+        # Treatment as numeric for package
+        ARMCD = ifelse(ARMCD=="B",1,0))
+    
+    # Order data by id and time
+    g.data <- g.data[order(g.data$id, g.data$time),]
+    # Create a new column with Y10 at time 9
+    # i.e. final outcome
+    g.data$Y10 <- NA
+    
+    for (i in 1:nrow(g.data)) {
+      if(g.data$time[i] == max(g.data$time) - 1){
+        g.data$Y10[i] <- g.data$Y[i+1]
+      }
+      
+    }
+    
+    # Remove final time point i.e. time 10
+    g.data <- g.data[g.data$time!=max(g.data$time),]
+    
+    # Parameters for g-formula function
+    obs_data <- as.data.table(g.data)
+    id <- "id"
+    time_name <- "time"
+    time_points <- length(unique(g.data$time))
+    covnames <- c("Y", "ARMCD", "ICE", "week.ICE")
+    outcome_name <- "Y10"
+    covtypes <- c("normal","binary","binary","normal")
+    histories <- c(lagged,lagavg)
+    histvars <- list("Y",
+                     "Y")
+    basecovs <- "HBA1C0"
+    covparams <- 
+      list(covmodels = c(Y ~ 
+                           # Treatments
+                           ARMCD + 
+                           ICE +
+                           week.ICE +
+                           # Baseline
+                           HBA1C0 +
+                           # Previous values of HbA1c
+                           lag1_Y + 
+                           lag_cumavg1_Y,
+                         ARMCD ~ 1,
+                         ICE ~ 1,
+                         week.ICE ~ 1)) 
+    ymodel <- Y10 ~ 
+      # Treatments
+      ARMCD + 
+      ICE +
+      week.ICE +
+      # History of HbA1c
+      Y +
+      lag_cumavg1_Y
+    intvars <- 
+      list(c('ARMCD', 'ICE', "week.ICE"),
+           c('ARMCD', 'ICE', "week.ICE"))
+    interventions <- 
+      list(list(c(static, rep(1, time_points)),
+                c(static, rep(0, time_points)),
+                c(static, rep(0, time_points))),
+           list(c(static, rep(0, time_points)),
+                c(static, rep(0, time_points)),
+                c(static, rep(0, time_points))))
+    int_descript <- c('Hypothetical treatment', 
+                      'Hypothetical control')
+    
+    g.model <- 
+      gformula_continuous_eof(obs_data = obs_data,
+                              id = id,
+                              time_name = time_name,
+                              covnames = covnames,
+                              outcome_name = outcome_name,
+                              covtypes = covtypes,
+                              covparams = covparams, 
+                              ymodel = ymodel,
+                              intvars = intvars,
+                              interventions = interventions,
+                              int_descript = int_descript,
+                              ref_int = 2,
+                              histvars = histvars,
+                              histories = histories,
+                              basecovs = basecovs,
+                              show_progress = F,
+                              sim_data_b = TRUE,
+                              seed = 1234)
+    
+    # NB:  If sim_data_b = T, nsamples must be 0
+    # i.e. either saving simulated dataset under regime of interest
+    # or doing bootstrap for SE
+    
+    # Simulated dataset under regime of interest
+    g.sim.data <-
+      rbind(g.model$sim_data$`Hypothetical treatment`,
+            g.model$sim_data$`Hypothetical control`)
+    
+    g.model.final <-
+      lm(Ey ~ 0 + as.factor(ARMCD) + HBA1C0,
+         data = g.sim.data[g.sim.data$time==9])
+    
+    output <- c(
+      # Dapa + Saxa
+      coef(g.model.final)[2],
+      # Glimeperide
+      coef(g.model.final)[1],
+      # Treatment effect
+      coef(g.model.final)[2]- coef(g.model.final)[1])
+      
+    names(output) <- c("Dapa", "Glim", "Effect")
+    
+    return(output)
+  }
+
+```
+
+```{r G-formula no imputation, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+
+# Using last seed after common imputation step
+# to continue analysis
+.Random.seed <-
+  imputed.merged.post.ICE$lastSeedValue
+
+# Indicator for weeks since ICE started
+# Visits occurred every 2 weeks for 3 months and then 
+# every 12 weeks until end of follow-up i.e. 52 weeks
+week.visit <- c(seq(2,12,2),seq(24,52,12),52)
+# Weeks elapsed since previous visit
+diff(week.visit)
+
+lag_ICE <- 
+  merged.post.ICE[,paste0("ICE",1:10)]
+
+# ICE indicator from previous visit
+colnames(lag_ICE) <- paste0("lag_ICE",2:11)
+# Remove lag for visit 11 i.e. after end of study
+lag_ICE <- lag_ICE[,-ncol(lag_ICE)]
+
+# Indicator of weeks since previous visit if ICE  
+week.ICE <- matrix(NA, nrow = nrow(lag_ICE), ncol = ncol(lag_ICE))
+for (j in 1:nrow(lag_ICE)) {
+  week.ICE[j,] <- as.numeric(lag_ICE[j,] * diff(week.visit))
+}
+
+# Add total weeks with ICE
+week.ICE <-
+  t(apply(week.ICE, 1, cumsum))
+# No ICE on baseline visit. i.lag_ICE1 is 0
+week.ICE <-
+  cbind(rep(0, nrow(week.ICE)),
+        week.ICE)
+colnames(week.ICE) <- paste0("week.ICE",1:10)
+
+g.function(merged.post.ICE)
+# Dapa       Glim     Effect 
+# -1.2718078 -1.1246680 -0.1471398 
+
+g.bootstrap <-
+  boot(merged.post.ICE,
+       g.function,
+       # R = 10000)
+        R = 100)
+       # R = 5)
+g.bootstrap
+
+# R=100
+#       original        bias    std. error
+# t1* -1.2718078 -0.0068372727  0.04231291
+# t2* -1.1246680 -0.0061341795  0.05004187
+# t3* -0.1471398 -0.0007030932  0.06530497
+
+# R=10000
+# original        bias    std. error
+# t1* -1.2718078 -0.0052331342  0.04112955
+# t2* -1.1246680 -0.0060899134  0.04527849
+# t3* -0.1471398  0.0008567792  0.05999602
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[10] <- 
+  paste0(format(g.bootstrap$t0["Dapa"],
+                digits = 4, nsmall = 3), " (",
+         format(sd(g.bootstrap$t[,1]), 
+                digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[10] <- 
+  paste0(format(g.bootstrap$t0["Glim"],
+                digits = 4, nsmall = 3), " (",
+         format(sd(g.bootstrap$t[,2]), 
+                digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[10] <- 
+  paste0(format(g.bootstrap$t0["Effect"],
+                digits = 4, nsmall = 3), " (",
+         format(sd(g.bootstrap$t[,3]), 
+                digits = 3, nsmall = 3), ")")
+
+# Computational time
+treatment.effect$Time[10] <- 
+  round(as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[10]
+# 240.022
+
+```
+
+## Multiple imputation
+
+```{r Common first step: Imputation post-ICE, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+# Creating 100 imputed datasets to use
+# in the alternate methods
+imputed.merged.post.ICE <-
+  merged.post.ICE |>
+  dplyr::select(ARMCD,
+                HBA1C0, 
+                paste0("ICE",1:10),
+                paste0("Y",1:10)) |>
+      mice(m = 100,
+           # m = 5,
+           defaultMethod = 
+             c("norm", 
+               "logreg", 
+               "polyreg",
+               "polr"),
+           printFlag = F,
+           seed = 2022) 
+
+imputation.time <-
+  round(as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+```
+
+
+
+## G-formula via MI
+
+```{r G-formula via MI, include=FALSE, warning=FALSE}
+
+# Timing process
+start <- Sys.time()
+
+# Step 1: Impute actual missing values
+# Already performed
+
+# Using last seed after common imputation step
+# to continue analysis
+.Random.seed <-
+  imputed.merged.post.ICE$lastSeedValue
+
+# Step 2: Impute potential outcomes
+m.dapa <- rep(NA,imputed.merged.post.ICE$m)
+m.dapa.var <- rep(NA,imputed.merged.post.ICE$m)
+m.glim <- rep(NA,imputed.merged.post.ICE$m)
+m.glim.var <- rep(NA,imputed.merged.post.ICE$m)
+m.effect <- rep(NA,imputed.merged.post.ICE$m)
+m.effect.var <- rep(NA,imputed.merged.post.ICE$m)
+
+for (i in 1:imputed.merged.post.ICE$m) {
+  imputed.dataset <-
+    complete(imputed.merged.post.ICE, i)
+  
+  # G-formula via MI
+  imputed.data <-
+    rbind(imputed.dataset,
+          imputed.dataset,
+          imputed.dataset)
+  
+  # Assign treatment to first dataset
+  imputed.data[1:nrow(imputed.dataset),
+               "ARMCD"] <- "B"
+  
+  # Assign control to second dataset
+  imputed.data[(nrow(imputed.dataset)+1):
+                 (2*nrow(imputed.dataset)),
+               "ARMCD"] <- "C"
+  
+  # Set ICE indicators to 0 both first and second datasets
+  # i.e. no ICE potential outcome
+  imputed.data[1:(2*nrow(imputed.dataset)),
+               paste0("ICE",1:10)] <- 0
+  # Delete values of Y
+  imputed.data[1:(2*nrow(imputed.dataset)),
+               paste0("Y",1:10)] <- NA
+  
+  # Include indicator R to differentiate between
+  # augmented (R=0) and observed row (R=1)
+  imputed.data$R <-
+    c(rep(0,2*nrow(imputed.dataset)),
+      rep(1,nrow(imputed.dataset)))
+  
+  # Reorder columns in visits
+  imputed.data <-
+    imputed.data[,c("R","ARMCD", "HBA1C0",
+                    rbind(paste0("Y",1:10),
+                          paste0("ICE",1:10)))]
+  
+  # Set predictor matrix to impute Y_k using 
+  # baseline and ICE up to and including visit k-1
+  # because Y_k column comes before ICE_k
+  predictor.matrix <-
+    1*lower.tri(make.predictorMatrix(imputed.data))
+  
+  # Step 2: impute potential outcomes under no ICE
+  full.imputed.data <-
+    mice(data = imputed.data,
+         m = 1,
+         defaultMethod = 
+           c("norm",
+             "logreg", 
+             "polyreg",
+             "polr"),
+         printFlag = F,
+         maxit = 1,
+         predictorMatrix = predictor.matrix)
+  
+  # Updating seed after mice defaults to reset
+  .Random.seed <-
+    full.imputed.data$lastSeedValue
+  
+  # Dataset with imputed potential outcomes
+  full.imputed.dataset <-
+    complete(full.imputed.data)
+  
+  # Only 2/3 used for analysis
+  analysis.dataset <- 
+    full.imputed.dataset[1:(2*nrow(imputed.dataset)),]
+  
+  # Model
+  Y.model <-
+    lm(Y10 ~ as.factor(ARMCD) + 
+         HBA1C0, data = analysis.dataset)
+  
+  dapa.MI.test <- 
+    matrix(0, nrow = 1,
+           ncol = length(coef(Y.model)))
+  colnames(dapa.MI.test) <- 
+    names(coef(Y.model))
+  
+  dapa.MI.test[,"(Intercept)"] <- 1
+  dapa.MI.test[,"as.factor(ARMCD)B"] <- 1
+  
+  # Mean outcome under dapa+saxa
+  m.dapa[i] <- 
+    confint(glht(Y.model, 
+                 dapa.MI.test))$
+    confint[,"Estimate"]
+  m.dapa.var[i] <- 
+    dapa.MI.test%*%
+    vcov(Y.model)%*%
+    t(dapa.MI.test)
+  
+  # Mean outcome under glimeperide
+  glim.MI.test <- 
+    matrix(0, nrow = 1,
+           ncol = length(coef(Y.model)))
+  colnames(glim.MI.test) <- 
+    names(coef(Y.model))
+  
+  glim.MI.test[,"(Intercept)"] <- 1
+  
+  m.glim[i] <- 
+    confint(glht(Y.model, 
+                 glim.MI.test))$
+    confint[,"Estimate"]
+  
+  m.glim.var[i] <- 
+    glim.MI.test%*%
+    vcov(Y.model)%*%
+    t(glim.MI.test)
+  
+  # Mean treatement effect
+  effect.MI.test <- 
+    matrix(0, nrow = 1,
+           ncol = length(coef(Y.model)))
+  colnames(effect.MI.test) <- 
+    names(coef(Y.model))
+  
+  effect.MI.test[,"as.factor(ARMCD)B"] <- 1
+  
+  m.effect[i] <-
+    confint(glht(Y.model, 
+                 effect.MI.test))$
+    confint[,"Estimate"]
+  m.effect.var[i] <-
+    effect.MI.test%*%
+    vcov(Y.model)%*%
+    t(effect.MI.test)
+  
+}
+
+# Dapagliflozin
+# no ICE potential outcome
+g.MI.dapa <- mean(m.dapa)
+g.MI.dapa
+# -1.205024
+
+# SE - Using Raghu's formula
+g.MI.dapa.se <- 
+  sqrt((1+1/imputed.merged.post.ICE$m)*var(m.dapa)-
+         mean(m.dapa.var)) 
+g.MI.dapa.se
+# 0.04572116
+
+# Glimeperide
+# no ICE potential outcome
+g.MI.glim <- 
+  mean(m.glim)
+g.MI.glim
+# -1.062125
+
+# SE - Using Raghu's formula
+g.MI.glim.se <- 
+  sqrt((1+1/imputed.merged.post.ICE$m)*var(m.glim)-
+         mean(m.glim.var))
+g.MI.glim.se
+# 0.05328355
+
+# Treatment effect
+g.MI.effect <- 
+  mean(m.effect)
+g.MI.effect
+# -0.1428994
+
+# SE - Using Raghu's formula
+g.MI.effect.se <- 
+  sqrt((1+1/imputed.merged.post.ICE$m)*var(m.effect)-
+         mean(m.effect.var))
+g.MI.effect.se
+# 0.06367966
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[13] <- 
+  paste0(format(g.MI.dapa,
+                digits = 4, nsmall = 3), " (",
+         format(g.MI.dapa.se, 
+                digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[13] <- 
+  paste0(format(g.MI.glim,
+                digits = 4, nsmall = 3), " (",
+         format(g.MI.glim.se, 
+                digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[13] <- 
+  paste0(format(g.MI.effect,
+                digits = 3, nsmall = 3), " (",
+         format(g.MI.effect.se, 
+                digits = 3, nsmall = 3), ")")
+
+# Computational time
+treatment.effect$Time[13] <- 
+  round(imputation.time + as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[13]
+# 1.25
+
+```
+
+## G-estimation
+
+```{r G-estimation function, include=FALSE}
+
+# G-estimation
+
+# Following Wen Wei's paper
+# Skipping the IPW step
+# MI boot
+# In each m completed dataset bootstrap
+
+# G-estimation function
+g.est.function <- 
+  function(m.data,
+           indicator){
+    g.imputed <- m.data[indicator,] 
+    
+    # Step 1: Set Y at T_10 as R_t
+    R.t <- g.imputed$Y10
+    
+    # Step 2: Regress R_t on past info
+    i <- 1
+    for (i in 1:9) {
+      data <- g.imputed |>
+        # Only treatment, baseline characteristics
+        # And repeated HbA1c measurements
+        # ICE indicator as treatment
+        dplyr::select(ARMCD, 
+                      "HBA1C0",
+                      paste0("ICE",1:(10-i)),
+                      paste0("Y",1:(10-i))) |>
+        as.data.frame()
+      
+      # note that we here use ICE indicators which are defined as E's in the paper,
+      # whereas our description of G-estimation there refers to M's. However,
+      # due to the relation between the M's and E's, it makes no difference to
+      # the estimator whether E's or M's are used
+      
+      g.est.model <- 
+        lm(R.t ~ .,
+           data = data)
+      
+      mediator <- 
+        as.data.frame(data[,paste0("ICE",10-i)])
+      # in some bootstrap samples sometimes the coefficient required is not estimable
+      # in these cases we set the coefficient to zero, and so R.t is no longer removing
+      # the effect of the corresponding ICE variable
+      psi <- ifelse(!is.na(coef(g.est.model)[paste0("ICE",10-i)]),
+                    coef(g.est.model)[paste0("ICE",10-i)],0)
+      
+      R.t <- as.vector(R.t - 
+                         psi*mediator)[[1]]
+      
+    }
+    
+    g.model <- 
+      lm(R.t ~ data$ARMCD + data$HBA1C0)
+    g.model
+    
+    return(c(coef(g.model)["(Intercept)"]+
+               coef(g.model)["data$ARMCDB"],
+             coef(g.model)["(Intercept)"],
+             coef(g.model)["data$ARMCDB"]))
+    
+  }
+
+```
+
+```{r G-estimation, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+
+# Using last seed after common imputation step
+# to continue analysis
+.Random.seed <-
+  imputed.merged.post.ICE$lastSeedValue
+
+# Computing potential outcomes and
+# treatment effect in each
+# imputed dataset
+dapa <- rep(NA,imputed.merged.post.ICE$m)
+dapa.var <- rep(NA,imputed.merged.post.ICE$m)
+glim <- rep(NA,imputed.merged.post.ICE$m)
+glim.var <- rep(NA,imputed.merged.post.ICE$m)
+effect <- rep(NA,imputed.merged.post.ICE$m)
+effect.var <- rep(NA,imputed.merged.post.ICE$m)
+
+j <- 1
+for (j in 1:imputed.merged.post.ICE$m) {
+  m.data <- imputed.merged.post.ICE |>
+    complete(j) # |>
+  # # Include longitudinal ICE indicator
+  # cbind(original.data[,paste0("ICE",1:10)])
+  
+  g.est.boot <-
+    boot(m.data,
+         g.est.function,
+         R = 100) 
+         #R = 5)
+  
+  dapa[j] <- 
+    g.est.boot$t0[1]
+  
+  dapa.var[j] <-
+    var(g.est.boot$t[,1])
+  
+  glim[j] <- 
+    g.est.boot$t0[2]
+  
+  glim.var[j] <-
+    var(g.est.boot$t[,2])
+  
+  effect[j] <- 
+    g.est.boot$t0[3]
+  
+  effect.var[j] <-
+    var(g.est.boot$t[,3])
+
+}
+
+# Dapa + Saxa
+g.est.dapa <- 
+  pool.scalar(dapa,
+              dapa.var)
+g.est.dapa$qbar
+# -1.212228
+sqrt(g.est.dapa$t)
+# 0.04396228
+
+# Glimeperide
+g.est.glim <-
+  pool.scalar(glim,
+              glim.var)
+g.est.glim$qbar
+# -1.064899
+sqrt(g.est.glim$t)
+# 0.05312505
+
+# Treatment effect
+g.est.effect <-
+  pool.scalar(effect,
+              effect.var)
+g.est.effect$qbar
+# -0.1473283
+sqrt(g.est.effect$t)
+# 0.06389118
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[16] <- 
+  paste0(format(g.est.dapa$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(g.est.dapa$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[16] <- 
+  paste0(format(g.est.glim$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(g.est.glim$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[16] <- 
+  paste0(format(g.est.effect$qbar,
+                digits = 3, nsmall = 3), " (",
+         format(sqrt(g.est.effect$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Computational time
+treatment.effect$Time[16] <- 
+  round(imputation.time + as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[16]
+# 14.888
+
+
+```
+
+## Including other covariates
+
+### G-formula
+
+```{r G-formula function + cov, include=FALSE}
+
+g.function <-
+  function(data,
+           indices){
+    # Data for g-formula function
+    g.data <- data[indices,] |>
+      # Include indicator for weeks since ICE started
+      cbind(week.ICE) |>
+      # Baseline values
+      # Time variable should start in 0
+      # to use g-formula package
+      mutate(ICE0 = 0,
+             week.ICE0 = 0,
+             Y0 = 0) |>
+      # Long format
+      reshape(varying = c(paste0("ICE",0:10),
+                          paste0("week.ICE",0:10),
+                          paste0("GLUC",0:10),
+                          paste0("GFR",0:10),
+                          paste0("Y",0:10)),
+              direction = "long",
+              sep="") |>
+      mutate(
+        # Treatment as numeric for package
+        ARMCD = ifelse(ARMCD=="B",1,0))
+    
+    # Order data by id and time
+    g.data <- g.data[order(g.data$id, g.data$time),]
+    # Create a new column with Y10 at time 9
+    # i.e. final outcome
+    g.data$Y10 <- NA
+    
+    for (i in 1:nrow(g.data)) {
+      if(g.data$time[i] == max(g.data$time) - 1){
+        g.data$Y10[i] <- g.data$Y[i+1]
+      }
+      
+    }
+    
+    # Remove final time point i.e. time 10
+    g.data <- g.data[g.data$time!=max(g.data$time),]
+    
+    # Parameters for g-formula function
+    obs_data <- as.data.table(g.data)
+    id <- "id"
+    time_name <- "time"
+    time_points <- length(unique(g.data$time))
+    covnames <- c("Y", "GLUC", "GFR", 
+                  "ARMCD", "ICE", "week.ICE")
+    outcome_name <- "Y10"
+    covtypes <- c(rep("normal",3),
+                  rep("binary",2),
+                  "normal")
+    histories <- c(lagged,lagavg)
+    histvars <- list(c("Y", "GLUC", "GFR"),
+                     c("Y", "GLUC", "GFR"))
+    basecovs <- 
+      c("AGE.cont", 
+        "SEX", 
+        "BMI", 
+        "SYSBPBL", 
+        "WSTCIRBL", 
+        "HIPCIRBL", 
+        "FDIASDIY",
+        "HBA1C0",
+        "CPEPBL")
+    covparams <- 
+      list(covmodels = c(Y ~ 
+                           # Treatments
+                           ARMCD + 
+                           ICE +
+                           week.ICE +
+                           # Baseline
+                           AGE.cont + 
+                           SEX + 
+                           BMI + 
+                           SYSBPBL + 
+                           WSTCIRBL +
+                           HIPCIRBL + 
+                           FDIASDIY + 
+                           HBA1C0 +
+                           CPEPBL +
+                           # Previous values of HbA1c
+                           lag1_Y + 
+                           lag_cumavg1_Y +
+                           # Previous values of FPG
+                           lag1_GLUC + 
+                           lag_cumavg1_GLUC +
+                           # Previous values of GFR
+                           lag1_GFR + 
+                           lag_cumavg1_GFR,
+                         GLUC ~ 
+                           # Treatments
+                           ARMCD + 
+                           ICE +
+                           week.ICE +
+                           # Baseline
+                           AGE.cont + 
+                           SEX + 
+                           BMI + 
+                           SYSBPBL + 
+                           WSTCIRBL +
+                           HIPCIRBL + 
+                           FDIASDIY + 
+                           HBA1C0 +
+                           CPEPBL +
+                           # Previous values of HbA1c
+                           Y + 
+                           lag_cumavg1_Y +
+                           # Previous values of FPG
+                           lag1_GLUC + 
+                           lag_cumavg1_GLUC +
+                           # Previous values of GFR
+                           lag1_GFR + 
+                           lag_cumavg1_GFR,
+                         GFR ~ 
+                           # Treatments
+                           ARMCD + 
+                           ICE +
+                           week.ICE +
+                           # Baseline
+                           AGE.cont + 
+                           SEX + 
+                           BMI + 
+                           SYSBPBL + 
+                           WSTCIRBL +
+                           HIPCIRBL + 
+                           FDIASDIY + 
+                           HBA1C0 +
+                           CPEPBL +
+                           # Previous values of HbA1c
+                           Y + 
+                           lag_cumavg1_Y +
+                           # Previous values of FPG
+                           GLUC + 
+                           lag_cumavg1_GLUC +
+                           # Previous values of GFR
+                           lag1_GFR + 
+                           lag_cumavg1_GFR,
+                         ARMCD ~ 1,
+                         ICE ~ 1,
+                         week.ICE ~ 1)) 
+    ymodel <- Y10 ~ 
+      # Treatments
+      ARMCD + 
+      ICE +
+      week.ICE +
+      # Baseline
+      AGE.cont + 
+      SEX + 
+      BMI + 
+      SYSBPBL + 
+      WSTCIRBL +
+      HIPCIRBL + 
+      FDIASDIY + 
+      HBA1C0 +
+      CPEPBL +
+      # Previous values of HbA1c
+      Y + 
+      lag_cumavg1_Y +
+      # Previous values of FPG
+      GLUC + 
+      lag_cumavg1_GLUC +
+      # Previous values of GFR
+      GFR + 
+      lag_cumavg1_GFR
+    intvars <- 
+      list(c('ARMCD', 'ICE', "week.ICE"),
+           c('ARMCD', 'ICE', "week.ICE"))
+    interventions <- 
+      list(list(c(static, rep(1, time_points)),
+                c(static, rep(0, time_points)),
+                c(static, rep(0, time_points))),
+           list(c(static, rep(0, time_points)),
+                c(static, rep(0, time_points)),
+                c(static, rep(0, time_points))))
+    int_descript <- c('Hypothetical treatment', 
+                      'Hypothetical control')
+    
+    g.model <- 
+      gformula_continuous_eof(obs_data = obs_data,
+                              id = id,
+                              time_name = time_name,
+                              covnames = covnames,
+                              outcome_name = outcome_name,
+                              covtypes = covtypes,
+                              covparams = covparams, 
+                              ymodel = ymodel,
+                              intvars = intvars,
+                              interventions = interventions,
+                              int_descript = int_descript,
+                              ref_int = 2,
+                              histvars = histvars,
+                              histories = histories,
+                              basecovs = basecovs,
+                              show_progress = F,
+                              sim_data_b = TRUE,
+                              seed = 1234)
+    
+    # NB:  If sim_data_b = T, nsamples must be 0
+    # i.e. either saving simulated dataset under regime of interest
+    # or doing bootstrap for SE
+    
+    # Simulated dataset under
+    # regime of interest
+    g.sim.data <-
+      rbind(g.model$sim_data$`Hypothetical treatment`,
+            g.model$sim_data$`Hypothetical control`)
+    
+    g.model.final <-
+      lm(Ey ~ 0 + as.factor(ARMCD) + HBA1C0,
+         data = g.sim.data[g.sim.data$time==9])
+    
+    output <- c(
+      # Dapa + Saxa
+      coef(g.model.final)[2],
+      # Glimeperide
+      coef(g.model.final)[1],
+      # Treatment effect
+      coef(g.model.final)[2]- coef(g.model.final)[1])
+    
+    names(output) <- c("Dapa", "Glim", "Effect")
+    
+    return(output)
+  }
+
+```
+
+```{r G-formula + covariates no imputation, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+
+# Using last seed after common imputation step
+# to continue analysis
+.Random.seed <-
+  imputed.merged.post.ICE$lastSeedValue
+
+g.function(merged.post.ICE)
+# Dapa       Glim     Effect 
+# -1.4331436 -1.2463950 -0.1867487
+
+g.bootstrap <-
+  boot(merged.post.ICE,
+       g.function,
+       # R = 10000)
+       R = 100)
+       # R = 5)
+g.bootstrap
+# R=100
+#       original       bias    std. error
+# t1* -1.4331436 -0.006842051  0.04617718
+# t2* -1.2463950 -0.001254330  0.05278848
+# t3* -0.1867487 -0.005587721  0.07128094
+
+# R=10000
+# original       bias    std. error
+# t1* -1.4331436 -0.005961281  0.04334662
+# t2* -1.2463950 -0.001310201  0.04653185
+# t3* -0.1867487 -0.004651080  0.06271103
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[11] <- 
+  paste0(format(g.bootstrap$t0["Dapa"],
+                digits = 4, nsmall = 3), " (",
+         format(sd(g.bootstrap$t[,1]), 
+                digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[11] <- 
+  paste0(format(g.bootstrap$t0["Glim"],
+                digits = 4, nsmall = 3), " (",
+         format(sd(g.bootstrap$t[,2]), 
+                digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[11] <- 
+  paste0(format(g.bootstrap$t0["Effect"],
+                digits = 4, nsmall = 3), " (",
+         format(sd(g.bootstrap$t[,3]), 
+                digits = 3, nsmall = 3), ")")
+
+# Computational time
+treatment.effect$Time[11] <- 
+  round(as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[11]
+# 15.056 # R=100
+
+```
+
+### Multiple imputation
+
+```{r Common first step: Imputation post-ICE + covariates, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+# Creating 100 imputed datasets to use
+# in the alternate methods
+imputed.merged.post.ICE <-
+  merged.post.ICE |>
+  dplyr::select(ARMCD, 
+                all_of(baseline),
+                paste0("ICE",1:10),
+                paste0("GLUC",1:10),
+                paste0("GFR",1:10),
+                paste0("Y",1:10)) |>
+      mice(m = 100,
+           # m = 5,
+           defaultMethod = 
+             c("norm",
+               "logreg", 
+               "polyreg",
+               "polr"),
+           printFlag = F,
+           seed = 2022) 
+
+imputation.time <-
+  round(as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+```
+
+
+
+### G-formula via MI
+
+```{r G-formula via MI + covariates, include=FALSE, warning=FALSE}
+
+# Timing process
+start <- Sys.time()
+
+# Step 1: Impute actual missing values
+# Already performed
+
+# Using last seed after common imputation step
+# to continue analysis
+.Random.seed <-
+  imputed.merged.post.ICE$lastSeedValue
+
+# Step 2: Impute potential outcomes
+m.dapa <- rep(NA,imputed.merged.post.ICE$m)
+m.dapa.var <- rep(NA,imputed.merged.post.ICE$m)
+m.glim <- rep(NA,imputed.merged.post.ICE$m)
+m.glim.var <- rep(NA,imputed.merged.post.ICE$m)
+m.effect <- rep(NA,imputed.merged.post.ICE$m)
+m.effect.var <- rep(NA,imputed.merged.post.ICE$m)
+
+for (i in 1:imputed.merged.post.ICE$m) {
+  imputed.dataset <-
+    complete(imputed.merged.post.ICE, i)
+  
+  # G-formula via MI
+  imputed.data <-
+    rbind(imputed.dataset,
+          imputed.dataset,
+          imputed.dataset)
+  
+  # Assign treatment to first dataset
+  imputed.data[1:nrow(imputed.dataset),
+               "ARMCD"] <- "B"
+  
+  # Assign control to second dataset
+  imputed.data[(nrow(imputed.dataset)+1):
+                 (2*nrow(imputed.dataset)),
+               "ARMCD"] <- "C"
+  
+  # Set ICE indicators to 0 both first and second datasets
+  # i.e. no ICE potential outcome
+  imputed.data[1:(2*nrow(imputed.dataset)),
+               paste0("ICE",1:10)] <- 0
+  # Delete values of FPG, GFR and Y
+  imputed.data[1:(2*nrow(imputed.dataset)),
+               c(paste0("GLUC",1:10),
+                 paste0("GFR",1:10),
+                 paste0("Y",1:10))] <- NA
+  
+  # Include indicator R to differentiate between
+  # augmented (R=0) and observed row (R=1)
+  imputed.data$R <-
+    c(rep(0,2*nrow(imputed.dataset)),
+      rep(1,nrow(imputed.dataset)))
+  
+  # Reorder columns in visits
+  imputed.data <-
+    imputed.data[,c("R","ARMCD", baseline,
+                    rbind(paste0("Y",1:10),
+                          paste0("GLUC",1:10),
+                          paste0("GFR",1:10),
+                          paste0("ICE",1:10)))]
+  
+  # Set predictor matrix to impute Y_k using 
+  # baseline and ICE up to and including visit k-1
+  # because Y_k column comes before ICE_k
+  predictor.matrix <-
+    1*lower.tri(make.predictorMatrix(imputed.data))
+  
+  # Step 2: impute potential outcomes under no ICE
+  full.imputed.data <-
+    mice(data = imputed.data,
+         m = 1,
+         defaultMethod = 
+           c("norm", 
+             "logreg", 
+             "polyreg",
+             "polr"),
+         printFlag = F,
+         maxit = 1,
+         predictorMatrix = predictor.matrix)
+  
+  # Updating seed after mice defaults to reset
+  .Random.seed <-
+    full.imputed.data$lastSeedValue
+  
+  # Dataset with imputed potential outcomes
+  full.imputed.dataset <-
+    complete(full.imputed.data)
+  
+  # Only 2/3 used for analysis
+  analysis.dataset <- 
+    full.imputed.dataset[1:(2*nrow(imputed.dataset)),]
+  
+  # Model
+  Y.model <-
+    lm(Y10 ~ as.factor(ARMCD) + 
+         HBA1C0, data = analysis.dataset)
+  
+  dapa.MI.test <- 
+    matrix(0, nrow = 1,
+           ncol = length(coef(Y.model)))
+  colnames(dapa.MI.test) <- 
+    names(coef(Y.model))
+  
+  dapa.MI.test[,"(Intercept)"] <- 1
+  dapa.MI.test[,"as.factor(ARMCD)B"] <- 1
+  
+  # Mean outcome under dapa+saxa
+  m.dapa[i] <- 
+    confint(glht(Y.model, 
+                 dapa.MI.test))$
+    confint[,"Estimate"]
+  m.dapa.var[i] <- 
+    dapa.MI.test%*%
+    vcov(Y.model)%*%
+    t(dapa.MI.test)
+  
+  # Mean outcome under glimeperide
+  glim.MI.test <- 
+    matrix(0, nrow = 1,
+           ncol = length(coef(Y.model)))
+  colnames(glim.MI.test) <- 
+    names(coef(Y.model))
+  
+  glim.MI.test[,"(Intercept)"] <- 1
+  
+  m.glim[i] <- 
+    confint(glht(Y.model, 
+                 glim.MI.test))$
+    confint[,"Estimate"]
+  
+  m.glim.var[i] <- 
+    glim.MI.test%*%
+    vcov(Y.model)%*%
+    t(glim.MI.test)
+  
+  # Mean treatement effect
+  effect.MI.test <- 
+    matrix(0, nrow = 1,
+           ncol = length(coef(Y.model)))
+  colnames(effect.MI.test) <- 
+    names(coef(Y.model))
+  
+  effect.MI.test[,"as.factor(ARMCD)B"] <- 1
+  
+  m.effect[i] <-
+    confint(glht(Y.model, 
+                 effect.MI.test))$
+    confint[,"Estimate"]
+  m.effect.var[i] <-
+    effect.MI.test%*%
+    vcov(Y.model)%*%
+    t(effect.MI.test)
+  
+}
+
+# Dapagliflozin
+# no ICE potential outcome
+g.MI.cov.dapa <- mean(m.dapa)
+g.MI.cov.dapa
+# -1.238195
+
+# SE - Using Raghu's formula
+g.MI.cov.dapa.se <- 
+  sqrt((1+1/imputed.merged.post.ICE$m)*var(m.dapa)-
+         mean(m.dapa.var))
+g.MI.cov.dapa.se
+# 0.05006561
+
+# Glimeperide
+# no ICE potential outcome
+g.MI.cov.glim <- 
+  mean(m.glim)
+g.MI.cov.glim
+# -1.082925
+
+# SE - Using Raghu's formula
+g.MI.cov.glim.se <- 
+  sqrt((1+1/imputed.merged.post.ICE$m)*var(m.glim)-
+         mean(m.glim.var))
+g.MI.cov.glim.se
+# 0.04486741
+
+# Treatment effect
+g.MI.cov.effect <- 
+  mean(m.effect)
+g.MI.cov.effect
+# -0.1552699
+
+# SE - Using Raghu's formula
+g.MI.cov.effect.se <- 
+  sqrt((1+1/imputed.merged.post.ICE$m)*var(m.effect)-
+         mean(m.effect.var))
+g.MI.cov.effect.se
+# 0.06904993
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[14] <- 
+  paste0(format(g.MI.cov.dapa,
+                digits = 4, nsmall = 3), " (",
+         format(g.MI.cov.dapa.se, 
+                digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[14] <- 
+  paste0(format(g.MI.cov.glim,
+                digits = 4, nsmall = 3), " (",
+         format(g.MI.cov.glim.se, 
+                digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[14] <- 
+  paste0(format(g.MI.cov.effect,
+                digits = 3, nsmall = 3), " (",
+         format(g.MI.cov.effect.se, 
+                digits = 3, nsmall = 3), ")")
+
+# Computational time
+treatment.effect$Time[14] <- 
+  round(imputation.time + as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[14]
+# 5.83
+
+```
+
+### G-estimation
+
+```{r G-estimation + cov function, include=FALSE}
+
+# G-estimation
+
+# Following Wen Wei's paper
+# Skipping the IPW step
+# MI boot
+# In each m completed dataset bootstrap
+
+# G-estimation function
+g.est.function <- 
+  function(m.data,
+           indicator){
+    g.imputed <- m.data[indicator,] 
+    
+    # Step 1: Set Y at T_10 as R_t
+    R.t <- g.imputed$Y10
+    
+    # Step 2: Regress R_t on past info
+    i <- 1
+    for (i in 1:9) {
+      data <- g.imputed |>
+        # Treatment, baseline characteristics
+        # Repeated HbA1c, FPG and GFR measurements
+        # And longidtudinal ICE indicator 
+        dplyr::select(ARMCD,
+                      all_of(baseline),
+                      paste0("ICE",1:(10-i)),
+                      paste0("GLUC",1:(10-i)),
+                      paste0("GFR",1:(10-i)),
+                      paste0("Y",1:(10-i))) |>
+        as.data.frame()
+      
+      g.est.model <- 
+        lm(R.t ~ .,
+           data = data)
+
+      mediator <- 
+        as.data.frame(data[,paste0("ICE",10-i)])
+      psi <- ifelse(!is.na(
+        coef(g.est.model)[paste0("ICE",10-i)]),
+        coef(g.est.model)[paste0("ICE",10-i)], 0)
+      
+      R.t <- as.vector(R.t - 
+                         psi*mediator)[[1]]
+      
+    }
+    
+    g.model <- 
+      lm(R.t ~ data$ARMCD + data$HBA1C0)
+    g.model
+    
+    return(c(coef(g.model)["(Intercept)"]+
+               coef(g.model)["data$ARMCDB"],
+             coef(g.model)["(Intercept)"],
+             coef(g.model)["data$ARMCDB"]))
+    
+  }
+
+```
+
+```{r G-estimation + cov, include=FALSE, warning=FALSE}
+
+# G-estimation
+
+# Following Wen Wei's paper
+# Skipping the IPW step
+# MI boot
+# In each m completed dataset bootstrap
+
+# Timing process
+start <- Sys.time()
+
+# Using last seed after common imputation step
+# to continue analysis
+.Random.seed <-
+  imputed.merged.post.ICE$lastSeedValue
+
+# Computing potential outcomes and
+# treatment effect in each
+# imputed dataset
+dapa <- rep(NA,imputed.merged.post.ICE$m)
+dapa.var <- rep(NA,imputed.merged.post.ICE$m)
+glim <- rep(NA,imputed.merged.post.ICE$m)
+glim.var <- rep(NA,imputed.merged.post.ICE$m)
+effect <- rep(NA,imputed.merged.post.ICE$m)
+effect.var <- rep(NA,imputed.merged.post.ICE$m)
+
+j <- 1
+for (j in 1:imputed.merged.post.ICE$m) {
+  m.data <- imputed.merged.post.ICE |>
+    complete(j)
+  
+  g.est.boot <-
+    boot(m.data,
+         g.est.function,
+         R = 100)
+         #R = 5)
+  
+  dapa[j] <- 
+    g.est.boot$t0[1]
+  
+  dapa.var[j] <-
+    var(g.est.boot$t[,1])
+  
+  glim[j] <- 
+    g.est.boot$t0[2]
+  
+  glim.var[j] <-
+    var(g.est.boot$t[,2])
+  
+  effect[j] <- 
+    g.est.boot$t0[3]
+  
+  effect.var[j] <-
+    var(g.est.boot$t[,3])
+
+}
+
+# Dapa + Saxa
+g.est.cov.dapa <- 
+  pool.scalar(dapa,
+              dapa.var)
+g.est.cov.dapa$qbar
+# -1.205947
+sqrt(g.est.cov.dapa$t)
+# 0.04446828
+
+# Glimeperide
+g.est.cov.glim <-
+  pool.scalar(glim,
+              glim.var)
+g.est.cov.glim$qbar
+# -1.052842
+sqrt(g.est.cov.glim$t)
+# 0.05316992
+
+# Treatment effect
+g.est.cov.effect <-
+  pool.scalar(effect,
+              effect.var)
+g.est.cov.effect$qbar
+# -0.1531056
+sqrt(g.est.cov.effect$t)
+# 0.06582992
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[17] <- 
+  paste0(format(g.est.cov.dapa$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(g.est.cov.dapa$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[17] <- 
+  paste0(format(g.est.cov.glim$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(g.est.cov.glim$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[17] <- 
+  paste0(format(g.est.cov.effect$qbar,
+                digits = 3, nsmall = 3), " (",
+         format(sqrt(g.est.cov.effect$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Computational time
+treatment.effect$Time[17] <- 
+  round(imputation.time + as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[17]
+# 24.995
+
+```
+
+## Separate ICE mechanisms
+
+### G-formula
+
+```{r G-formula function separate ICE, include=FALSE}
+
+g.function <-
+  function(data,
+           indices){
+    # Data for g-formula function
+    g.data <- data[indices,] |>
+      # Include indicator for weeks since ICE started
+      cbind(week.ICE) |>
+      # Baseline values
+      # Time variable should start in 0
+      # to use g-formula package
+      mutate(ICE.cat0 = 0,
+             week.ICE0 = 0,
+             Y0 = 0) |>
+      # Long format
+      reshape(varying = c(paste0("ICE.cat",0:10),
+                          paste0("week.ICE",0:10),
+                          paste0("GLUC",0:10),
+                          paste0("GFR",0:10),
+                          paste0("Y",0:10)),
+              direction = "long",
+              sep="") |>
+      mutate(
+        # Treatment as numeric for package
+        ARMCD = ifelse(ARMCD=="B",1,0))
+    
+    # Order data by id and time
+    g.data <- g.data[order(g.data$id, g.data$time),]
+    # Create a new column with Y10 at time 9
+    # i.e. final outcome
+    g.data$Y10 <- NA
+    
+    for (i in 1:nrow(g.data)) {
+      if(g.data$time[i] == max(g.data$time) - 1){
+        g.data$Y10[i] <- g.data$Y[i+1]
+      }
+      
+    }
+    
+    # Remove final time point i.e. time 10
+    g.data <- g.data[g.data$time!=max(g.data$time),]
+    
+    # Parameters for g-formula function
+    obs_data <- as.data.table(g.data)
+    id <- "id"
+    time_name <- "time"
+    time_points <- length(unique(g.data$time))
+    covnames <- c("Y", "GLUC", "GFR", 
+                  "ARMCD", "ICE.cat", "week.ICE")
+    outcome_name <- "Y10"
+    covtypes <- c(rep("normal",3),
+                  "binary", "categorical",
+                  "normal")
+    histories <- c(lagged,lagavg)
+    histvars <- list(c("Y", "GLUC", "GFR"),
+                     c("Y", "GLUC", "GFR"))
+    basecovs <- 
+      c("AGE.cont", 
+        "SEX", 
+        "BMI", 
+        "SYSBPBL", 
+        "WSTCIRBL", 
+        "HIPCIRBL", 
+        "FDIASDIY",
+        "HBA1C0",
+        "CPEPBL")
+    covparams <- 
+      list(covmodels = c(Y ~ 
+                           # Treatments
+                           ARMCD + 
+                           ICE.cat +
+                           week.ICE +
+                           # Baseline
+                           AGE.cont + 
+                           SEX + 
+                           BMI + 
+                           SYSBPBL + 
+                           WSTCIRBL +
+                           HIPCIRBL + 
+                           FDIASDIY + 
+                           HBA1C0 +
+                           CPEPBL +
+                           # Previous values of HbA1c
+                           lag1_Y + 
+                           lag_cumavg1_Y +
+                           # Previous values of FPG
+                           lag1_GLUC + 
+                           lag_cumavg1_GLUC +
+                           # Previous values of GFR
+                           lag1_GFR + 
+                           lag_cumavg1_GFR,
+                         GLUC ~ 
+                           # Treatments
+                           ARMCD + 
+                           ICE.cat +
+                           week.ICE +
+                           # Baseline
+                           AGE.cont + 
+                           SEX + 
+                           BMI + 
+                           SYSBPBL + 
+                           WSTCIRBL +
+                           HIPCIRBL + 
+                           FDIASDIY + 
+                           HBA1C0 +
+                           CPEPBL +
+                           # Previous values of HbA1c
+                           Y + 
+                           lag_cumavg1_Y +
+                           # Previous values of FPG
+                           lag1_GLUC + 
+                           lag_cumavg1_GLUC +
+                           # Previous values of GFR
+                           lag1_GFR + 
+                           lag_cumavg1_GFR,
+                         GFR ~ 
+                           # Treatments
+                           ARMCD + 
+                           ICE.cat +
+                           week.ICE +
+                           # Baseline
+                           AGE.cont + 
+                           SEX + 
+                           BMI + 
+                           SYSBPBL + 
+                           WSTCIRBL +
+                           HIPCIRBL + 
+                           FDIASDIY + 
+                           HBA1C0 +
+                           CPEPBL +
+                           # Previous values of HbA1c
+                           Y + 
+                           lag_cumavg1_Y +
+                           # Previous values of FPG
+                           GLUC + 
+                           lag_cumavg1_GLUC +
+                           # Previous values of GFR
+                           lag1_GFR + 
+                           lag_cumavg1_GFR,
+                         ARMCD ~ 1,
+                         ICE.cat ~ 1,
+                         week.ICE ~ 1)) 
+    ymodel <- Y10 ~ 
+      # Treatments
+      ARMCD + 
+      ICE.cat +
+      week.ICE +
+      # Baseline
+      AGE.cont + 
+      SEX + 
+      BMI + 
+      SYSBPBL + 
+      WSTCIRBL +
+      HIPCIRBL + 
+      FDIASDIY + 
+      HBA1C0 +
+      CPEPBL +
+      # Previous values of HbA1c
+      Y + 
+      lag_cumavg1_Y +
+      # Previous values of FPG
+      GLUC + 
+      lag_cumavg1_GLUC +
+      # Previous values of GFR
+      GFR + 
+      lag_cumavg1_GFR
+    intvars <- 
+      list(c('ARMCD', 'ICE.cat', "week.ICE"),
+           c('ARMCD', 'ICE.cat', "week.ICE"))
+    interventions <- 
+      list(list(c(static, rep(1, time_points)),
+                c(static, rep(0, time_points)),
+                c(static, rep(0, time_points))),
+           list(c(static, rep(0, time_points)),
+                c(static, rep(0, time_points)),
+                c(static, rep(0, time_points))))
+    int_descript <- c('Hypothetical treatment', 
+                      'Hypothetical control')
+    
+    g.model <- 
+      gformula_continuous_eof(obs_data = obs_data,
+                              id = id,
+                              time_name = time_name,
+                              covnames = covnames,
+                              outcome_name = outcome_name,
+                              covtypes = covtypes,
+                              covparams = covparams, 
+                              ymodel = ymodel,
+                              intvars = intvars,
+                              interventions = interventions,
+                              int_descript = int_descript,
+                              ref_int = 2,
+                              histvars = histvars,
+                              histories = histories,
+                              basecovs = basecovs,
+                              show_progress = F,
+                              sim_data_b = TRUE,
+                              seed = 1234)
+    
+    # NB:  If sim_data_b = T, nsamples must be 0
+    # i.e. either saving simulated dataset under regime of interest
+    # or doing bootstrap for SE
+    
+    # Simulated dataset under
+    # regime of interest
+    g.sim.data <-
+      rbind(g.model$sim_data$`Hypothetical treatment`,
+            g.model$sim_data$`Hypothetical control`)
+    
+    g.model.final <-
+      lm(Ey ~ 0 + as.factor(ARMCD) + HBA1C0,
+         data = g.sim.data[g.sim.data$time==9])
+    
+    output <- c(
+      # Dapa + Saxa
+      coef(g.model.final)[2],
+      # Glimeperide
+      coef(g.model.final)[1],
+      # Treatment effect
+      coef(g.model.final)[2]- coef(g.model.final)[1])
+    
+    names(output) <- c("Dapa", "Glim", "Effect")
+    
+    return(output)
+  }
+
+```
+
+```{r G-formula separate ICE, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+
+# Using last seed after common imputation step
+# to continue analysis
+.Random.seed <-
+  imputed.merged.post.ICE$lastSeedValue
+
+g.function(merged.post.ICE)
+#       Dapa       Glim     Effect 
+# -1.4200318 -1.2310305 -0.1890013
+
+g.bootstrap <-
+  boot(merged.post.ICE,
+       g.function,
+       # R = 10000)
+       R = 100)
+# R = 5)
+g.bootstrap
+# R = 100
+# original       bias    std. error
+# t1* -1.4200318 -0.007005437  0.04362232
+# t2* -1.2310305 -0.002088961  0.05580809
+# t3* -0.1890013 -0.004916476  0.07173915
+
+# R = 10000
+# original       bias    std. error
+# t1* -1.4200318 -0.008018227  0.04455512
+# t2* -1.2310305 -0.004520250  0.04773904
+# t3* -0.1890013 -0.003497977  0.06294632
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[12] <- 
+  paste0(format(g.bootstrap$t0["Dapa"],
+                digits = 4, nsmall = 3), " (",
+         format(sd(g.bootstrap$t[,1]), 
+                digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[12] <- 
+  paste0(format(g.bootstrap$t0["Glim"],
+                digits = 4, nsmall = 3), " (",
+         format(sd(g.bootstrap$t[,2]), 
+                digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[12] <- 
+  paste0(format(g.bootstrap$t0["Effect"],
+                digits = 4, nsmall = 3), " (",
+         format(sd(g.bootstrap$t[,3]), 
+                digits = 3, nsmall = 3), ")")
+
+# Computational time
+treatment.effect$Time[12] <- 
+  round(as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[12]
+# 15.606 # R=100
+
+```
+
+### Multiple imputation (fails)
+
+```{r Common first step: Imputation post-ICE + covariates + sep ICE, include=FALSE}
+
+# Timing process
+start <- Sys.time()
+# Creating 100 imputed datasets to use
+# in the alternate methods
+miInput <- merged.post.ICE |>
+  dplyr::select(ARMCD, 
+                all_of(baseline),
+                paste0("ICE.cat",1:10),
+                paste0("GLUC",1:10),
+                paste0("GFR",1:10),
+                paste0("Y",1:10))
+# the two patients who had both ICE first discontinued, and then were rescued
+# due to small numbers with both ICE, we assign them to the discontinuation ICE
+columns_to_convert <- grep("ICE.cat", names(miInput))
+miInput[columns_to_convert][miInput[columns_to_convert]==3] <- 2
+
+# convert ICE_cat variables to factors
+miInput[columns_to_convert] <- lapply(miInput[columns_to_convert], as.factor)
+
+imputed.merged.post.ICE.sepICE <-
+      mice(data=miInput, m = 100,
+           # m = 5,
+           defaultMethod = 
+             c("norm",
+               "logreg", 
+               "polyreg",
+               "polr"),
+           printFlag = F,
+           seed = 2022) 
+# this fails due to singularity error due to sparsity issues
+
+```
+
+
+### G-formula via MI
+
+```{r G-formula via MI + separate ICE, include=FALSE, warning=FALSE}
+
+# Since MI accounting for separate mechanisms fails, we use here imputations
+# which did not account for separate mechanisms, but solely to illustrate
+# implementation of G-formula via MI accounting for separate mechanisms.
+
+# Timing process
+start <- Sys.time()
+
+# Step 1: Impute actual missing values
+# Already performed
+
+# Using last seed after common imputation step
+# to continue analysis
+.Random.seed <-
+  imputed.merged.post.ICE$lastSeedValue
+
+# Step 2: Impute potential outcomes
+m.dapa <- rep(NA,imputed.merged.post.ICE$m)
+m.dapa.var <- rep(NA,imputed.merged.post.ICE$m)
+m.glim <- rep(NA,imputed.merged.post.ICE$m)
+m.glim.var <- rep(NA,imputed.merged.post.ICE$m)
+m.effect <- rep(NA,imputed.merged.post.ICE$m)
+m.effect.var <- rep(NA,imputed.merged.post.ICE$m)
+
+for (i in 1:imputed.merged.post.ICE$m) {
+  imputed.dataset <-
+    complete(imputed.merged.post.ICE, i) |>
+    # Include categorical ICE indicator
+    cbind(original.data[,paste0("ICE.cat",1:10)])
+  
+  columns_to_convert <- grep("ICE.cat", names(imputed.dataset))
+  # recode ICE=3 to ICE=2 to avoid sparsity issues
+  imputed.dataset[columns_to_convert][imputed.dataset[columns_to_convert]==3] <- 2
+  
+  # G-formula via MI
+  imputed.data <-
+    rbind(imputed.dataset,
+          imputed.dataset,
+          imputed.dataset)
+  
+  # Assign treatment to first dataset
+  imputed.data[1:nrow(imputed.dataset),
+               "ARMCD"] <- "B"
+  
+  # Assign control to second dataset
+  imputed.data[(nrow(imputed.dataset)+1):
+                 (2*nrow(imputed.dataset)),
+               "ARMCD"] <- "C"
+  
+  # Set ICE indicators to 0 both first and second datasets
+  # i.e. no ICE potential outcome
+  imputed.data[1:(2*nrow(imputed.dataset)),
+               paste0("ICE.cat",1:10)] <- 0
+  
+  imputed.data[columns_to_convert] <- lapply(imputed.data[columns_to_convert], as.factor)
+  
+  # Delete values of FPG, GFR and Y
+  imputed.data[1:(2*nrow(imputed.dataset)),
+               c(paste0("GLUC",1:10),
+                 paste0("GFR",1:10),
+                 paste0("Y",1:10))] <- NA
+  
+  # Include indicator R to differentiate between
+  # augmented (R=0) and observed row (R=1)
+  imputed.data$R <-
+    c(rep(0,2*nrow(imputed.dataset)),
+      rep(1,nrow(imputed.dataset)))
+  
+  # Reorder columns in visits
+  imputed.data <-
+    imputed.data[,c("R","ARMCD", baseline,
+                    rbind(paste0("Y",1:10),
+                          paste0("GLUC",1:10),
+                          paste0("GFR",1:10),
+                          paste0("ICE.cat",1:10)))]
+  
+  # Set predictor matrix to impute Y_k using 
+  # baseline and ICE up to and including visit k-1
+  # because Y_k column comes before ICE_k
+  predictor.matrix <-
+    1*lower.tri(make.predictorMatrix(imputed.data))
+  
+  # Step 2: impute potential outcomes under no ICE
+  full.imputed.data <-
+    mice(data = imputed.data,
+         m = 1,
+         defaultMethod = 
+           c("norm", 
+             "logreg", 
+             "polyreg",
+             "polr"),
+         printFlag = F,
+         maxit = 1,
+         predictorMatrix = predictor.matrix)
+  
+  # Updating seed after mice defaults to reset
+  .Random.seed <-
+    full.imputed.data$lastSeedValue
+  
+  # Dataset with imputed potential outcomes
+  full.imputed.dataset <-
+    complete(full.imputed.data)
+  
+  # Only 2/3 used for analysis
+  analysis.dataset <- 
+    full.imputed.dataset[1:(2*nrow(imputed.dataset)),]
+  
+  # Model
+  Y.model <-
+    lm(Y10 ~ as.factor(ARMCD) + 
+         HBA1C0, data = analysis.dataset)
+  
+  dapa.MI.test <- 
+    matrix(0, nrow = 1,
+           ncol = length(coef(Y.model)))
+  colnames(dapa.MI.test) <- 
+    names(coef(Y.model))
+  
+  dapa.MI.test[,"(Intercept)"] <- 1
+  dapa.MI.test[,"as.factor(ARMCD)B"] <- 1
+  
+  # Mean outcome under dapa+saxa
+  m.dapa[i] <- 
+    confint(glht(Y.model, 
+                 dapa.MI.test))$
+    confint[,"Estimate"]
+  m.dapa.var[i] <- 
+    dapa.MI.test%*%
+    vcov(Y.model)%*%
+    t(dapa.MI.test)
+  
+  # Mean outcome under glimeperide
+  glim.MI.test <- 
+    matrix(0, nrow = 1,
+           ncol = length(coef(Y.model)))
+  colnames(glim.MI.test) <- 
+    names(coef(Y.model))
+  
+  glim.MI.test[,"(Intercept)"] <- 1
+  
+  m.glim[i] <- 
+    confint(glht(Y.model, 
+                 glim.MI.test))$
+    confint[,"Estimate"]
+  
+  m.glim.var[i] <- 
+    glim.MI.test%*%
+    vcov(Y.model)%*%
+    t(glim.MI.test)
+  
+  # Mean treatement effect
+  effect.MI.test <- 
+    matrix(0, nrow = 1,
+           ncol = length(coef(Y.model)))
+  colnames(effect.MI.test) <- 
+    names(coef(Y.model))
+  
+  effect.MI.test[,"as.factor(ARMCD)B"] <- 1
+  
+  m.effect[i] <-
+    confint(glht(Y.model, 
+                 effect.MI.test))$
+    confint[,"Estimate"]
+  m.effect.var[i] <-
+    effect.MI.test%*%
+    vcov(Y.model)%*%
+    t(effect.MI.test)
+  
+}
+
+# Dapagliflozin
+# no ICE potential outcome
+g.MI.sep.dapa <- mean(m.dapa)
+g.MI.sep.dapa
+
+# SE - Using Raghu's formula
+g.MI.sep.dapa.se <- 
+  sqrt((1+1/imputed.merged.post.ICE$m)*var(m.dapa)-
+         mean(m.dapa.var)) 
+g.MI.sep.dapa.se
+
+# Glimeperide
+# no ICE potential outcome
+g.MI.sep.glim <- 
+  mean(m.glim)
+g.MI.sep.glim
+
+# SE - Using Raghu's formula
+g.MI.sep.glim.se <- 
+  sqrt((1+1/imputed.merged.post.ICE$m)*var(m.glim)-
+         mean(m.glim.var))
+g.MI.sep.glim.se
+
+# Treatment effect
+g.MI.sep.effect <- 
+  mean(m.effect)
+g.MI.sep.effect
+
+# SE - Using Raghu's formula
+g.MI.sep.effect.se <- 
+  sqrt((1+1/imputed.merged.post.ICE$m)*var(m.effect)-
+         mean(m.effect.var))
+g.MI.sep.effect.se
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[15] <- 
+  paste0(format(g.MI.sep.dapa,
+                digits = 4, nsmall = 3), " (",
+         format(g.MI.sep.dapa.se, 
+                digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[15] <- 
+  paste0(format(g.MI.sep.glim,
+                digits = 4, nsmall = 3), " (",
+         format(g.MI.sep.glim.se, 
+                digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[15] <- 
+  paste0(format(g.MI.sep.effect,
+                digits = 3, nsmall = 3), " (",
+         format(g.MI.sep.effect.se, 
+                digits = 3, nsmall = 3), ")")
+
+# Computational time
+treatment.effect$Time[15] <- 
+  round(imputation.time + as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[15]
+
+```
+
+### G-estimation
+
+```{r G-estimation + separate ICE function, include=FALSE}
+
+# Since MI accounting for separate mechanisms fails, we use here imputations
+# which did not account for separate mechanisms, but solely to illustrate
+# implementation of G-estimation accounting for separate mechanisms.
+
+# G-estimation
+
+# Following Wen Wei's paper
+# Skipping the IPW step
+# MI boot
+# In each m completed dataset bootstrap
+
+# G-estimation function
+g.est.function <- 
+  function(m.data,
+           indicator){
+    g.imputed <- m.data[indicator,] 
+    
+    # Step 1: Set Y at T_10 as R_t
+    R.t <- g.imputed$Y10
+    
+    
+    
+    # Step 2: Regress R_t on past info
+    i <- 1
+    for (i in 1:9) {
+      data <- g.imputed |>
+        # Include categorical ICE indicator
+        cbind(original.data[,paste0("ICE.cat",1:10)])|>
+        # Treatment, baseline characteristics
+        # Repeated HbA1c, FPG and GFR measurements
+        # And longidtudinal ICE indicator 
+        dplyr::select(ARMCD,
+                      all_of(baseline),
+                      paste0("ICE.cat",1:(10-i)),
+                      paste0("GLUC",1:(10-i)),
+                      paste0("GFR",1:(10-i)),
+                      paste0("Y",1:(10-i))) |>
+        as.data.frame()
+      
+      # convert ICE.cat variables to factors
+      columns_to_convert <- grep("ICE.cat", names(data))
+      # recode ICE=3 to ICE=2 to try and avoid sparsity issues
+      data[columns_to_convert][data[columns_to_convert]==3] <- 2
+      data[columns_to_convert] <- lapply(data[columns_to_convert], as.factor)
+      
+      g.est.model <- 
+        lm(R.t ~ .,
+           data = data)
+      print(summary(g.est.model))
+      
+      # since ICE is now a factor, first remove level 1 effect then level 2
+      mediator <- 
+        as.data.frame(1*(data[,paste0("ICE.cat",10-i)]==1))
+      psi <- coef(g.est.model)[paste0("ICE.cat",10-i,1)]
+      R.t <- as.vector(R.t - 
+                         psi*mediator)[,1]
+      # now remove level 2
+      mediator <- 
+        as.data.frame(1*(data[,paste0("ICE.cat",10-i)]==2))
+      psi <- coef(g.est.model)[paste0("ICE.cat",10-i,2)]
+      R.t <- as.vector(R.t - 
+                         psi*mediator)[,1]
+      
+      
+    }
+    
+    g.model <- 
+      lm(R.t ~ data$ARMCD + data$HBA1C0)
+    g.model
+    
+    return(c(coef(g.model)["(Intercept)"]+
+               coef(g.model)["data$ARMCDB"],
+             coef(g.model)["(Intercept)"],
+             coef(g.model)["data$ARMCDB"]))
+    
+  }
+
+```
+
+```{r G-estimation + separate ICE, include=FALSE, warning=FALSE}
+
+# G-estimation
+
+# Following Wen Wei's paper
+# Skipping the IPW step
+# MI boot
+# In each m completed dataset bootstrap
+
+# Timing process
+start <- Sys.time()
+
+# Using last seed after common imputation step
+# to continue analysis
+.Random.seed <-
+  imputed.merged.post.ICE$lastSeedValue
+
+# Computing potential outcomes and
+# treatment effect in each
+# imputed dataset
+dapa <- rep(NA,imputed.merged.post.ICE$m)
+dapa.var <- rep(NA,imputed.merged.post.ICE$m)
+glim <- rep(NA,imputed.merged.post.ICE$m)
+glim.var <- rep(NA,imputed.merged.post.ICE$m)
+effect <- rep(NA,imputed.merged.post.ICE$m)
+effect.var <- rep(NA,imputed.merged.post.ICE$m)
+
+j <- 1
+for (j in 1:imputed.merged.post.ICE$m) {
+  m.data <- imputed.merged.post.ICE |>
+    complete(j)
+  
+  g.est.boot <-
+    boot(m.data,
+         g.est.function,
+         R = 100)
+  #R = 5)
+  
+  dapa[j] <- 
+    g.est.boot$t0[1]
+  
+  dapa.var[j] <-
+    var(g.est.boot$t[,1])
+  
+  glim[j] <- 
+    g.est.boot$t0[2]
+  
+  glim.var[j] <-
+    var(g.est.boot$t[,2])
+  
+  effect[j] <- 
+    g.est.boot$t0[3]
+  
+  effect.var[j] <-
+    var(g.est.boot$t[,3])
+  
+}
+
+# Dapa + Saxa
+g.est.sep.dapa <- 
+  pool.scalar(dapa,
+              dapa.var)
+g.est.sep.dapa$qbar
+sqrt(g.est.sep.dapa$t)
+
+# Glimeperide
+g.est.sep.glim <-
+  pool.scalar(glim,
+              glim.var)
+g.est.sep.glim$qbar
+sqrt(g.est.sep.glim$t)
+
+# Treatment effect
+g.est.sep.effect <-
+  pool.scalar(effect,
+              effect.var)
+g.est.sep.effect$qbar
+sqrt(g.est.sep.effect$t)
+
+# Summary table
+# Dapa + Saxa
+treatment.effect$Dapa_Saxa[18] <- 
+  paste0(format(g.est.sep.dapa$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(g.est.sep.dapa$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Glimeperide
+treatment.effect$Glimeperide[18] <- 
+  paste0(format(g.est.sep.glim$qbar,
+                digits = 4, nsmall = 3), " (",
+         format(sqrt(g.est.sep.glim$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Treatment effect
+treatment.effect$Effect[18] <- 
+  paste0(format(g.est.sep.effect$qbar,
+                digits = 3, nsmall = 3), " (",
+         format(sqrt(g.est.sep.effect$t), 
+                digits = 3, nsmall = 3), ")")
+
+# Computational time
+treatment.effect$Time[18] <- 
+  round(imputation.time + as.numeric(
+    difftime(Sys.time(), start, 
+             units = "mins")), digits = 3)
+
+treatment.effect$Time[18]
+
+```
+
+# Summary of different estimators
+
+```{r Treatment effect summary, results='asis'}
+
+print(treatment.effect)
+
+```
+
+```{r Treatment effect latex}
+
+kable(treatment.effect, format = "latex", linesep = "")
+
+```
