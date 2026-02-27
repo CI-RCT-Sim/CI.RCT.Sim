@@ -57,35 +57,32 @@ analyse_diabetes_gcomputation <- function() {
   # documentation
 
   function(condition, dat, fixed_objects = NULL) {
-    k <- condition$k[1] # number of last visit
+    k <- condition$k # number of last visit
 
     # reformate dat to long format with outcome column 'y' for the change in HbA1c at each visit
-    dat_long <- tidyr::pivot_longer(dat, y0:paste0("y", k), names_to = "visit", values_to = "hba1c")
-
-    dat_long <- dat_long %>%
-      mutate(visit = as.numeric(sub("y", "", visit))) %>%
-      mutate(rescue = ifelse(!is.na(rescue_start) & rescue_start <= visit, 1, 0)) %>% # new variable for rescue at visit j
+    dat_long <- tidyr::pivot_longer(dat,
+      cols = matches("^[yR]\\d+$"),
+      names_to = c(".value", "visit"),
+      names_pattern = "([yR])(\\d+)"
+    ) %>%
+      mutate(
+        hba1c = y,
+        visit = as.numeric(sub("y", "", visit)),
+        rescue = ifelse(!is.na(rescue_start) & rescue_start <= visit, 1, 0)
+      ) %>% # new variable for rescue at visit j
       arrange(id, visit) %>%
       group_by(id) %>% # make sure table is grouped by id and ordered by visit
-      mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
-      mutate(y = hba1c - hba1c_0) # HbA1c change
+      mutate(
+        hba1c_0 = hba1c[visit == 0], # HbA1 at baseline
+        y = hba1c - hba1c_0, # HbA1c change
+        # want to fit models on data up to time k-1, then simulate forward to predict the outcome at time k:
+        # create a new column at second-to-last timepoint that holds y at last time point
+        # i.e. final outcome
+        # to preserve this value while deleting the last row for the model estimation
+        y_k = ifelse(visit == k - 1, lag(y), NA)
+      ) |>
+      dplyr::select(-R)
 
-    # want to fit models on data up to time k-1, then simulate forward to predict the outcome at time k:
-    # create a new column at second-to-last timepoint that holds y at last time point
-    # i.e. final outcome
-    # to preserve this value while deleting the last row for the model estimation
-    dat_long <- dat_long %>%
-      dplyr::group_by(id) %>%
-      dplyr::mutate(y_k = ifelse(visit == k - 1, lag(y), NA))
-
-    # <<<<<<< HEAD:scripts/analyse_gcomputation.R
-    #     for (i in 1:nrow(dat_long)) {
-    #       if (dat_long$visit[i] == k - 1) {
-    #         dat_long$y_k[i] <- dat_long$y[i + 1]
-    #       }
-    #     }
-    # =======
-    # >>>>>>> origin/dev_PS:R/analyse_gcomputation.R
     # Remove final visit i.e. visit k
     dat_long <- dat_long[dat_long$visit != k, ]
 
@@ -125,8 +122,8 @@ analyse_diabetes_gcomputation <- function() {
       )
     ) # no rescue
     int_descript <- c("treatment not rescue", "control no rescue")
-    # restrictions <- list(c("rescue","lag1_rescue == 1","replace",1))
-    nsamples <- 5 # 500
+    # restrictions <- list(c("rescue",  "lag1_rescue == 1", gfoRmula::carry_forward))
+    nsamples <- 500
 
     g.model <- gfoRmula::gformula_continuous_eof(
       obs_data = obs_data,
@@ -140,7 +137,7 @@ analyse_diabetes_gcomputation <- function() {
       intvars = intvars,
       interventions = interventions,
       int_descript = int_descript,
-      # restrictions=restrictions,
+      # restrictions = restrictions,
       ref_int = 2,
       histvars = histvars,
       histories = histories,
