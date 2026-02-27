@@ -18,7 +18,7 @@
 #' @importFrom dplyr filter select bind_rows all_of
 #' @importFrom stats lm
 #' @export
-analyse_diabetes_rescue <- function(
+analyse_diabetes_rescue_mi <- function(
     estimand = c("hypothetical", "treatment_policy"),
     m = 10,
     maxit = 20,
@@ -159,5 +159,5 @@ analyse_diabetes_rescue <- function(
 # Design <- assumptions_diabetes_rescue()
 # dat <- generate_diabetes_rescue(Design[1, ])
 #
-# analyse_mi <- analyse_diabetes_rescue(estimand = "treatment_policy",m = 5)
+# analyse_mi <- analyse_diabetes_rescue_mi(estimand = "treatment_policy",m = 5)
 # analyse_mi(Design[1, ], dat)
