@@ -139,8 +139,8 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
     }
   }
 
-  out <- data.frame(id, trt, age, Y, rescue_start, rescue[, 1:condition$k] * 1)
-  names(out) <- c("id", "trt", "age", paste("y", visit, sep = ""), "rescue_start", paste("R", visit[1:condition$k], sep = ""))
+  out <- data.frame(id, trt, age, Y, rescue_start, rescue[, 1:condition$k+1] * 1)
+  names(out) <- c("id", "trt", "age", paste("y", visit, sep = ""), "rescue_start", paste("R", visit[1:condition$k+1], sep = ""))
   out
 }
 
