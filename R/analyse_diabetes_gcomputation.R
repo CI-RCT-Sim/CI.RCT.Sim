@@ -68,8 +68,8 @@ analyse_diabetes_gcomputation <- function() {
       mutate(
         hba1c = y,
         visit = as.numeric(sub("y", "", visit)),
-        rescue = ifelse(!is.na(rescue_start) & rescue_start <= visit, 1, 0)
-      ) %>% # new variable for rescue at visit j
+        R = ifelse(visit == 0, 0, R) # set rescue at baseline to 0
+      ) %>%
       arrange(id, visit) %>%
       group_by(id) %>% # make sure table is grouped by id and ordered by visit
       mutate(
@@ -80,8 +80,8 @@ analyse_diabetes_gcomputation <- function() {
         # i.e. final outcome
         # to preserve this value while deleting the last row for the model estimation
         y_k = ifelse(visit == k - 1, dplyr::lead(y), NA)
-      ) |>
-      dplyr::select(-R)
+      )# |>
+      #dplyr::select(-R)
 
     # Remove final visit i.e. visit k
     dat_long <- dat_long[dat_long$visit != k, ]
@@ -95,21 +95,21 @@ analyse_diabetes_gcomputation <- function() {
     obs_data <- data.table::as.data.table(dat_long)
     time_name <- "visit"
     time_points <- k # number of time-points (because baseline is included and last timepoint excluded)
-    covnames <- c("y", "trt", "rescue")
+    covnames <- c("y", "trt", "R")
     outcome_name <- "y_k"
     covtypes <- c("normal", "binary", "binary")
     histories <- c(gfoRmula::lagged, gfoRmula::lagged)
-    histvars <- list("y", "rescue")
+    histvars <- list("y", "R")
     basecovs <- c("age")
     covparams <- list(covmodels = c(
-      y ~ trt + rescue + lag1_y + age, # include trt + rescue (protocol deviation)
-      trt ~ 1,
-      rescue ~ y + age
+      y ~ trt + R + lag1_y + age, # include trt + R (protocol deviation)
+      trt ~ 1, # intercept only, trt predicted by no covariates
+      R ~ y + age
     ))
-    ymodel <- y_k ~ trt + rescue + lag1_y + age # include trt + rescue (protocol deviation)
+    ymodel <- y_k ~ trt + R + lag1_y + age # include trt + R (protocol deviation)
     intvars <- list(
-      c("trt", "rescue"),
-      c("trt", "rescue")
+      c("trt", "R"),
+      c("trt", "R")
     )
     interventions <- list(
       list(
@@ -122,7 +122,7 @@ analyse_diabetes_gcomputation <- function() {
       )
     ) # no rescue
     int_descript <- c("treatment no rescue", "control no rescue")
-    restrictions <- list(c("rescue",  "lag1_rescue != 1", gfoRmula::carry_forward))
+    restrictions <- list(c("R",  "lag1_R != 1", gfoRmula::carry_forward))
     nsamples <- 500
 
     g.model <- gfoRmula::gformula_continuous_eof(
