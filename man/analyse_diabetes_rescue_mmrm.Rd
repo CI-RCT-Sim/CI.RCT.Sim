@@ -2,28 +2,31 @@
 % Please edit documentation in R/analyse_diabetes_mmrm.R
 \name{analyse_diabetes_rescue_mmrm}
 \alias{analyse_diabetes_rescue_mmrm}
-\title{Analyse dataset from diabetes rescue scenario using MMRM}
+\title{Analyse diabetes endpoint using MMRM}
 \usage{
-analyse_diabetes_rescue_mmrm(ci_level = 0.95)
+analyse_diabetes_rescue_mmrm(
+  ci_level = 0.95,
+  strategy = c("treatment_policy", "hypothetical")
+)
 }
 \arguments{
-\item{ci_level}{confidence level for the CI (default 0.95)}
+\item{ci_level}{Confidence level for CIs (default 0.95)}
+
+\item{strategy}{"treatment_policy" or "hypothetical"}
 }
 \value{
-an analyse function that returns a list with
+A function that takes (condition, dat) and returns a list:
 \itemize{
 \item \code{p} p-value for treatment effect at final visit
 \item \code{coef} estimated treatment effect at final visit
-\item \code{ci_lower} lower confidence limit
-\item \code{ci_upper} upper confidence limit
+\item \code{ci_lower} lower CI
+\item \code{ci_upper} upper CI
 }
 }
 \description{
-Analyse dataset from diabetes rescue scenario using MMRM
+Supports two intercurrent event strategies:
+\itemize{
+\item "treatment_policy" (default) uses all observed data
+\item "hypothetical" sets post-rescue data to missing
 }
-\examples{
-Design <- assumptions_diabetes_rescue()
-dat <- generate_diabetes_rescue(Design[1, ])
-analyse_mmrm <- analyse_diabetes_rescue_mmrm()
-analyse_mmrm(Design[1, ], dat)
 }
