@@ -4,7 +4,10 @@
 \alias{analyse_diabetes_rescue_mmrm}
 \title{Analyse diabetes endpoint using MMRM}
 \usage{
-analyse_diabetes_rescue_mmrm(ci_level = 0.95)
+analyse_diabetes_rescue_mmrm(
+  ci_level = 0.95,
+  strategy = c("treatment_policy", "hypothetical")
+)
 }
 \arguments{
 \item{ci_level}{confidence level for the CI (default 0.95)}
@@ -19,11 +22,5 @@ an analyse function that returns a list with
 }
 }
 \description{
-Analyse dataset from diabetes rescue scenario using MMRM
-}
-\examples{
-Design <- assumptions_diabetes_rescue()
-dat <- generate_diabetes_rescue(Design[1, ])
-analyse_mmrm <- analyse_diabetes_rescue_mmrm()
-analyse_mmrm(Design[1, ], dat)
+Analyse diabetes endpoint using MMRM
 }

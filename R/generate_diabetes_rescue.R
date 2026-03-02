@@ -72,28 +72,30 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   age <- rnorm(n, mean = condition$mean_age, sd = condition$sd_age)
   age_slope <- 2 * exp(-condition$b_age * (age - 30))
   response_trt <- runif(n)
-  # The mean trajectory for control patients. Was used previously, when the effect of rescue medication was used instead of treatment. Now it is used on top.
-  mu_ctr <- matrix(NA, nrow = n, ncol = length(visit))
-  for (i in 1:length(visit)) {
-    mu_ctr[, i] <- condition$mean_bl +
-      visit[i] / condition$k * age_slope
-  }
-
-  mu <- matrix(NA, nrow = n, ncol = length(visit))
-  for (i in 1:length(visit)) {
-    mu[, i] <- condition$mean_bl +
-      visit[i] / condition$k * age_slope +
-      eff[i] * response_trt * trt
-  }
-
   # Implement the correlation structure of the repeated measurements using mvtnorm
   mu_resid <- rep(0, length(visit))
   sigma_resid <- diag(x = sigma^2, length(visit))
-  sigma_resid[upper.tri(sigma_resid)] <- rho
-  sigma_resid[lower.tri(sigma_resid)] <- rho
+  sigma_resid[upper.tri(sigma_resid)] <- rho * sigma^2
+  sigma_resid[lower.tri(sigma_resid)] <- rho * sigma^2
 
   resid <- mvtnorm::rmvnorm(n, mu_resid, sigma_resid)
-  Y <- mu + resid
+
+  if (condition$setup == 0) {
+    mu <- matrix(NA, nrow = n, ncol = length(visit))
+    for (i in 1:length(visit)) {
+      mu[, i] <- condition$mean_bl +
+        visit[i] / condition$k * age_slope
+    }
+    Y <- mu + eff[i] * response_trt * trt + resid
+  } else {
+    mu <- matrix(NA, nrow = n, ncol = length(visit))
+    for (i in 1:length(visit)) {
+      mu[, i] <- condition$mean_bl +
+        visit[i] / condition$k * age_slope +
+        eff[i] * response_trt * trt
+    }
+    Y <- mu + resid
+  }
 
   # Implement rescue medication and its effect
   p_rescue <- plogis(condition$resc_0 + (Y - 10) * condition$resc_y + (age - condition$mean_age) * condition$resc_age)
@@ -110,7 +112,7 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   for (i in 1:n) {
     if (k_rescue[i] > 0) {
       rescue_set <- (rescue_start[i] + 2):(condition$k + 1)
-      Y[i, rescue_set] <- mu_ctr[i, rescue_set] +
+      Y[i, rescue_set] <- mu[i, rescue_set] +
         response_rescue[i] * rescue_effect[rescue_set - rescue_start[i] + 1] +
         resid[rescue_set]
       any_rescue[i] <- TRUE
@@ -137,8 +139,8 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
     }
   }
 
-  out <- data.frame(id, trt, age, Y, rescue_start, rescue[, 2:condition$k] * 1)
-  names(out) <- c("id", "trt", "age", paste("y", visit, sep = ""), "rescue_start", paste("R", visit[-1][1:condition$k - 1], sep = ""))
+  out <- data.frame(id, trt, age, Y, rescue_start, rescue[, 1:condition$k] * 1)
+  names(out) <- c("id", "trt", "age", paste("y", visit, sep = ""), "rescue_start", paste("R", visit[1:condition$k], sep = ""))
   out
 }
 
@@ -175,6 +177,7 @@ assumptions_diabetes_rescue <- function(print = interactive()) {
   resc_0      = qlogis(c(0.05,0.02)),     # probability for rescue medication
   resc_y      = log(c(3,150)),            # strong effect due to high hba1c
   resc_age    = -log(1.01),               # weaker age effect than for dropout
+  setup       = c(0,1), # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
   miss        = list(
   c(qlogis(0.02), log(3),log(1.02),log(1.5)), # probability for missing data in the core scenario
   c(-100000,0,0,0),                                # probability for missing data in the scenario with no dropout
@@ -235,10 +238,13 @@ true_summary_statistics_diabetes_rescue <- function(Design, cutoff_stats = 10, f
   alpha <- 0.05
   power <- 0.8
 
-  Design$n <- ifelse(is.null(Design$nfix),
-    2 * round(((qnorm(1 - alpha / 2) + qnorm(power))^2) * Design$sd_bl^2 * (1 - Design$rho^2) * 2 / (Design$eff_true^2)),
-    Design$nfix
-  )
+  if (!"nfix" %in% colnames(Design)) {
+    Design$n <- 2 * round(((qnorm(1 - alpha / 2) + qnorm(power))^2) *
+      Design$sd_bl^2 * (1 - Design$rho^2) * 2 /
+      (Design$eff_true^2))
+  } else {
+    Design$n <- Design$nfix
+  }
 
   Design$eff_true <- ifelse(Design$hyp == 1, Design$eff_true, 0)
   Design
