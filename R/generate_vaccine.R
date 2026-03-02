@@ -19,8 +19,6 @@
 #'   vaccine_scenario_set_samplesize()
 #' Design
 #'
-#' Design$beta_A1 <- 0.1
-#'
 #' generate_vaccine(Design[1,])
 vaccine_scenario <- function(print=interactive()){
   skel <- "params_scenarios_grid(

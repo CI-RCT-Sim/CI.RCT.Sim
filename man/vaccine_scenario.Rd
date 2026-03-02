@@ -81,7 +81,5 @@ Design <- vaccine_scenario() |>
   vaccine_scenario_set_samplesize()
 Design
 
-Design$beta_A1 <- 0.1
-
 generate_vaccine(Design[1,])
 }

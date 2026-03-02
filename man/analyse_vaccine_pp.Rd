@@ -4,18 +4,20 @@
 \alias{analyse_vaccine_pp}
 \title{Analyse dataset from vaccine scenario, per-protocol analysis}
 \usage{
-analyse_vaccine_pp(ci_level = 0.95)
+analyse_vaccine_pp(ci_level = 0.95, VE_margin = 0.3)
 }
 \arguments{
 \item{ci_level}{the confidence level for the CIs (defaults to 0.95)}
+
+\item{VE_margin}{vaccine efficacy margin for the super-superiority test}
 }
 \value{
 an analyse function that returns a list with the elements
 \itemize{
 \item \code{p} the p-value of the exact binomial test
-\item \code{coef} the point estimate
-\item \code{ci_lower} the lower CI limit
-\item \code{ci_upper} the upper CI limit
+\item \code{VE} the point estimate for the vaccine efficacy
+\item \code{VE_lower} the lower CI limit
+\item \code{VE_upper} the upper CI limit
 }
 }
 \description{
@@ -27,8 +29,6 @@ Design <- vaccine_scenario() |>
   vaccine_scenario_set_true_eff() |>
   vaccine_scenario_set_samplesize()
 Design
-
-Design$beta_A1 <- 0.1
 
 dat <- generate_vaccine(Design[1,])
 my_analyse <- analyse_vaccine_pp(ci_level=0.95)
