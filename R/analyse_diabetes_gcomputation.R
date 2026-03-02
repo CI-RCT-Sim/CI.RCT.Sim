@@ -7,7 +7,7 @@
 #' @export
 #'
 #' @importFrom gfoRmula gformula_continuous_eof lagged static
-#' @importFrom dplyr mutate arrange group_by
+#' @importFrom dplyr mutate arrange group_by lead
 #' @importFrom tidyr pivot_longer
 #' @importFrom magrittr `%>%`
 #' @importFrom data.table as.data.table
@@ -79,7 +79,7 @@ analyse_diabetes_gcomputation <- function() {
         # create a new column at second-to-last timepoint that holds y at last time point
         # i.e. final outcome
         # to preserve this value while deleting the last row for the model estimation
-        y_k = ifelse(visit == k - 1, lead(y), NA)
+        y_k = ifelse(visit == k - 1, dplyr::lead(y), NA)
       ) |>
       dplyr::select(-R)
 
