@@ -24,7 +24,7 @@ vaccine_scenario <- function(print=interactive()){
   skel <- "params_scenarios_grid(
   p_V = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk
   p_W = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk and modifying treatment effect
-  lambda_post = -log(1-(1/c(100, 200, 1000)))/(365/12), # force of infection (baseline infection hazard) after 14 days, monthly incidence of 1/500, 1/1000, 1/2000
+  lambda_post = -log(1-(1/c(500, 1000, 2000)))/(365/12), # force of infection (baseline infection hazard) after 14 days, monthly incidence of 1/500, 1/1000, 1/2000
   overall_compliance = c(0.95), # used to callibrate gamma0
   gamma_W  = c(-0.8, 0), # regression parameters for compliance
   gamma_V  = c(0.5, 0),
@@ -33,7 +33,7 @@ vaccine_scenario <- function(print=interactive()){
   beta_V  = c(log(1.5), 0), # regression parameters for time to infection
   beta_W  = c(log(1.2), 0),
   effect_before_d2 = c(1,0), # indicator whether there's any effect before d2, used to set beta_A1
-  beta_A2  = log(1-c(0.8, 0, 0.5, 0.9)), #
+  beta_A2  = log(1-c(0.7, 0, 0.5, 0.9)), #
   beta_AW = c(log(0.8), 0),
   follow_up = c(365)
 ) |>
