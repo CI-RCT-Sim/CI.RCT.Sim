@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyse_diabetes_mmrm.R
 \name{analyse_diabetes_rescue_mmrm}
 \alias{analyse_diabetes_rescue_mmrm}
-\title{Analyse dataset from diabetes rescue scenario using MMRM}
+\title{Analyse diabetes endpoint using MMRM}
 \usage{
 analyse_diabetes_rescue_mmrm(ci_level = 0.95)
 }
