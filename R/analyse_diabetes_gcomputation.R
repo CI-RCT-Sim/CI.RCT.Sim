@@ -137,7 +137,7 @@ analyse_diabetes_gcomputation <- function() {
       intvars = intvars,
       interventions = interventions,
       int_descript = int_descript,
-      # restrictions = restrictions,
+      restrictions = restrictions,
       ref_int = 2,
       histvars = histvars,
       histories = histories,
