@@ -1,32 +1,5 @@
-#' Analyse dataset from diabetes rescue scenario using MMRM
+#' Analyse diabetes endpoint using MMRM
 #'
-#' @param ci_level confidence level for the CI (default 0.95)
-#'
-#' @returns an analyse function that returns a list with
-#' * `p` p-value for treatment effect at final visit
-#' * `coef` estimated treatment effect at final visit
-#' * `ci_lower` lower confidence limit
-#' * `ci_upper` upper confidence limit
-#'
-#' @export
-#' @importFrom mmrm mmrm
-#'
-#' @examples
-#' Design <- assumptions_diabetes_rescue()
-#' dat <- generate_diabetes_rescue(Design[1, ])
-#' analyse_mmrm <- analyse_diabetes_rescue_mmrm()
-#' analyse_mmrm(Design[1, ], dat)
-analyse_diabetes_rescue_mmrm <- function(ci_level = 0.95) {
-  function(condition, dat, fixed_objects = NULL) {
-
-    # keep baseline
-    baseline <- dat$y0
-
-    # reshape post-baseline only
-    visit_vars <- paste0("y", 1:condition$k)
-
-    long <- tidyr::pivot_longer(
-      dat,
 #' Supports two intercurrent event strategies:
 #' * "treatment_policy" (default) uses all observed data
 #' * "hypothetical" sets post-rescue data to missing
@@ -42,57 +15,47 @@ analyse_diabetes_rescue_mmrm <- function(ci_level = 0.95) {
 #'
 #' @export
 #' @importFrom mmrm mmrm
-analyse_diabetes_rescue_mmrm <- function(ci_level = 0.95, strategy = c("treatment_policy", "hypothetical")) {
+analyse_diabetes_rescue_mmrm <- function(
+    ci_level = 0.95,
+    strategy = c("treatment_policy", "hypothetical")
+) {
 
   strategy <- match.arg(strategy)
 
   function(condition, dat, fixed_objects = NULL) {
 
     dat_work <- dat
+    baseline <- dat$y0
 
-    if(strategy == "hypothetical") {
-      # set post-rescue measurements to NA
-      visit_vars <- paste0("y", 1:condition$k)
-      for(i in seq_len(nrow(dat_work))) {
+    # --- Hypothetical strategy: remove post-rescue values ---
+    if (strategy == "hypothetical") {
+      for (i in seq_len(nrow(dat_work))) {
         start <- dat_work$rescue_start[i]
-        if(!is.na(start)) {
-          # set all visits after rescue_start to NA
+        if (!is.na(start)) {
           dat_work[i, paste0("y", start:condition$k)] <- NA
         }
       }
     }
 
-    # reshape to long format
+    # --- Reshape to long ---
     visit_vars <- paste0("y", 1:condition$k)
+
     long <- tidyr::pivot_longer(
       dat_work,
-      cols = all_of(visit_vars),
+      cols = tidyselect::all_of(visit_vars),
       names_to = "visit",
       values_to = "y"
     )
 
-    # convert id and visit to factors for MMRM
+    # --- Prepare variables ---
     long$id <- factor(long$id)
-    long$visit <- factor(as.integer(sub("y", "", long$visit)))
+    long$visit <- factor(
+      as.integer(sub("y", "", long$visit)),
+      levels = 1:condition$k
+    )
     long$y0 <- baseline[match(long$id, dat$id)]
 
-    # fit MMRM — covariance structure in formula
-    fit <- mmrm::mmrm(
-      formula = y ~ trt * visit + y0 + us(visit | id),
-      data = long
-    )
-
-    # treatment effect at final visit
-    term <- paste0("trt:visit", condition$k)
-
-    est <- coef(fit)[[term]]
-    se  <- sqrt(vcov(fit)[term, term])
-
-    # ensure factors for MMRM
-    long$id <- factor(long$id)
-    long$visit <- factor(as.integer(sub("y", "", long$visit)), levels = 1:condition$k)
-
-    # fit MMRM
+    # --- Fit MMRM ---
     fit <- mmrm::mmrm(
       y ~ trt * visit +
         y0 * visit +
@@ -101,10 +64,12 @@ analyse_diabetes_rescue_mmrm <- function(ci_level = 0.95, strategy = c("treatmen
       data = long
     )
 
-    # extract treatment effect at final visit
+    # --- Extract treatment effect at final visit ---
     term <- paste0("trt:visit", condition$k)
+
     est <- coef(fit)[[term]]
     se  <- sqrt(vcov(fit)[term, term])
+
     z <- qnorm(1 - (1 - ci_level) / 2)
 
     list(
@@ -115,18 +80,3 @@ analyse_diabetes_rescue_mmrm <- function(ci_level = 0.95, strategy = c("treatmen
     )
   }
 }
-
-#How to use
-# Design <- assumptions_diabetes_rescue() |>
-#   true_summary_statistics_diabetes_rescue()
-#
-# condition <- Design[1, ]
-# dat <- generate_diabetes_rescue(condition)
-#
-# # Treatment policy strategy (all observed data)
-# analyse_mmrm_tp <- analyse_diabetes_rescue_mmrm(strategy = "treatment_policy")
-# analyse_mmrm_tp(condition, dat)
-#
-# # Hypothetical strategy (set post-rescue measurements to NA)
-# analyse_mmrm_hyp <- analyse_diabetes_rescue_mmrm(strategy = "hypothetical")
-# analyse_mmrm_hyp(condition, dat)
