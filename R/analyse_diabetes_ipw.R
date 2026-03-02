@@ -73,8 +73,8 @@ analyse_diabetes_ipw <- function(estimand = "hyp") {
       )
       model <- lm_robust( # OLS with HC2 variance estimator
         as.formula(paste0("y ~ trt + hba1c_0 + age")),
-        weights = temp$ipw.weights[dat_long$visit == k],
-        data = dat_long[dat_long$visit == k,]
+        weights = temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0],
+        data = dat_long[dat_long$visit == k & dat_long$exposure == 0,]
       )
 
       list(
@@ -96,8 +96,8 @@ analyse_diabetes_ipw <- function(estimand = "hyp") {
       )
       model <- estimatr::lm_robust( # OLS with HC2 variance estimator
         as.formula(paste0("y ~ trt + hba1c_0 + age")),
-        weights = temp$ipw.weights[dat_long$visit == k],
-        data = dat_long[dat_long$visit == k,]
+        weights = temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0],
+        data = dat_long[dat_long$visit == k & dat_long$exposure == 0,]
       )
 
       list(
