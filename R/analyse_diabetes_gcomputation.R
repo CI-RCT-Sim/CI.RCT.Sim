@@ -144,18 +144,22 @@ analyse_diabetes_gcomputation <- function() {
       basecovs = basecovs,
       nsamples = nsamples,
       show_progress = F,
-      seed = 1
+      seed = 1,
+      ci_method = "percentile"
     )
 
     # mean of difference in mean change over bootstrap samples
     # summary(g.model)
     coef <- g.model$result$`Mean difference`[2] # mean difference between treatments (intervention - control) at visit k
     se <- g.model$result$`MD SE`[2] # se for mean difference
-    # standard error
+    ci_lower <- g.model[["result"]][["MD lower 95% CI"]][2] # 95% lower CI via percentile method
+    ci_upper <- g.model[["result"]][["MD upper 95% CI"]][2] # 95% lower CI via percentile method
 
     list(
       coef = coef,
-      se = se
+      se = se,
+      ci_lower = ci_lower,
+      ci_upper = ci_upper
     )
   }
 }
