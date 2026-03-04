@@ -35,5 +35,7 @@ Imports:
     gfoRmula,
     data.table,
     logistf,
-    tidyselect
+    tidyselect,
+    lmtest,
+    sandwich
 VignetteBuilder: knitr
