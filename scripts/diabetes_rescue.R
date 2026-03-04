@@ -4,14 +4,14 @@ devtools::load_all()
 # Define parameter values and derived quantities
 # -------------------------------------------------------------------
 
-sim_parameters <- assumptions_diabetes_rescue()[1, ] |>
+sim_parameters <- assumptions_diabetes_rescue() |>
   true_summary_statistics_diabetes_rescue()
 
 # -------------------------------------------------------------------
 # Constants for simulation
 # -------------------------------------------------------------------
 
-N_sim <- 10 # 00
+N_sim <- 1000
 alpha <- 0.1
 
 # -------------------------------------------------------------------
@@ -19,11 +19,16 @@ alpha <- 0.1
 # -------------------------------------------------------------------
 
 my_analyse <- list(
+  ## Treatment policy estimands
   ipwtp = analyse_ipw(estimand = "tp"),
+  mmrmtp = analyse_diabetes_rescue_mmrm(ci_level = 1 - alpha, strategy = "treatment_policy"),
+  mitp = analyse_diabetes_rescue_mi(estimand = "treatment_policy"),
+  ## Hypothetical estimands
   ipwhyp = analyse_ipw(estimand = "hyp"),
   dm = analyse_diabetes_demediation(),
-  mmrm = analyse_diabetes_rescue_mmrm(ci_level = 1 - alpha),
-  gcom = analyse_diabetes_gcomputation()
+  gcom = analyse_diabetes_gcomputation(),
+  mmrmhyp = analyse_diabetes_rescue_mmrm(ci_level = 1 - alpha, strategy = "hypothetical"),
+  mihyp = analyse_diabetes_rescue_mi(estimand = "hypothetical")
 )
 
 # -------------------------------------------------------------------
@@ -34,35 +39,64 @@ my_analyse <- list(
 
 my_summarise <- create_summarise_function(
   # bias, SD, coverage etc. for the treatment effect at final visit
-  ipwtp = summarise_estimator(est = coef, real = eff_true),
-  ipwhyp = summarise_estimator(est = coef, real = eff_true),
-  dm = summarise_estimator(
+  ## Treatment policy estimands
+  ipwtp = summarise_estimator(
     est = coef,
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null = 0
+    null  = 0
   ),
-  # additional custom summary: mean CI width
-  dm = function(condition, results, fixed_objects = NULL) {
-    data.frame(
-      mean_ci_width = mean(results$ci[2] - results$ci[1], na.rm = TRUE)
-    )
-  },
-  mmrm = summarise_estimator(
+  mmrmtp = summarise_estimator(
     est   = coef,
     real  = eff_true,
     lower = ci_lower,
     upper = ci_upper,
     null  = 0
   ),
-  # additional custom summary: mean CI width
-  mmrm = function(condition, results, fixed_objects = NULL) {
-    data.frame(
-      mean_ci_width = mean(results$ci_upper - results$ci_lower, na.rm = TRUE)
-    )
-  },
-  gcom = summarise_estimator(est = coef, real = eff_true)
+  mitp = summarise_estimator(
+    est = coef,
+    real = eff_true,
+    lower = ci_lower,
+    upper = ci_upper,
+    null  = 0
+  ),
+  ## Hypothetical estimands
+  ipwhyp = summarise_estimator(
+    est = coef,
+    real = eff_true,
+    lower = ci_lower,
+    upper = ci_upper,
+    null  = 0
+  ),
+  dm = summarise_estimator(
+    est = coef,
+    real = eff_true,
+    lower = ci[1],
+    upper = ci[2],
+    null = 0
+  ),
+  gcom = summarise_estimator(
+    est = coef,
+    real = eff_true,
+    lower = ci_lower,
+    upper = ci_upper,
+    null  = 0
+  ),
+  mmrmhyp = summarise_estimator(
+    est   = coef,
+    real  = eff_true,
+    lower = ci_lower,
+    upper = ci_upper,
+    null  = 0
+  ),
+  mihyp = summarise_estimator(
+    est = coef,
+    real = eff_true,
+    lower = ci_lower,
+    upper = ci_upper,
+    null  = 0
+  )
 )
 
 # -------------------------------------------------------------------
@@ -82,22 +116,22 @@ results <- runSimulation(
 # Inspect results
 # -------------------------------------------------------------------
 
-results |>
-  subset(select = c(
-    # names(sim_parameters),
-    "ipwtp.bias",
-    "ipwtp.sd_est",
-    "ipwhyp.bias",
-    "ipwhyp.sd_est",
-    "dm.bias",
-    "dm.sd_est",
-    "mmrm.bias",
-    "mmrm.sd_est",
-    "mmrm.coverage",
-    "mmrm.1.mean_ci_width",
-    "gcom.bias",
-    "gcom.sd_est"
-  ))
+# results |>
+#   subset(select = c(
+#     # names(sim_parameters),
+#     "ipwtp.bias",
+#     "ipwtp.sd_est",
+#     "ipwhyp.bias",
+#     "ipwhyp.sd_est",
+#     "dm.bias",
+#     "dm.sd_est",
+#     "mmrm.bias",
+#     "mmrm.sd_est",
+#     "mmrm.coverage",
+#     "mmrm.1.mean_ci_width",
+#     "gcom.bias",
+#     "gcom.sd_est"
+#   ))
 
 saveRDS(results, "results.rds")
 save.image("final_workspace.RData")

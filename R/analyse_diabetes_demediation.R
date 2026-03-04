@@ -62,7 +62,7 @@ analyse_diabetes_demediation <- function(X) {
           data = dat_comp,
           pl = FALSE
         )
-        browser(expr = length(predict(mod, type = "response")) != nrow(dat_comp))
+        # browser(expr = length(predict(mod, type = "response")) != nrow(dat_comp))
         dat_comp[, paste0("pred_R", 12 - k)] <- predict(mod, type = "response")
 
         # Subset the data
@@ -114,7 +114,7 @@ analyse_diabetes_demediation <- function(X) {
       dat <- complete(dats, i)
       dat[is.na(dat)] <- 0
       # browser(expr = sum(is.na(dat)) != 0)
-      res <- boot::boot(dat, analysis, R = 500)
+      # res <- boot::boot(dat, analysis, R = 500)
       res <- analysis(dat)
       # effect[i] <- res$t0[2]
       # effect.var[i] <- var(res$t[, 2])
@@ -131,7 +131,7 @@ analyse_diabetes_demediation <- function(X) {
     list(
       # effect,
       # effect.var,
-      ci,
+      ci = ci,
       # cil = quantile(unlist(ests), 0.025),
       # ciu = quantile(unlist(ests), 0.975),
       # coefs = end_res$qhat,
