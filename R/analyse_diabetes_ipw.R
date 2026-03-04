@@ -79,7 +79,10 @@ analyse_diabetes_ipw <- function(estimand = "hyp") {
 
       list(
         coef = summary(model)$coefficients["trt", "Estimate"],
-        sd = summary(model)$coefficients["trt", "Std. Error"]
+        sd = summary(model)$coefficients["trt", "Std. Error"],
+        p = summary(model)$coefficients["trt", "Pr(>|t|)"],
+        ci_lower = summary(model)$coefficients["trt", "CI Lower"],
+        ci_upper = summary(model)$coefficients["trt", "CI Upper"]
       )
     } else if (estimand == "hyp") {
       dat_long$exposure <- ifelse(is.na(dat_long$y) | dat_long$R == 1, 1L, 0L) # indicator for missing outcomes and rescue medication
@@ -102,7 +105,10 @@ analyse_diabetes_ipw <- function(estimand = "hyp") {
 
       list(
         coef = summary(model)$coefficients["trt", "Estimate"],
-        sd = summary(model)$coefficients["trt", "Std. Error"]
+        sd = summary(model)$coefficients["trt", "Std. Error"],
+        p = summary(model)$coefficients["trt", "Pr(>|t|)"],
+        ci_lower = summary(model)$coefficients["trt", "CI Lower"],
+        ci_upper = summary(model)$coefficients["trt", "CI Upper"]
       )
     }
   }
