@@ -13,17 +13,29 @@ Suggests:
     knitr,
     rmarkdown,
     roxygen2,
-    testthat (>= 3.0.0)
+    testthat (>= 3.0.0),
+    covr
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 URL: https://ci-rct-sim.github.io/CI.RCT.Sim/
 Config/testthat/edition: 3
 Imports: 
     SimNPH,
-    ipw,
+    boot,
     dplyr,
     tibble,
-    ltmle,
     mice,
-    purrr
+    purrr,
+    mvtnorm,
+    estimatr,
+    magrittr,
+    tidyr,
+    ipw,
+    mmrm,
+    gfoRmula,
+    data.table,
+    logistf,
+    tidyselect,
+    lmtest,
+    sandwich
 VignetteBuilder: knitr

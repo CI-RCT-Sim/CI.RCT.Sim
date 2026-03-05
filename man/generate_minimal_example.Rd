@@ -17,7 +17,7 @@ assumptions_minimal_example(print = interactive())
 
 \item{fixed_objects}{list of parameters that are fixed across simulations}
 
-\item{Design}{}
+\item{Design}{data.frame with parameter values}
 
 \item{print}{print code to generate parameter set?}
 }

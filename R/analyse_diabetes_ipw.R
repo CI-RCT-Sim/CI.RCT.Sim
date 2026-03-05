@@ -8,8 +8,9 @@
 #'
 #' @export
 #'
-#' @importFrom stats as.formula
-#' @importFrom estimatr lm_robust
+#' @importFrom stats as.formula lm confint
+#' @importFrom lmtest coeftest
+#' @importFrom sandwich vcovHC
 #' @importFrom dplyr filter lag arrange group_by mutate
 #' @importFrom tidyr pivot_longer
 #' @importFrom ipw ipwtm
@@ -23,39 +24,39 @@
 #'
 #' dat <- generate_diabetes_rescue(condition)
 #'
-#' analyse_ipw_tp <- analyse_ipw(estimand = "tp")
-#' analyse_ipw_tp(condition, dat)
+#' analyse_diabetes_ipw_tp <- analyse_diabetes_ipw(estimand = "tp")
+#' analyse_diabetes_ipw_tp(condition, dat)
 #'
-#' analyse_ipw_hyp <- analyse_ipw(estimand = "hyp")
-#' analyse_ipw_hyp(condition, dat)
-analyse_ipw <- function(estimand = "hyp") {
+#' analyse_diabetes_ipw_hyp <- analyse_diabetes_ipw(estimand = "hyp")
+#' analyse_diabetes_ipw_hyp(condition, dat)
+analyse_diabetes_ipw <- function(estimand = "hyp") {
   # What still remains to be done is
   # documentation
 
   function(condition, dat, fixed_objects = NULL) {
     stopifnot(estimand %in% c("hyp", "tp"))
 
-    k <- condition$k[1] # number of last visit
+    k <- condition$k # number of last visit
 
     # reformate dat to long format with one Hba1c column, one outcome column 'y' (change of Hba1c) and a time variable 'visit'
-    dat_long <- pivot_longer(
-      dat,
-      y0:paste0("y", k),
-      names_to = "visit",
-      values_to = "hba1c"
-    )
-    dat_long <- dat_long %>%
-      mutate(visit = as.numeric(sub("y", "", visit))) %>%
-      mutate(rescue = ifelse(!is.na(rescue_start) & rescue_start <= visit, 1, 0)) %>% # new variable for rescue at visit j
-      mutate(rescue_lag = lag(rescue, default = NA)) # rescue at visit j-1
-
-    dat_long <- dat_long %>%
+    dat_long <- tidyr::pivot_longer(dat,
+                                    cols = matches("^[yR]\\d+$"),
+                                    names_to = c(".value", "visit"),
+                                    names_pattern = "([yR])(\\d+)"
+    ) %>%
+      mutate(
+        hba1c = y,
+        visit = as.numeric(sub("y", "", visit)),
+        R = ifelse(visit == 0, 0, ifelse(visit == condition$k, dplyr::lag(R), R)), # set rescue at baseline to 0
+        R_lag = dplyr::lag(R, default = NA)
+      ) %>%
       arrange(id, visit) %>%
-      group_by(id) %>%
-      mutate(hba1c_0 = hba1c[visit == 0]) %>% # HbA1 at baseline
-      mutate(hba1c_lag = lag(hba1c, default = NA)) %>% # HbA1 at visit j-1
-      mutate(y = hba1c - hba1c_0) %>% # HbA1c change
-      mutate(y_lag = lag(y, default = NA)) %>% # HbA1 change at visit j-1
+      group_by(id) %>% # make sure table is grouped by id and ordered by visit
+      mutate(
+        hba1c_0 = hba1c[visit == 0], # HbA1 at baseline
+        hba1c_lag = dplyr::lag(hba1c, default = NA), # HbA1 at visit j-1
+        y = hba1c - hba1c_0
+      ) %>% # HbA1c change
       filter(visit != 0) # do not include baseline visits
 
     if (estimand == "tp") {
@@ -65,45 +66,52 @@ analyse_ipw <- function(estimand = "hyp") {
         exposure = exposure, # indicator for missing data at visit j
         family = "binomial",
         link = "logit",
-        denominator = ~ trt + age + hba1c_lag + rescue_lag,
+        denominator = ~ trt + age + hba1c_lag + R_lag,
         id = id,
         timevar = visit,
         type = "first",
         data = dat_long
       )
-      # browser()
-      model <- estimatr::lm_robust( # OLS with HC2 variance estimator
+      model <- lm_robust( # OLS with HC2 variance estimator
         as.formula(paste0("y ~ trt + hba1c_0 + age")),
         weights = temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0],
-        data = dat_long[dat_long$visit == k & dat_long$exposure == 0, ]
+        data = dat_long[dat_long$visit == k & dat_long$exposure == 0,]
       )
 
       list(
         coef = summary(model)$coefficients["trt", "Estimate"],
-        sd = summary(model)$coefficients["trt", "Std. Error"]
+        sd = summary(model)$coefficients["trt", "Std. Error"],
+        p = summary(model)$coefficients["trt", "Pr(>|t|)"],
+        ci_lower = summary(model)$coefficients["trt", "CI Lower"],
+        ci_upper = summary(model)$coefficients["trt", "CI Upper"]
       )
     } else if (estimand == "hyp") {
-      dat_long$exposure <- ifelse(is.na(dat_long$y) | dat_long$rescue == 1, 1L, 0L) # indicator for missing outcomes and rescue medication
+      dat_long$exposure <- ifelse(is.na(dat_long$y) | dat_long$R == 1, 1L, 0L) # indicator for missing outcomes and rescue medication
 
       temp <- ipw::ipwtm(
         exposure = exposure, # indicator for missingness or rescue
         family = "binomial",
         link = "logit",
-        denominator = ~ trt + age + y_lag,
+        denominator = ~ trt + age + hba1c_lag,
         id = id,
         timevar = visit,
         type = "first", #  models are fitted only on observations up to and including the first time point where y is missing, afterwards weights will be constant
         data = dat_long
       )
-      model <- estimatr::lm_robust( # OLS with HC2 variance estimator
+      fit <- lm( # OLS with HC2 variance estimator
         as.formula(paste0("y ~ trt + hba1c_0 + age")),
         weights = temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0],
-        data = dat_long[dat_long$visit == k & dat_long$exposure == 0, ]
+        data = dat_long[dat_long$visit == k & dat_long$exposure == 0,]
       )
+      model<-lmtest::coeftest(fit, vcov = sandwich::vcovHC(fit, type = "HC2"))
+      ci <- stats::confint(model)
 
       list(
-        coef = summary(model)$coefficients["trt", "Estimate"],
-        sd = summary(model)$coefficients["trt", "Std. Error"]
+        coef = model["trt", "Estimate"],
+        sd = model["trt", "Std. Error"],
+        p = model["trt", "Pr(>|t|)"],
+        ci_lower = ci[2,1],
+        ci_upper = ci[2,2]
       )
     }
   }
