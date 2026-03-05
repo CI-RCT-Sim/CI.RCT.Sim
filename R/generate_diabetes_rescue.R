@@ -79,14 +79,14 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   sigma_resid[lower.tri(sigma_resid)] <- rho * sigma^2
 
   resid <- mvtnorm::rmvnorm(n, mu_resid, sigma_resid)
-
   if (condition$setup == 0) {
     mu <- matrix(NA, nrow = n, ncol = length(visit))
+    Y <- matrix(NA, nrow = n, ncol = length(visit))
     for (i in 1:length(visit)) {
       mu[, i] <- condition$mean_bl +
         visit[i] / condition$k * age_slope
+      Y[, i] <- mu[, i] + eff[i] * response_trt * trt + resid[, i]
     }
-    Y <- mu + eff[i] * response_trt * trt + resid
   } else {
     mu <- matrix(NA, nrow = n, ncol = length(visit))
     for (i in 1:length(visit)) {
@@ -142,7 +142,6 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
     }
   }
   m_start <- rowSums(!wd1)
-  # browser()
   out <- data.frame(id, trt, age, Y, rescue_start, rescue[, 1:(condition$k + 1)] * 1, m_start)
   names(out) <- c("id", "trt", "age", paste("y", visit, sep = ""), "rescue_start", paste("R", visit[1:(condition$k + 1)], sep = ""), "m_start")
   out
