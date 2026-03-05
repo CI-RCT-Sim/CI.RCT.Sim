@@ -88,17 +88,4 @@ analyse_diabetes_rescue_mmrm <- function(
     )
   }
 }
-# How to use
-# Design <- assumptions_diabetes_rescue() |>
-#   true_summary_statistics_diabetes_rescue()
-#
-# condition <- Design[1, ]
-# dat <- generate_diabetes_rescue(condition)
-#
-# # Treatment policy strategy (all observed data)
-# analyse_mmrm_tp <- analyse_diabetes_rescue_mmrm(strategy = "treatment_policy")
-# analyse_mmrm_tp(condition, dat)
-#
-# # Hypothetical strategy (set post-rescue measurements to NA)
-# analyse_mmrm_hyp <- analyse_diabetes_rescue_mmrm(strategy = "hypothetical")
-# analyse_mmrm_hyp(condition, dat)
+
