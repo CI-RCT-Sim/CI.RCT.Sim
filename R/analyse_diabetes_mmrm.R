@@ -15,6 +15,7 @@
 #'
 #' @export
 #' @importFrom mmrm mmrm
+#' @importFrom stats vcov pnorm
 analyse_diabetes_rescue_mmrm <- function(
     ci_level = 0.95,
     strategy = c("treatment_policy", "hypothetical")
