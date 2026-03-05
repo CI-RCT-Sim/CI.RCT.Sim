@@ -52,6 +52,7 @@ The null hypothesis of no treatment effect is rejected if the 95\% CI does not i
 No formal p-value is calculated.
 }
 \examples{
+\donttest{
 Design <- assumptions_diabetes_rescue() |>
   true_summary_statistics_diabetes_rescue()
 
@@ -60,4 +61,5 @@ condition <- Design[1, ]
 dat <- generate_diabetes_rescue(condition)
 
 analyse_diabetes_gcomputation()(condition, dat)
+}
 }
