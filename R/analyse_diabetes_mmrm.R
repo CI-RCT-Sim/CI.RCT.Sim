@@ -1,4 +1,4 @@
-#' Analyse dataset from diabetes rescue scenario using MMRM
+#' Analyse diabetes endpoint using MMRM
 #'
 #' Supports two intercurrent event strategies:
 #' * "treatment_policy" (default) uses all observed data
@@ -60,6 +60,12 @@ analyse_diabetes_rescue_mmrm <- function(
 
     long$y0 <- baseline[match(long$id, dat$id)]
 
+    long$visit <- factor(
+      as.integer(sub("y", "", long$visit)),
+      levels = 1:condition$k
+    )
+    long$y0 <- baseline[match(long$id, dat$id)]
+
     # --- Fit MMRM ---
     fit <- mmrm::mmrm(
       y ~ trt * visit +
@@ -79,6 +85,12 @@ analyse_diabetes_rescue_mmrm <- function(
     df <- fit$beta_vcov_denom_df[term]
 
     tcrit <- qt(1 - (1 - ci_level) / 2, df)
+    term <- paste0("trt:visit", condition$k)
+
+    est <- coef(fit)[[term]]
+    se  <- sqrt(vcov(fit)[term, term])
+
+    z <- qnorm(1 - (1 - ci_level) / 2)
 
     list(
       p = 2 * (1 - pt(abs(est / se), df)),
