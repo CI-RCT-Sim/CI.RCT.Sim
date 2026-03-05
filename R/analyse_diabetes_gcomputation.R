@@ -7,7 +7,7 @@
 #' @export
 #'
 #' @importFrom gfoRmula gformula_continuous_eof lagged static
-#' @importFrom dplyr mutate arrange group_by
+#' @importFrom dplyr mutate arrange group_by lead
 #' @importFrom tidyr pivot_longer
 #' @importFrom magrittr `%>%`
 #' @importFrom data.table as.data.table
@@ -42,6 +42,7 @@
 #' No formal p-value is calculated.
 #'
 #' @examples
+#' \donttest{
 #' Design <- assumptions_diabetes_rescue() |>
 #'   true_summary_statistics_diabetes_rescue()
 #'
@@ -50,6 +51,7 @@
 #' dat <- generate_diabetes_rescue(condition)
 #'
 #' analyse_diabetes_gcomputation()(condition, dat)
+#' }
 analyse_diabetes_gcomputation <- function() {
   # What still remains to be done is
   # add restriction to gcomputation function
@@ -68,8 +70,8 @@ analyse_diabetes_gcomputation <- function() {
       mutate(
         hba1c = y,
         visit = as.numeric(sub("y", "", visit)),
-        rescue = ifelse(!is.na(rescue_start) & rescue_start <= visit, 1, 0)
-      ) %>% # new variable for rescue at visit j
+        R = ifelse(visit == 0, 0, R) # set rescue at baseline to 0
+      ) %>%
       arrange(id, visit) %>%
       group_by(id) %>% # make sure table is grouped by id and ordered by visit
       mutate(
@@ -79,9 +81,9 @@ analyse_diabetes_gcomputation <- function() {
         # create a new column at second-to-last timepoint that holds y at last time point
         # i.e. final outcome
         # to preserve this value while deleting the last row for the model estimation
-        y_k = ifelse(visit == k - 1, lag(y), NA)
-      ) |>
-      dplyr::select(-R)
+        y_k = ifelse(visit == k - 1, dplyr::lead(y), NA)
+      )# |>
+      #dplyr::select(-R)
 
     # Remove final visit i.e. visit k
     dat_long <- dat_long[dat_long$visit != k, ]
@@ -95,21 +97,21 @@ analyse_diabetes_gcomputation <- function() {
     obs_data <- data.table::as.data.table(dat_long)
     time_name <- "visit"
     time_points <- k # number of time-points (because baseline is included and last timepoint excluded)
-    covnames <- c("y", "trt", "rescue")
+    covnames <- c("y", "trt", "R")
     outcome_name <- "y_k"
     covtypes <- c("normal", "binary", "binary")
     histories <- c(gfoRmula::lagged, gfoRmula::lagged)
-    histvars <- list("y", "rescue")
+    histvars <- list("y", "R")
     basecovs <- c("age")
     covparams <- list(covmodels = c(
-      y ~ trt + rescue + lag1_y + age, # + rescue??? (not in the protocol but would make sense to me becasue recue is affected by y-1 and affects y in future)
-      trt ~ 1,
-      rescue ~ trt + y + age
-    )) # correct to put treatment in here?
-    ymodel <- y_k ~ trt + rescue + lag1_y + age
+      y ~ trt + R + lag1_y + age, # include trt + R (protocol deviation)
+      trt ~ 1, # intercept only, trt predicted by no covariates
+      R ~ y + age
+    ))
+    ymodel <- y_k ~ trt + R + lag1_y + age # include trt + R (protocol deviation)
     intvars <- list(
-      c("trt", "rescue"),
-      c("trt", "rescue")
+      c("trt", "R"),
+      c("trt", "R")
     )
     interventions <- list(
       list(
@@ -121,8 +123,8 @@ analyse_diabetes_gcomputation <- function() {
         c(static, rep(0, time_points))
       )
     ) # no rescue
-    int_descript <- c("treatment not rescue", "control no rescue")
-    # restrictions <- list(c("rescue",  "lag1_rescue == 1", gfoRmula::carry_forward))
+    int_descript <- c("treatment no rescue", "control no rescue")
+    restrictions <- list(c("R",  "lag1_R != 1", gfoRmula::carry_forward))
     nsamples <- 500
 
     g.model <- gfoRmula::gformula_continuous_eof(
@@ -137,25 +139,29 @@ analyse_diabetes_gcomputation <- function() {
       intvars = intvars,
       interventions = interventions,
       int_descript = int_descript,
-      # restrictions = restrictions,
+      restrictions = restrictions,
       ref_int = 2,
       histvars = histvars,
       histories = histories,
       basecovs = basecovs,
       nsamples = nsamples,
       show_progress = F,
-      seed = 1
+      seed = 1,
+      ci_method = "percentile"
     )
 
     # mean of difference in mean change over bootstrap samples
     # summary(g.model)
     coef <- g.model$result$`Mean difference`[2] # mean difference between treatments (intervention - control) at visit k
     se <- g.model$result$`MD SE`[2] # se for mean difference
-    # standard error
+    ci_lower <- g.model[["result"]][["MD lower 95% CI"]][2] # 95% lower CI via percentile method
+    ci_upper <- g.model[["result"]][["MD upper 95% CI"]][2] # 95% lower CI via percentile method
 
     list(
       coef = coef,
-      se = se
+      se = se,
+      ci_lower = ci_lower,
+      ci_upper = ci_upper
     )
   }
 }
