@@ -136,11 +136,15 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
     if (miss_start <= (condition$k + 1)) {
       Y[i, miss_start:(condition$k + 1)] <- NA
       rescue[i, miss_start:(condition$k + 1)] <- NA
+      if (any_rescue[i] & (miss_start - 1) <= rescue_start[i]) {
+        rescue_start[i] <- NA
+      }
     }
   }
-
-  out <- data.frame(id, trt, age, Y, rescue_start, rescue[, 1:condition$k + 1] * 1)
-  names(out) <- c("id", "trt", "age", paste("y", visit, sep = ""), "rescue_start", paste("R", visit[1:condition$k + 1], sep = ""))
+  m_start <- rowSums(!wd1)
+  # browser()
+  out <- data.frame(id, trt, age, Y, rescue_start, rescue[, 1:(condition$k + 1)] * 1, m_start)
+  names(out) <- c("id", "trt", "age", paste("y", visit, sep = ""), "rescue_start", paste("R", visit[1:(condition$k + 1)], sep = ""), "m_start")
   out
 }
 

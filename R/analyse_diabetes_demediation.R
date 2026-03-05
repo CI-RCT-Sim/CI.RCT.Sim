@@ -27,6 +27,9 @@ analyse_diabetes_demediation <- function(X) {
         .names = "R{gsub('R', '', .col)}"
       )
     )
+    # if (sd(daat$R1, na.rm = TRUE) == 0) {
+    #   daat$R1[is.na(daat$R1)] <- unique(daat$R1[!is.na(daat$R1)])
+    # }
 
     dat1 <- daat |> filter(trt == 1)
     pred1 <- make.predictorMatrix(dat1)
@@ -40,7 +43,6 @@ analyse_diabetes_demediation <- function(X) {
       mice(dat1, m = 10, print = FALSE, predictorMatrix = pred1, method = meth1, ridge = 1e-5, remove.collinear = FALSE),
       mice(dat0, m = 10, print = FALSE, predictorMatrix = pred0, method = meth0, ridge = 1e-5, remove.collinear = FALSE)
     )
-    # browser()
     analysis <- function(dataa) {
       dat_comp <- dataa |> mutate(
         across(
@@ -56,13 +58,17 @@ analyse_diabetes_demediation <- function(X) {
           dat_comp[, paste0("j", 12 - k - 1)] <- dat_comp[, paste0("j", 12 - k)]
           next
         }
+        # browser()
         # Fit a model to predict the probability of receiving rescue medication at visit 12 - k
-        mod <- logistf(
-          as.formula(paste0("R", 12 - k, "~ trt + age + y0", paste0("+ yc", 1:(12 - k), collapse = " "))),
-          data = dat_comp,
-          pl = FALSE
+        # mod <- logistf(
+        #   as.formula(paste0("R", 12 - k, "~ trt + age + y0 + yc", 12 - k)),#, paste0("+ yc", 1:(12 - k), collapse = " "))),
+        #   data = dat_comp)
+        mod <- glm(as.formula(paste0("R", 12 - k, "~ trt + age + y0 + yc", 12 - k)), # , paste0("+ yc", 1:(12 - k), collapse = " "))),
+          data = dat_comp, family = binomial
         )
-        # browser(expr = length(predict(mod, type = "response")) != nrow(dat_comp))
+        browser(expr = length(predict(mod, type = "response")) != nrow(dat_comp))
+        # index <- which(!is.na(dat_comp[, paste0("R", 12 - k)]))
+        # data[index, paste0("pred_R", 12 - k)] <- pred
         dat_comp[, paste0("pred_R", 12 - k)] <- predict(mod, type = "response")
 
         # Subset the data
@@ -105,20 +111,12 @@ analyse_diabetes_demediation <- function(X) {
     }
     effect <- rep(NA, dats$m)
     effect.var <- rep(NA, dats$m)
-    cil <- rep(NA, dats$m)
-    ciu <- rep(NA, dats$m)
-    ests <- list()
-    # res <- vector("list", dats$m)
     # browser()
     for (i in 1:dats$m) {
       dat <- complete(dats, i)
-      dat[is.na(dat)] <- 0
+      # dat[is.na(dat)] <- 0
       # browser(expr = sum(is.na(dat)) != 0)
-      # res <- boot::boot(dat, analysis, R = 500)
       res <- analysis(dat)
-      # effect[i] <- res$t0[2]
-      # effect.var[i] <- var(res$t[, 2])
-      # ests[[i]] <- res$t[, 2]
       effect[i] <- res["coef.trt"]
       effect.var[i] <- res["se"]^2
     }
@@ -132,8 +130,6 @@ analyse_diabetes_demediation <- function(X) {
       # effect,
       # effect.var,
       ci = ci,
-      # cil = quantile(unlist(ests), 0.025),
-      # ciu = quantile(unlist(ests), 0.975),
       # coefs = end_res$qhat,
       coef = end_res$qbar,
       sd = sqrt(end_res$t)
