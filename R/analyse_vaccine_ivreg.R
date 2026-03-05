@@ -6,11 +6,13 @@
 #' @returns an analyse function that returns a list with the elements
 #'  * `p` the p-value of the exact binomial test
 #'  * `VE` the point estimate for the vaccine efficacy
-#'  * `VE_lower` the lower CI limit
-#'  * `VE_upper` the upper CI limit
+#'  * `VE_lower` the lower CI limit for vaccine efficacy
+#'  * `VE_upper` the upper CI limit for vaccine efficacy
+#'  * `RD` the point estimate for risk difference
+#'  * `RD_lower` the lower CI limit for risk difference
+#'  * `RD_upper` the upper CI limit for risk difference
 #' @export
 #'
-#' @importFrom ivreg ivreg
 #' @importFrom emmeans emmeans regrid
 #'
 #' @examples
@@ -29,6 +31,7 @@ analyse_vaccine_ivreg <- function(ci_level=0.95, VE_margin=0.3){
       within({
         T <- factor(ifelse(((trt==1) & (C==1)), 1L, 0L), levels=c("1", "0"))
         V <- factor(V)
+        W <- factor(W)
         trt <- factor(trt)
         evt <- as.integer(evt)
       })
@@ -54,7 +57,7 @@ analyse_vaccine_ivreg <- function(ci_level=0.95, VE_margin=0.3){
       formula_stage1x <- update(formula_stage1x, ~ . + W)
       formula_stage1y <- update(formula_stage1y, ~ . + W)
       formula_stage2  <- update(formula_stage2 , ~ . + stage1_W)
-      vars_stage1 <- c(vars_stage1, "V1")
+      vars_stage1 <- c(vars_stage1, "W1")
       vars_stage2 <- c(vars_stage2, "stage1_W")
     }
 
@@ -72,6 +75,7 @@ analyse_vaccine_ivreg <- function(ci_level=0.95, VE_margin=0.3){
 
     # marginalize over other variables
     emm <- emmeans(stage2, ~ stage1_T, at=list(stage1_T=c(0,1)))
+    ci_rd <- confint(pairs(emm))
     lemm <- regrid(emm, "log")
     res <- pairs(lemm, type = "response")
     ci <- confint(res)
@@ -80,7 +84,10 @@ analyse_vaccine_ivreg <- function(ci_level=0.95, VE_margin=0.3){
       p = summary(res)$p.value,
       VE = 1-ci$ratio,
       VE_lower = 1-ci$upper.CL,
-      VE_upper = 1-ci$lower.CL
+      VE_upper = 1-ci$lower.CL,
+      RD = ci_rd$estimate,
+      RD_lower = ci_rd$lower.CL,
+      RD_upper = ci_rd$upper.CL
     )
   }
 }

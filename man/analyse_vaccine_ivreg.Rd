@@ -16,8 +16,11 @@ an analyse function that returns a list with the elements
 \itemize{
 \item \code{p} the p-value of the exact binomial test
 \item \code{VE} the point estimate for the vaccine efficacy
-\item \code{VE_lower} the lower CI limit
-\item \code{VE_upper} the upper CI limit
+\item \code{VE_lower} the lower CI limit for vaccine efficacy
+\item \code{VE_upper} the upper CI limit for vaccine efficacy
+\item \code{RD} the point estimate for risk difference
+\item \code{RD_lower} the lower CI limit for risk difference
+\item \code{RD_upper} the upper CI limit for risk difference
 }
 }
 \description{
@@ -28,7 +31,6 @@ Design <- vaccine_scenario() |>
   vaccine_scenario_set_gamma_0() |>
   vaccine_scenario_set_true_eff() |>
   vaccine_scenario_set_samplesize()
-Design
 
 dat <- generate_vaccine(Design[1,])
 my_analyse <- analyse_vaccine_ivreg(ci_level=0.95)
