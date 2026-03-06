@@ -18,8 +18,6 @@ analyse_diabetes_rescue_mmrm <- function(
   strategy <- match.arg(strategy)
 
   function(condition, dat, fixed_objects = NULL) {
-    # keep baseline
-    baseline <- dat$y0
     dat_work <- dat
     baseline <- dat$y0
 
@@ -69,19 +67,17 @@ analyse_diabetes_rescue_mmrm <- function(
     )
 
     # --- Extract treatment effect at final visit ---
-    term <- "trt"
+    term <- "trt" # Main effect of treatment
+    int_term <- paste0("trt:visit", condition$k) # Effect of the interaction of trt and the final visit
 
-    est <- coef(fit)[term]
-    se  <- sqrt(vcov(fit)[term, term])
+    est <- coef(fit)[term] + coef(fit)[int_term]
+    se <- sqrt(vcov(fit)[term, term] + vcov(fit)[int_term, int_term] + 2 * vcov(fit)[term, int_term])
 
     # Satterthwaite df from mmrm
-    df <- fit$beta_vcov_denom_df[term]
+    # df <- fit$beta_vcov_denom_df[term]
+    df <- (summary(fit)$coefficients[term, "df"] + summary(fit)$coefficients[int_term, "df"]) / 2
 
     tcrit <- qt(1 - (1 - ci_level) / 2, df)
-    term <- paste0("trt:visit", condition$k)
-
-    est <- coef(fit)[[term]]
-    se <- sqrt(vcov(fit)[term, term])
 
     z <- qnorm(1 - (1 - ci_level) / 2)
 
@@ -93,4 +89,3 @@ analyse_diabetes_rescue_mmrm <- function(
     )
   }
 }
-
