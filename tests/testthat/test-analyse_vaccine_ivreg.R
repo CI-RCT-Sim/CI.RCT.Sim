@@ -60,4 +60,17 @@ test_that("ivreg vaccine works", {
   expect_gt(res3$p, 0.025)
   expect_lt(res3$VE_lower, 0.3)
   expect_gt(res3$RD_upper, 0)
+
+  # no covariates
+  withr::with_seed(123, {
+    condition4 <- Design |>
+      subset(p_V==0) |>
+      subset(p_W==0) |>
+      head(1)
+
+    dat4 <- condition4 |>
+      generate_vaccine()
+  })
+
+  expect_no_error({res4 <- my_analyse(condition4, dat4)})
 })
