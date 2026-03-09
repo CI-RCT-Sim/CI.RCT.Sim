@@ -88,6 +88,19 @@ Please also add examples to your function. When adding examples, please ensure
 that they run without error, since examples are checked when building the
 package.
 
+Wrap examples that take a long time to run (e.g. requiring simulations) in a
+`\donttest{}` block. So they are not tested each time when `devtools::check` is
+run.
+
+## Tests
+
+If you want to add automated tests to your code use `usethis::use_test` while
+having the R-file you want to test open in Rstudio. A test script is created in
+`tests/testthat`. Add the code you want to be run to test and check properties
+of the output, warnings, errors, ... with the `expect_...` functions from the
+`testthat` pacakge. If you need any other packages for testing, add them to
+`Suggests` in the `DESCRIPTION` file.
+
 ## Package Dependencies
 
 If dependencies are not automatically added to DESCRIPTION from roxygen tags by
