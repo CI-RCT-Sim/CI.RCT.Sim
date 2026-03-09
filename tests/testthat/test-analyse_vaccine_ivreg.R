@@ -8,8 +8,10 @@ test_that("ivreg vaccine works", {
   my_analyse <- analyse_vaccine_ivreg(ci_level=0.95)
 
   # pV > 0
-
-  dat <- generate_vaccine(Design[3, ])
+  # set seed to avoid the off-chance that none of the V are 1
+  withr::with_seed(123, {
+    dat <- generate_vaccine(Design[3, ])
+  })
   expect_no_error({res <- my_analyse(Design[3, ], dat)})
 
   dat1 <- dat |>
@@ -24,8 +26,10 @@ test_that("ivreg vaccine works", {
   expect_lt(abs(mod_ivreg$coefficients["T0"] + res$RD), .Machine$double.eps * 2, "same result as with IV reg from package")
 
   # pW > 0
-
-  dat2 <- generate_vaccine(Design[4, ])
+  # set seed to avoid the off chance that none of the W are 1
+  withr::with_seed(456, {
+    dat2 <- generate_vaccine(Design[4, ])
+  })
 
   expect_no_error({res2 <- my_analyse(Design[4, ], dat2)})
 
@@ -40,4 +44,20 @@ test_that("ivreg vaccine works", {
 
   expect_lt(abs(mod_ivreg2$coefficients["T0"] + res2$RD), .Machine$double.eps * 2, "same result as with IV reg from package")
 
+  # no effect
+  # set seed to ensure that we are in a situation in which the test does not commit a type I error
+  withr::with_seed(789, {
+    condition3 <- Design |>
+      subset(beta_A2==0) |>
+      head(1)
+
+    dat3 <- condition3 |>
+      generate_vaccine()
+  })
+
+  # some sanity checks on p values and CIs
+  expect_no_error({res3 <- my_analyse(condition3, dat3)})
+  expect_gt(res3$p, 0.025)
+  expect_lt(res3$VE_lower, 0.3)
+  expect_gt(res3$RD_upper, 0)
 })

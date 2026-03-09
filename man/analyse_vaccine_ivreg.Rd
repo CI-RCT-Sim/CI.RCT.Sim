@@ -14,7 +14,7 @@ analyse_vaccine_ivreg(ci_level = 0.95, VE_margin = 0.3)
 \value{
 an analyse function that returns a list with the elements
 \itemize{
-\item \code{p} the p-value of the exact binomial test
+\item \code{p} the p-value of the super-superiority test
 \item \code{VE} the point estimate for the vaccine efficacy
 \item \code{VE_lower} the lower CI limit for vaccine efficacy
 \item \code{VE_upper} the upper CI limit for vaccine efficacy
@@ -32,7 +32,7 @@ Design <- vaccine_scenario() |>
   vaccine_scenario_set_true_eff() |>
   vaccine_scenario_set_samplesize()
 
-dat <- generate_vaccine(Design[1,])
+dat <- generate_vaccine(Design[3,])
 my_analyse <- analyse_vaccine_ivreg(ci_level=0.95)
-my_analyse(Design[1, ], dat)
+my_analyse(Design[3, ], dat)
 }

@@ -4,7 +4,7 @@
 #' @param VE_margin vaccine efficacy margin for the super-superiority test
 #'
 #' @returns an analyse function that returns a list with the elements
-#'  * `p` the p-value of the exact binomial test
+#'  * `p` the p-value of the super-superiority test
 #'  * `VE` the point estimate for the vaccine efficacy
 #'  * `VE_lower` the lower CI limit for vaccine efficacy
 #'  * `VE_upper` the upper CI limit for vaccine efficacy
@@ -13,7 +13,9 @@
 #'  * `RD_upper` the upper CI limit for risk difference
 #' @export
 #'
-#' @importFrom emmeans emmeans regrid
+#' @importFrom emmeans emmeans regrid contrast
+#' @importFrom graphics pairs
+#' @importFrom stats lm.fit model.matrix update
 #'
 #' @examples
 #' Design <- vaccine_scenario() |>
@@ -21,9 +23,9 @@
 #'   vaccine_scenario_set_true_eff() |>
 #'   vaccine_scenario_set_samplesize()
 #'
-#' dat <- generate_vaccine(Design[1,])
+#' dat <- generate_vaccine(Design[3,])
 #' my_analyse <- analyse_vaccine_ivreg(ci_level=0.95)
-#' my_analyse(Design[1, ], dat)
+#' my_analyse(Design[3, ], dat)
 analyse_vaccine_ivreg <- function(ci_level=0.95, VE_margin=0.3){
   function(condition, dat, fixed_objects = NULL){
 
@@ -75,16 +77,21 @@ analyse_vaccine_ivreg <- function(ci_level=0.95, VE_margin=0.3){
 
     # marginalize over other variables
     emm <- emmeans(stage2, ~ stage1_T, at=list(stage1_T=c(0,1)))
-    ci_rd <- confint(pairs(emm))
+    # results on the linear scale (risk-difference)
+    ci_rd <- emm |>
+      pairs() |>
+      confint(level=ci_level)
+    # results on the log scale (risk-ratio)
     lemm <- regrid(emm, "log")
-    res <- pairs(lemm, type = "response")
-    ci <- confint(res)
+    ci_rr <- lemm |>
+      contrast(method="pairwise", type="response") |>
+      summary(null=log(1-VE_margin), side="<", infer=TRUE, level=ci_level)
 
     list(
-      p = summary(res)$p.value,
-      VE = 1-ci$ratio,
-      VE_lower = 1-ci$upper.CL,
-      VE_upper = 1-ci$lower.CL,
+      p = ci_rr$p.value,
+      VE = 1-ci_rr$ratio,
+      VE_lower = 1-ci_rr$upper.CL,
+      VE_upper = 1-ci_rr$lower.CL,
       RD = ci_rd$estimate,
       RD_lower = ci_rd$lower.CL,
       RD_upper = ci_rd$upper.CL
