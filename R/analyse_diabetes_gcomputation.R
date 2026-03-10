@@ -42,6 +42,7 @@
 #' No formal p-value is calculated.
 #'
 #' @examples
+#' \donttest{
 #' Design <- assumptions_diabetes_rescue() |>
 #'   true_summary_statistics_diabetes_rescue()
 #'
@@ -50,6 +51,7 @@
 #' dat <- generate_diabetes_rescue(condition)
 #'
 #' analyse_diabetes_gcomputation()(condition, dat)
+#' }
 analyse_diabetes_gcomputation <- function() {
   # What still remains to be done is
   # add restriction to gcomputation function

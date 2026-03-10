@@ -15,15 +15,14 @@
 #'
 #' @export
 #' @importFrom mmrm mmrm
+#' @importFrom stats vcov pnorm pt qt
 analyse_diabetes_rescue_mmrm <- function(
-    ci_level = 0.95,
-    strategy = c("treatment_policy", "hypothetical")
+  ci_level = 0.95,
+  strategy = c("treatment_policy", "hypothetical")
 ) {
-
   strategy <- match.arg(strategy)
 
   function(condition, dat, fixed_objects = NULL) {
-
     dat_work <- dat
     baseline <- dat$y0
 
@@ -49,6 +48,17 @@ analyse_diabetes_rescue_mmrm <- function(
 
     # --- Prepare variables ---
     long$id <- factor(long$id)
+
+    long$visit <- factor(
+      as.integer(sub("y", "", long$visit)),
+      levels = 1:condition$k
+    )
+
+    # Set FINAL visit as reference so trt coefficient = effect at final visit
+    long$visit <- stats::relevel(long$visit, ref = as.character(condition$k))
+
+    long$y0 <- baseline[match(long$id, dat$id)]
+
     long$visit <- factor(
       as.integer(sub("y", "", long$visit)),
       levels = 1:condition$k
@@ -65,18 +75,25 @@ analyse_diabetes_rescue_mmrm <- function(
     )
 
     # --- Extract treatment effect at final visit ---
-    term <- paste0("trt:visit", condition$k)
+    term <- "trt" # Main effect of treatment
+    int_term <- paste0("trt:visit", condition$k) # Effect of the interaction of trt and the final visit
 
-    est <- coef(fit)[[term]]
-    se  <- sqrt(vcov(fit)[term, term])
+    est <- coef(fit)[term] + coef(fit)[int_term]
+    se <- sqrt(vcov(fit)[term, term] + vcov(fit)[int_term, int_term] + 2 * vcov(fit)[term, int_term])
+
+    # Satterthwaite df from mmrm
+    # df <- fit$beta_vcov_denom_df[term]
+    df <- (summary(fit)$coefficients[term, "df"] + summary(fit)$coefficients[int_term, "df"]) / 2
+
+    tcrit <- qt(1 - (1 - ci_level) / 2, df)
 
     z <- qnorm(1 - (1 - ci_level) / 2)
 
     list(
-      p = 2 * (1 - pnorm(abs(est / se))),
+      p = 2 * (1 - pt(abs(est / se), df)),
       coef = est,
-      ci_lower = est - z * se,
-      ci_upper = est + z * se
+      ci_lower = est - tcrit * se,
+      ci_upper = est + tcrit * se
     )
   }
 }

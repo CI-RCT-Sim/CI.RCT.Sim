@@ -9,12 +9,14 @@
 #' @importFrom mice mice make.method make.predictorMatrix complete rbind pool.scalar
 #' @importFrom dplyr cur_column across matches mutate filter case_when select
 #' @importFrom logistf logistf
+#' @importFrom tidyselect starts_with
 #'
 #' @examples
+#' \donttest{
 #' setting <- assumptions_diabetes_rescue()[1, ] |> true_summary_statistics_diabetes_rescue()
 #' dat <- generate_diabetes_rescue(setting)
 #' analyse_diabetes_demediation()(setting, dat)
-#'
+#' }
 analyse_diabetes_demediation <- function(X) {
   function(condition, dat, fixed_objects = NULL) {
     # Convert the logical of receiving rescue at any point in to a longitudinal measurement in wide format
@@ -35,8 +37,8 @@ analyse_diabetes_demediation <- function(X) {
     pred0 <- make.predictorMatrix(dat0)
     pred0[, c("id", "rescue_start", "trt")] <- 0
     dats <- rbind(
-      mice(dat1, m = 5, print = FALSE, predictorMatrix = pred1, method = make.method(dat1), ridge = 1e-5, remove.collinear = FALSE),
-      mice(dat0, m = 5, print = FALSE, predictorMatrix = pred0, method = make.method(dat0), ridge = 1e-5, remove.collinear = FALSE)
+      mice(dat1, m = 5, printFlag = FALSE, predictorMatrix = pred1, method = make.method(dat1), ridge = 1e-5, remove.collinear = FALSE),
+      mice(dat0, m = 5, printFlag = FALSE, predictorMatrix = pred0, method = make.method(dat0), ridge = 1e-5, remove.collinear = FALSE)
     )
     # browser()
     analysis <- function(dataa, indicator) {
