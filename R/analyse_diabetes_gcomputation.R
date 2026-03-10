@@ -1,5 +1,7 @@
 #' Analyse Dataset with G-estimation (G-computation via gformula_continuous_eof)
 #'
+#' @param setup determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
+#'
 #' @return A function that, when called with `condition` and `dat`, returns a list with:
 #' * `coef`      estimated difference in mean change in HbA1c between treatment groups
 #' * `sd`       standard error for coef
@@ -28,14 +30,15 @@
 #'   - *Treatment policy strategy*: Ignore treatment discontinuation (i.e., continue treatment in counterfactual)
 #'
 #' The joint distribution of age, HbA1c, and rescue medication is modeled over time:
-#' - change HbA1c ~ lag1(HbA1c) + age + trt
-#' - Rescue ~ change HbA1c + age + trt
+#' - change HbA1c ~ lag1(HbA1c) + age + trt + R
+#' - Rescue ~ change HbA1c + age
 #'
 #' A restriction is applied: once rescue is initiated, it remains on (to reflect continuous use).
+#'
 #' The intervention sets rescue = 0 for all patients and all time points (no rescue allowed).
 #' Treatment discontinuation is ignored (treatment policy).
 #'
-#' Bootstrap (500 samples, percentile method) is used to compute 95% confidence intervals
+#' Bootstrap (200 samples, percentile method) is used to compute 95% confidence intervals
 #' for the mean difference in change in HbA1c between groups.
 #'
 #' The null hypothesis of no treatment effect is rejected if the 95% CI does not include 0.
@@ -50,13 +53,12 @@
 #'
 #' dat <- generate_diabetes_rescue(condition)
 #'
-#' analyse_diabetes_gcomputation()(condition, dat)
+#' analyse_diabetes_gcomputation(setup = 1)(condition, dat)
+#' analyse_diabetes_gcomputation(setup = 0)(condition, dat)
 #' }
-analyse_diabetes_gcomputation <- function() {
-  # What still remains to be done is
-  # add restriction to gcomputation function
-  # find out what the output is we are interested in
-  # documentation
+analyse_diabetes_gcomputation <- function(setup = 1) {
+
+  stopifnot(setup %in% c(1, 0))
 
   function(condition, dat, fixed_objects = NULL) {
     k <- condition$k # number of last visit
@@ -88,6 +90,12 @@ analyse_diabetes_gcomputation <- function() {
     # Remove final visit i.e. visit k
     dat_long <- dat_long[dat_long$visit != k, ]
 
+    # Under scenario 1 (setup = 0)
+    # when rescue is started
+    # treatment group should switch to control, and control should stay in control
+    if (setup == 0) {
+      dat_long[!is.na(dat_long$R) & dat_long$R == 1,]$trt <- 0
+    }
     # Run g-computation with bootstrap
     # We simulate Hba1c values under the intervention (no rescue) and then
     # estimate the mean change in HbA1c at the final visit
@@ -125,7 +133,8 @@ analyse_diabetes_gcomputation <- function() {
     ) # no rescue
     int_descript <- c("treatment no rescue", "control no rescue")
     restrictions <- list(c("R",  "lag1_R != 1", gfoRmula::carry_forward))
-    nsamples <- 500
+
+    nsamples <- 200
 
     g.model <- gfoRmula::gformula_continuous_eof(
       obs_data = obs_data,
