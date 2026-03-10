@@ -4,7 +4,10 @@
 \alias{analyse_diabetes_gcomputation}
 \title{Analyse Dataset with G-estimation (G-computation via gformula_continuous_eof)}
 \usage{
-analyse_diabetes_gcomputation()
+analyse_diabetes_gcomputation(setup = 1)
+}
+\arguments{
+\item{setup}{determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)}
 }
 \value{
 A function that, when called with \code{condition} and \code{dat}, returns a list with:
@@ -37,15 +40,16 @@ The estimand is:
 
 The joint distribution of age, HbA1c, and rescue medication is modeled over time:
 \itemize{
-\item change HbA1c ~ lag1(HbA1c) + age + trt
-\item Rescue ~ change HbA1c + age + trt
+\item change HbA1c ~ lag1(HbA1c) + age + trt + R
+\item Rescue ~ change HbA1c + age
 }
 
 A restriction is applied: once rescue is initiated, it remains on (to reflect continuous use).
+
 The intervention sets rescue = 0 for all patients and all time points (no rescue allowed).
 Treatment discontinuation is ignored (treatment policy).
 
-Bootstrap (500 samples, percentile method) is used to compute 95\% confidence intervals
+Bootstrap (200 samples, percentile method) is used to compute 95\% confidence intervals
 for the mean difference in change in HbA1c between groups.
 
 The null hypothesis of no treatment effect is rejected if the 95\% CI does not include 0.
@@ -60,6 +64,7 @@ condition <- Design[1, ]
 
 dat <- generate_diabetes_rescue(condition)
 
-analyse_diabetes_gcomputation()(condition, dat)
+analyse_diabetes_gcomputation(setup = 1)(condition, dat)
+analyse_diabetes_gcomputation(setup = 0)(condition, dat)
 }
 }
