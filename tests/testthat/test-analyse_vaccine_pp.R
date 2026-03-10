@@ -1,28 +1,52 @@
-test_that("multiplication works", {
+test_that("analyse vaccine per protocol works", {
   Design <- vaccine_scenario() |>
     vaccine_scenario_set_gamma_0() |>
     vaccine_scenario_set_true_eff() |>
     vaccine_scenario_set_samplesize()
 
-  condition <- Design[3, ]
+  my_analyse <- analyse_vaccine_pp(ci_level=0.95)
 
-  # combinations of non-estimable variables
-  cond1 <- cond2 <- cond3 <- condition
-  cond2$p_W <- 0.3
-  cond2$p_V <- 0
-  cond3$p_W <- 0.3
+  # pV > 0
+  # set seed to avoid the off-chance that none of the V are 1
+  withr::with_seed(123, {
+    dat <- generate_vaccine(Design[3, ])
+  })
+  expect_no_error({res <- my_analyse(Design[3, ], dat)})
 
-  dat1 <- generate_vaccine(cond1)
-  dat2 <- generate_vaccine(cond2)
-  dat3 <- generate_vaccine(cond3)
+  # pW > 0
+  # set seed to avoid the off chance that none of the W are 1
+  withr::with_seed(456, {
+    dat2 <- generate_vaccine(Design[4, ])
+  })
 
-  my_analyse <- analyse_vaccine_pp(ci_level=0.95, VE_margin=0.3)
+  expect_no_error({res2 <- my_analyse(Design[4, ], dat2)})
 
-  expect_no_error({res1 <- my_analyse(cond1, dat1)})
-  expect_no_error({res2 <- my_analyse(cond2, dat2)})
-  expect_no_error({res3 <- my_analyse(cond3, dat3)})
+  # no effect
+  # set seed to ensure that we are in a situation in which the test does not commit a type I error
+  withr::with_seed(789, {
+    condition3 <- Design |>
+      subset(beta_A2==0) |>
+      head(1)
 
-  res1
-  res1b <- analyse_vaccine_pp(VE_margin=0.2)(cond1, dat1)
-  expect_lte(res1b$p, res1$p, "expect lower p-value for lower super-superiority margin")
+    dat3 <- condition3 |>
+      generate_vaccine()
+  })
+
+  # some sanity checks on p values and CIs
+  expect_no_error({res3 <- my_analyse(condition3, dat3)})
+  expect_gt(res3$p, 0.025)
+  expect_lt(res3$VE_lower, 0.3)
+
+  # no covariates
+  withr::with_seed(123, {
+    condition4 <- Design |>
+      subset(p_V==0) |>
+      subset(p_W==0) |>
+      head(1)
+
+    dat4 <- condition4 |>
+      generate_vaccine()
+  })
+
+  expect_no_error({res4 <- my_analyse(condition4, dat4)})
 })
