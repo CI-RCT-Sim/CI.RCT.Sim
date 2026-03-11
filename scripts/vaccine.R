@@ -60,7 +60,7 @@ clusterEvalQ(cl, {
 clusterExport(cl = cl, varlist = c("alpha"))
 
 results <- runSimulation(
-  design = sim_parameters[17, ],
+  design = sim_parameters,
   replications = N_sim,
   generate = generate_vaccine,
   analyse = my_analyse,
