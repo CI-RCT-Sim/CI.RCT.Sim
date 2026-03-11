@@ -20,7 +20,7 @@ vaccine_scenario_set_samplesize(
   Design,
   alpha = 0.025,
   CSE = 0.3,
-  power = 0.9,
+  power = 0.8,
   r = 1
 )
 }
