@@ -98,6 +98,34 @@ cox_model_ipw <- function(data,buffer) {
   
 }
 
+cox_model_ipw_nocov <- function(data,buffer) {
+  
+  dat_withdraw <- data %>% filter(event_disc==1,!duplicated(ID))
+  fit_withdraw_0 <- glm(withdraw~X+Z,data=dat_withdraw%>%filter(A==0),family = binomial(link = "logit"))
+  fit_withdraw_1 <- glm(withdraw~X+Z,data=dat_withdraw%>%filter(A==1),family = binomial(link = "logit"))
+  
+  
+  p0 <- predict(fit_withdraw_0, newdata = data, type = "response")
+  p1 <- predict(fit_withdraw_1, newdata = data, type = "response")
+  lp <- c()
+  for (i in 1:dim(data)[1]) {
+    if (data$disc[i]==1) {
+      if (data[i,"A"]==0) {
+        lp <- c(lp,1-p0[i])
+      }else {
+        lp <- c(lp,1-p1[i])
+      }
+      
+    } else {
+      lp <- c(lp,1)
+    } 
+  } 
+  data$IPW <- 1/lp
+  (coxph(Surv(t_mace_start,t_mace_stop,event_mace)~A,data=data,id=ID,weights=IPW))
+  
+}
+
+
 #### Toy example ####
 assumed_window <- as.numeric(Design[1,"assumed_window"])
 
