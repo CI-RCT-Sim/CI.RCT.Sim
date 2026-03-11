@@ -20,6 +20,7 @@ vaccine_scenario_set_samplesize(
   Design,
   alpha = 0.025,
   CSE = 0.3,
+  VE_H1 = 0.7,
   power = 0.8,
   r = 1
 )
@@ -38,6 +39,8 @@ vaccine_scenario_set_samplesize(
 \item{alpha}{for sample size calculation: one-sided alpha level}
 
 \item{CSE}{for sample size calculation: super-superiority margin on the VE scale}
+
+\item{VE_H1}{vaccine efficacy assumed for sample size planning}
 
 \item{power}{for sample size calculation: target power}
 }
