@@ -1,10 +1,14 @@
-devtools::load_all()
+# devtools::install()
+# renv::deactivate()
+# update.packages(ask=FALSE)
+library(CI.RCT.Sim)
+library(parallel)
 
 # -------------------------------------------------------------------
 # Define parameter values and derived quantities
 # -------------------------------------------------------------------
 
-sim_parameters <-   Design <- vaccine_scenario() |>
+sim_parameters <- vaccine_scenario() |>
   vaccine_scenario_set_gamma_0() |>
   vaccine_scenario_set_true_eff() |>
   vaccine_scenario_set_samplesize() |>
@@ -16,7 +20,7 @@ sim_parameters <-   Design <- vaccine_scenario() |>
 # Constants for simulation
 # -------------------------------------------------------------------
 
-N_sim <- 10 # 00
+N_sim <- 5000
 alpha <- 0.05
 
 # -------------------------------------------------------------------
@@ -48,17 +52,26 @@ my_summarise <- create_summarise_function(
 # Run the simulations
 # -------------------------------------------------------------------
 
+cl <- makeCluster(detectCores()-1)
+clusterEvalQ(cl, {
+  library("CI.RCT.Sim")
+})
+
+clusterExport(cl = cl, varlist = c("alpha"))
+
 results <- runSimulation(
-  design = sim_parameters,
+  design = sim_parameters[17, ],
   replications = N_sim,
   generate = generate_vaccine,
   analyse = my_analyse,
   summarise = my_summarise,
-  fixed_objects = list(include_unobserved=FALSE)
+  fixed_objects = list(include_unobserved=FALSE),
+  parallel = TRUE,
+  cl = cl
 )
 
 # -------------------------------------------------------------------
 # Inspect results
 # -------------------------------------------------------------------
 
-results
+save(results, file=format(Sys.Date(), "results_test_%Y-%m%-%d_%H%M.Rdata"))
