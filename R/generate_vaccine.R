@@ -287,10 +287,11 @@ vaccine_scenario_set_true_eff <- function(Design){
 #' @param alpha for sample size calculation: one-sided alpha level
 #' @param CSE for sample size calculation: super-superiority margin on the VE scale
 #' @param power for sample size calculation: target power
+#' @param VE_H1 vaccine efficacy assumed for sample size planning
 #'
 #' @returns a Design dataset with the added columns n_trt and n_ctrl
 #' @export
-vaccine_scenario_set_samplesize <- function(Design, alpha=0.025, CSE=0.3, power=0.8, r=1){
+vaccine_scenario_set_samplesize <- function(Design, alpha=0.025, CSE=0.3, VE_H1=0.7, power=0.8, r=1){
   sample_size_formula_nauta <- function(alpha, VE, AR0, CSE, power, r){
     theta0 <- 1-CSE
     p0 <- AR0
@@ -314,7 +315,7 @@ vaccine_scenario_set_samplesize <- function(Design, alpha=0.025, CSE=0.3, power=
 
 
   set_samplesize_rowwise <- function(condition){
-    ns <- sample_size_formula_nauta(alpha, 1-exp(condition$beta_A2), miniPCH::ppch(condition$follow_up, c(0, condition$dose_interval), c(0, condition$lambda_post)), CSE, power, r)
+    ns <- sample_size_formula_nauta(alpha, VE_H1, miniPCH::ppch(condition$follow_up, c(0, condition$dose_interval), c(0, condition$lambda_post)), CSE, power, r)
     condition$n_trt <- ns[2]
     condition$n_ctrl <- ns[1]
     condition
