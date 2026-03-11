@@ -99,7 +99,7 @@ generate_vaccine <- function(condition, fixed_objects = list(include_unobserved=
   theta_early <- theta_1
   theta_late  <- theta_1 + C * (theta_2 - theta_1)
 
-  t_ <- c(0, 14)
+  t_ <- c(0, condition$dose_interval)
   lambda_0 <- diag(c(0, condition$lambda_post))
 
   # under potential treatment allocation to control
@@ -246,7 +246,7 @@ vaccine_scenario_set_true_eff <- function(Design){
     }
 
     pi <- Vectorize(\(y,v,w){
-      t_ <- c(0, 14)
+      t_ <- c(0, condition$dose_interval)
       lambda_0 <- diag(c(0, condition$lambda_post))
       theta_1 <- condition$beta_A1 + condition$beta_AW * w
       theta_2 <- condition$beta_A2 + condition$beta_AW * w
