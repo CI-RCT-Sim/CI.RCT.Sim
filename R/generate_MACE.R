@@ -80,7 +80,6 @@ Design <- do.call(createDesign,design_list)
 ###     t_mace, event_mace, t_disc censored at one year. At this stage we don't
 ###     censor MACE events outside the buffer window
 ###     with no_withdraw=T, there is no withdrawal for the estimation of the true TE
-###     discontinuation events are not recorded in this function
 
 generate_one_tte2 <- function(X,Z,L,A,ID,hazard_disc,logit_withdraw,beta_tot_before,beta_tot_buffer,beta_tot_after,condition,fixed_objects=c(),no_withdraw=F) {
   true_window <- condition$true_window
@@ -134,7 +133,9 @@ generate_one_tte2 <- function(X,Z,L,A,ID,hazard_disc,logit_withdraw,beta_tot_bef
     dat_temp$t_mace <- c(min(dat_i$T_disc,1))
     dat_temp$event_mace <- c(0)
     dat_temp$censor  <- 1
-    dat_temp$withdraw  <- ifelse(dat_i$T_disc>1,0,1)
+    dat_temp$withdraw  <- dat_i$T_disc<1
+    dat_temp$t_disc <- min(dat_i$T_disc,1)
+    dat_temp$event_disc <- dat_i$T_disc<1
     
   } else {
     ### otherwise, record MACE event, with administrative censoring at one year
@@ -142,26 +143,12 @@ generate_one_tte2 <- function(X,Z,L,A,ID,hazard_disc,logit_withdraw,beta_tot_bef
     dat_temp$event_mace <- ifelse(dat_i$T_mace>1,0,1)
     dat_temp$censor  <- ifelse(dat_i$T_mace>1,1,0)
     dat_temp$withdraw  <- 0
+    dat_temp$t_disc <- ifelse(dat_i$T_mace<dat_i$T_disc,min(dat_i$T_mace,1),min(dat_i$T_disc,1))
+    dat_temp$event_disc <- ifelse(dat_i$T_mace<dat_i$T_disc,0,dat_i$T_disc<1)
   }
   data_formatted <- dat_temp
   data_formatted$T_mace <- T_mace
   return(data_formatted)
-}
-
-### function that takes in input data from the repetition of generate_one_tte2
-### and transforms T_disc into t_disc (with administrative censoring) and event_disc
-
-transform_disc_tte <- function(data) {
-  data_temp <- data %>%select(-censor)
-  data_parsed <- data_temp%>%mutate(event_disc = ifelse(T_disc>1,0,1),
-                                    censor= (T_disc>1),
-                                    t_disc = ifelse(T_disc>1,1,T_disc))%>%
-                             select(-T_disc)%>%
-    mutate(event_disc = ifelse(t_disc>t_mace,0,event_disc),
-           t_disc = ifelse(t_disc>t_mace,t_mace,t_disc),
-           censor = ifelse(t_disc>t_mace,1,censor) )
-  return(data_parsed)
-  
 }
 
 
@@ -221,8 +208,7 @@ Generate <- function(condition, fixed_objects) {
   
   res <- pmap(cov_df,generate_one_tte2,condition=condition,no_withdraw=F)%>%bind_rows
   dat_f <- res%>%select(-prob_withdraw,-u_mace,-m_logu,-censor_mace,-censor_disc,-disc_before_mace,-prob_withdraw)
-  dat_f <- transform_disc_tte(dat_f)%>%select(-censor)
-  
+
   return(dat_f)
 }
 
