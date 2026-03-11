@@ -24,26 +24,27 @@ vaccine_scenario <- function(print=interactive()){
   skel <- "params_scenarios_grid(
   p_V = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk
   p_W = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk and modifying treatment effect
-  lambda_post = -log(1-(1/c(500, 1000, 2000)))/(365/12), # force of infection (baseline infection hazard) after 14 days, monthly incidence of 1/500, 1/1000, 1/2000
+  lambda_post = -log(1-(1/c(500, 1000, 2000)))/(30/7), # force of infection as weekly incidence rate (baseline infection hazard) after 14 days, monthly incidence of 1/500, 1/1000, 1/2000
   overall_compliance = c(0.95), # used to callibrate gamma0
-  gamma_W  = c(-0.8, 0), # regression parameters for compliance
-  gamma_V  = c(0.5, 0),
-  gamma_A  = c(-0.357, 0),
-  gamma_AW = c(-0.3, 0),
-  beta_V  = c(log(1.5), 0), # regression parameters for time to infection
-  beta_W  = c(log(1.2), 0),
-  effect_before_d2 = c(1,0), # indicator whether there's any effect before d2, used to set beta_A1
-  beta_A2  = log(1-c(0.7, 0, 0.5, 0.9)), #
-  beta_AW = c(log(0.8), 0),
-  follow_up = c(365)
+  gamma_W  = c(-0.8, 0), # compliance modifier predictive covariate
+  gamma_V  = c(0.5, 0), # compliance modifier prognostic covariate
+  gamma_A  = c(-0.357, 0), # compliance modifier treatment group
+  gamma_AW = c(-0.3, 0), # compliance modifier treatment interaction predictive covariate
+  beta_V  = c(log(1.5), 0), # prognostic effect prognostic covariate
+  beta_W  = c(log(1.2), 0), # prognostic effect predictive covariate
+  effect_before_d2 = c(T,F), # indicator whether one dose has an effect, used to set beta_A1
+  beta_A2  = log(1-c(0.7, 0, 0.5, 0.9)), # first order Vaccine efficacy with full vaccination
+  beta_AW = c(log(0.8), 0), # effect modifier predictive covariate
+  follow_up = c(26), # overall follow_up (weeks)
+  dose_interval = c(2) # time of second dose (weeks)
 ) |>
 transform(
-  # either 0 (no effect before d2) or VE before dose 2 is VE after dose 2 - 0.3
-  beta_A1 = 1-(1-ifelse(
+  # either 0 (no effect with one dose) or VE with one dose is VE with two dose 2 - 0.2
+  beta_A1 = (ifelse(
     beta_A2 == 0,
     0,
-    beta_A2 + 0.3
-  )*effect_before_d2)
+    log(1-abs(1-(exp(beta_A2) + 0.2))))
+  * effect_before_d2)
 )
 "
 
@@ -98,7 +99,7 @@ generate_vaccine <- function(condition, fixed_objects = list(include_unobserved=
   theta_early <- theta_1
   theta_late  <- theta_1 + C * (theta_2 - theta_1)
 
-  t_ <- c(0, 14)
+  t_ <- c(0, condition$dose_interval)
   lambda_0 <- diag(c(0, condition$lambda_post))
 
   # under potential treatment allocation to control
@@ -245,7 +246,7 @@ vaccine_scenario_set_true_eff <- function(Design){
     }
 
     pi <- Vectorize(\(y,v,w){
-      t_ <- c(0, 14)
+      t_ <- c(0, condition$dose_interval)
       lambda_0 <- diag(c(0, condition$lambda_post))
       theta_1 <- condition$beta_A1 + condition$beta_AW * w
       theta_2 <- condition$beta_A2 + condition$beta_AW * w
@@ -289,7 +290,7 @@ vaccine_scenario_set_true_eff <- function(Design){
 #'
 #' @returns a Design dataset with the added columns n_trt and n_ctrl
 #' @export
-vaccine_scenario_set_samplesize <- function(Design, alpha=0.025, CSE=0.3, power=0.9, r=1){
+vaccine_scenario_set_samplesize <- function(Design, alpha=0.025, CSE=0.3, power=0.8, r=1){
   sample_size_formula_nauta <- function(alpha, VE, AR0, CSE, power, r){
     theta0 <- 1-CSE
     p0 <- AR0
@@ -313,7 +314,7 @@ vaccine_scenario_set_samplesize <- function(Design, alpha=0.025, CSE=0.3, power=
 
 
   set_samplesize_rowwise <- function(condition){
-    ns <- sample_size_formula_nauta(alpha, 1-exp(condition$beta_A2), miniPCH::ppch(365, c(0, 14), c(0, condition$lambda_post)), CSE, power, r)
+    ns <- sample_size_formula_nauta(alpha, 1-exp(condition$beta_A2), miniPCH::ppch(condition$follow_up, c(0, condition$dose_interval), c(0, condition$lambda_post)), CSE, power, r)
     condition$n_trt <- ns[2]
     condition$n_ctrl <- ns[1]
     condition
