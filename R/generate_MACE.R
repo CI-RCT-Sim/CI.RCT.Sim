@@ -1,89 +1,95 @@
-library(tidyverse)
-library(SimDesign)
+#' @returns A data.frame with parameter Values for scenarios
+#' @export
+#' @describeIn generate_mace generate default assumptions `tibble`
+assumptions_mace <- function(){
+
+  baseline <- list(
+
+    # MACE parameters
+    beta_mace_0 = c(log(-log(1-0.1))),
+    beta_mace_trt_before = c(log(1.5)),
+    beta_mace_trt_buffer = c(log(1.5)),
+    beta_mace_post = c(0),
+    beta_mace_X = c(log(2)),
+    beta_mace_Z = c(log(2)),
+    beta_mace_L = c(0),
+
+    # Discontinuation parameters
+    beta_disc_0 = c(log(-log(1-0.5))),
+    beta_disc_trt = c(log(2)),
+    beta_disc_X = c(log(2)),
+    beta_disc_Z = c(log(2)),
+    beta_disc_L = c(0),
+
+    # Withdrawal parameters
+    beta_wd_0 = c(log(0.5/(1-0.5))),
+    beta_wd_trt = c(log(2)),
+    beta_wd_X = c(log(2)),
+    beta_wd_Z = c(log(2)),
+    beta_wd_L = c(0),
+
+    # Buffer window
+    true_window = c(1/12),
+    assumed_window = c(1/12)
+  )
 
 
-baseline <- list(
+  # mace parameters
+  further1 <- baseline |> replace("beta_mace_0",log(-log(1-0.3))) # higher beta_mace_0
+  further2 <- baseline |> replace("beta_mace_trt_before",0) # no TE
+  further3 <- baseline |> replace("beta_mace_trt_before",log(2)) # greater TE
+  further4 <- baseline |> replace("beta_mace_trt_buffer",0) # no effect in buffer
+  further5 <- baseline |> replace("beta_mace_trt_buffer",log(1.25)) # lower effect in buffer
+  further6 <- baseline |> replace(c("beta_mace_X","beta_mace_Z"),c(0,0)) # no covariate effects
+  further7 <- baseline |> replace(c("beta_mace_L"),log(2)) # confounder covariate effect
 
-  ########## MACE parameters ##########
-  beta_mace_0 = c(log(-log(1-0.1))),
-  beta_mace_trt_before = c(log(1.5)),
-  beta_mace_trt_buffer = c(log(1.5)),
-  beta_mace_post = c(0),
-  beta_mace_X = c(log(2)),
-  beta_mace_Z = c(log(2)),
-  beta_mace_L = c(0),
+  # disc parameters
+  further8  <- baseline |> replace("beta_disc_0",log(-log(1-0.2))) # lower beta_disc_0
+  further9  <- baseline |> replace(c("beta_disc_X","beta_disc_Z"),c(0,0)) # no covariate effects
+  further10 <- baseline |> replace(c("beta_disc_L"),log(2)) # confounder covariate effect
 
-  ########## Discontinuation parameters ##########
-  beta_disc_0 = c(log(-log(1-0.5))),
-  beta_disc_trt = c(log(2)),
-  beta_disc_X = c(log(2)),
-  beta_disc_Z = c(log(2)),
-  beta_disc_L = c(0),
+  # withdrawal parameters
+  further11 <- baseline |> replace("beta_wd_0",log(0.75/(1-0.75))) # greater withdrawal
+  further12 <- baseline |> replace(c("beta_wd_X","beta_wd_Z"),c(0,0)) # no covariate effects
+  further13 <- baseline |> replace(c("beta_wd_L"),log(2)) # confounder covariate effect
 
-  ########## Withdrawal parameters ##########
-  beta_wd_0 = c(log(0.5/(1-0.5))),
-  beta_wd_trt = c(log(2)),
-  beta_wd_X = c(log(2)),
-  beta_wd_Z = c(log(2)),
-  beta_wd_L = c(0),
-
-  ########## Buffer window ##########
-  true_window = c(1/12),
-  assumed_window = c(1/12)
-)
+  # buffer window
+  further14 <- baseline |> replace(c("assumed_window"),0) # lower assumed window
+  further15 <- baseline |> replace(c("assumed_window"),2/12) # greater assumed window
 
 
-### mace parameters  ###
-further1 <- baseline%>%replace("beta_mace_0",log(-log(1-0.3))) # higher beta_mace_0
-further2 <- baseline%>%replace("beta_mace_trt_before",0) # no TE
-further3 <- baseline%>%replace("beta_mace_trt_before",log(2)) # greater TE
-further4 <- baseline%>%replace("beta_mace_trt_buffer",0) # no effect in buffer
-further5 <- baseline%>%replace("beta_mace_trt_buffer",log(1.25)) # lower effect in buffer
-further6 <- baseline%>%replace(c("beta_mace_X","beta_mace_Z"),c(0,0)) # no covariate effects
-further7 <- baseline%>%replace(c("beta_mace_L"),log(2)) # confounder covariate effect
-
-### disc parameters ###
-further8 <- baseline%>%replace("beta_disc_0",log(-log(1-0.2))) # lower beta_disc_0
-further9 <- baseline%>%replace(c("beta_disc_X","beta_disc_Z"),c(0,0)) # no covariate effects
-further10 <- baseline%>%replace(c("beta_disc_L"),log(2)) # confounder covariate effect
-
-## withdrawal parameters ###
-further11 <- baseline%>%replace("beta_wd_0",log(0.75/(1-0.75))) # greater withdrawal
-further12 <- baseline%>%replace(c("beta_wd_X","beta_wd_Z"),c(0,0)) # no covariate effects
-further13 <- baseline%>%replace(c("beta_wd_L"),log(2)) # confounder covariate effect
-
-### buffer window ###
-further14 <- baseline%>%replace(c("assumed_window"),0) # lower assumed window
-further15 <- baseline%>%replace(c("assumed_window"),2/12) # greater assumed window
+  OFATT <- bind_rows(baseline,further1,further2,further3,further4,further5,
+                     further6,further7,further8,further9,further10,further11,
+                     further12,further13,further14,further15
+  )
 
 
-OFATT <- bind_rows(baseline,further1,further2,further3,further4,further5,
-                   further6,further7,further8,further9,further10,further11,
-                   further12,further13,further14,further15
-                   )
+  OFATT$logHRassumed <- OFATT$beta_mace_trt_before              ### log HR assumed fixed to beta_mace_trt_before for H1
 
+  OFATT[OFATT$beta_mace_trt_before==0,"logHRassumed"] <- log(1.5) ### for H0, fixed to either log(1.5) or log(2)
 
-OFATT$logHRassumed <- OFATT$beta_mace_trt_before              ### log HR assumed fixed to beta_mace_trt_before for H1
+  OFATT2 <- OFATT |>
+    filter(beta_mace_trt_before==0) |>
+    mutate(logHRassumed=log(2))
+  design_list <- as.list(rbind(OFATT,OFATT2))
+  design_list$fully.crossed <- FALSE
 
-OFATT[OFATT$beta_mace_trt_before==0,"logHRassumed"] <- log(1.5) ### for H0, fixed to either log(1.5) or log(2)
+  Design <- do.call(createDesign, design_list)
+  Design
+}
 
-OFATT2 <- OFATT%>%filter(beta_mace_trt_before==0)%>%
-  mutate(logHRassumed=log(2))
-design_list <- as.list(rbind(OFATT,OFATT2))
-design_list$fully.crossed <- F
-
-Design <- do.call(createDesign,design_list)
-
-############# function to generate one TTE MACE #######################
-
-###     vectorised function takes the data from one patient, and returns
-###     t_mace, event_mace, t_disc censored at one year. At this stage we don't
-###     censor MACE events outside the buffer window
-###     with no_withdraw=T, there is no withdrawal for the estimation of the true TE
-
-# cov_df <- data.frame(X=X,Z=Z,L=L,A=A,hazard_disc=hazard_disc,logit_withdraw=logit_withdraw,beta_tot_before=beta_tot_before,beta_tot_buffer=beta_tot_buffer,beta_tot_after=beta_tot_after,ID=ID)
-
-generate_all_tte2 <- function(cov_df, condition=condition, no_withdraw=F) {
+# function to generate one TTE MACE -----------------------------
+#' For internal use only
+#'
+#' @importFrom dplyr if_else case_when
+#' @importFrom stats runif
+#'
+#' @param cov_df dataset of covariates generated inside generate_mace function
+#' @param condition passed on from within generate_mace call
+#' @param no_withdraw if true sets prob_withdraw to 0
+#'
+#' @returns a simulated Dataset
+generate_all_tte2 <- function(cov_df, condition=condition, no_withdraw=FALSE) {
   with(cov_df, {
     N <- length(X)
     true_window <- condition$true_window
@@ -95,15 +101,15 @@ generate_all_tte2 <- function(cov_df, condition=condition, no_withdraw=F) {
       prob_withdraw <- exp(logit_withdraw)/(1+exp(logit_withdraw))
 
     }
-    #################### Simulate discontinuation times ####################
+    # Simulate discontinuation times
     u_disc <- runif(N,0,1)
     T_disc <- -log(u_disc)/hazard_disc
 
     t_0 <- T_disc
     t_1 <- T_disc+true_window
 
-    ### Simulate MACE times, with a time-varying treatment effect with two breakpoints
-    ### t_0 = T_disc and T_1 = T_disc + buffer
+    # Simulate MACE times, with a time-varying treatment effect with two breakpoints
+    # t_0 = T_disc and T_1 = T_disc + buffer
 
     u_mace <- runif(N,0,1)
     m_logu <- -log(u_mace)
@@ -126,7 +132,7 @@ generate_all_tte2 <- function(cov_df, condition=condition, no_withdraw=F) {
     dat_temp <- dat_i%>%select(-T_mace)     # MC comment 3
     data_formatted <- c()
 
-    ### simulate withdrawal
+    # simulate withdrawal
     u_withdraw <- runif(N,0,1)
     is_withdraw <- u_withdraw < prob_withdraw
 
@@ -145,114 +151,98 @@ generate_all_tte2 <- function(cov_df, condition=condition, no_withdraw=F) {
 }
 
 
-Generate <- function(condition, fixed_objects) {
+#' Generate Data for MACE Scenario
+#'
+#' @param condition row of Design dataset
+#' @param fixed_objects list of parameters that are fixed across simulations
+#'
+#' @returns a simulated dataset
+#' @export
+#'
+#' @examples
+#' Design <- assumptions_mace() |>
+#' dat <- generate_mace(Design[1,])
+#' head(dat)
+generate_mace <- function(condition, fixed_objects) {
+  with(condition, {
 
-  ########## MACE parameters ##########
-  beta_mace_0 = condition$beta_mace_0
-  beta_mace_trt_before = condition$beta_mace_trt_before
-  beta_mace_trt_buffer = condition$beta_mace_trt_buffer
-  beta_mace_post = condition$beta_mace_post
-  beta_mace_X = condition$beta_mace_X
-  beta_mace_Z = condition$beta_mace_Z
-  beta_mace_L = condition$beta_mace_L
+    # Compute sample size
+    e_mace = 4*(qnorm(1-0.05/2)+qnorm(1-0.2))^2/(logHRassumed^2)  ### Schoenfeld’s formula
+    # MC: should this be e_mace <- ((qnorm(1-0.05/2) + qnorm(1-0.2))/logHRassumed)^2 * 4   ?
+    sample_size = floor(e_mace/(1-exp(-exp(beta_mace_0))))  ####### sample size calculation
 
-  ########## Discontinuation parameters ##########
-  beta_disc_0 = condition$beta_disc_0
-  beta_disc_trt = condition$beta_disc_trt
-  beta_disc_X = condition$beta_disc_X
-  beta_disc_Z = condition$beta_disc_Z
-  beta_disc_L = condition$beta_disc_L
+    # Simulate covariates
+    X <- rnorm(sample_size,0,1)
+    Z <- rnorm(sample_size,0,1)
+    L <- rnorm(sample_size,0,1)
+    A <- sample(0:1,size=sample_size,replace=T,prob=c(0.5,0.5))
 
-  ########## Withdrawal parameters ##########
-  beta_wd_0 = condition$beta_wd_0
-  beta_wd_trt = condition$beta_wd_trt
-  beta_wd_X = condition$beta_wd_X
-  beta_wd_Z = condition$beta_wd_Z
-  beta_wd_L = condition$beta_wd_L
+    hazard_disc <- exp(beta_disc_0+(0.5-A)*beta_disc_trt+X*beta_disc_X+Z*beta_disc_Z+L*beta_disc_L)
+    logit_withdraw <- beta_wd_0+X*beta_wd_X+Z*beta_wd_Z+L*beta_wd_L+beta_wd_trt*(1-A)
+    beta_fix_mace <- beta_mace_0+X*beta_mace_X+Z*beta_mace_Z+L*beta_mace_L
 
-  ########## Buffer window ##########
-  true_window = condition$true_window
-  assumed_window = condition$assumed_window
+    ## Defining time-varying treatment effect after discontinuation
+    beta_tot_before <- beta_fix_mace+(1-A)*beta_mace_trt_before
+    beta_tot_buffer <- beta_fix_mace+(1-A)*beta_mace_trt_buffer
+    beta_tot_after <- beta_fix_mace
+    cov_df <- data.frame(X=X,Z=Z,L=L,A=A,hazard_disc=hazard_disc,logit_withdraw=logit_withdraw,beta_tot_before=beta_tot_before,beta_tot_buffer=beta_tot_buffer,beta_tot_after=beta_tot_after,ID=1:sample_size)
 
-  ########## Assumed HR #############
-  logHR_assumed = condition$logHRassumed
+    # Simulate TTE
+    res <- generate_all_tte2(cov_df,condition=condition,no_withdraw=FALSE)
 
-  #################### Compute sample size  ####################
-  e_mace = 4*(qnorm(1-0.05/2)+qnorm(1-0.2))^2/(logHR_assumed^2)  ### Schoenfeld’s formula
-  # MC: should this be e_mace <- ((qnorm(1-0.05/2) + qnorm(1-0.2))/logHR_assumed)^2 * 4   ?
-  sample_size = floor(e_mace/(1-exp(-exp(beta_mace_0))))  ####### sample size calculation
+    dat_f <- res %>%
+      select(-prob_withdraw,-u_mace,-m_logu,-censor_mace,-censor_disc,-disc_before_mace,-prob_withdraw)
 
-  #################### Simulate covariates  ####################
-  X <- rnorm(sample_size,0,1)
-  Z <- rnorm(sample_size,0,1)
-  L <- rnorm(sample_size,0,1)
-  A <- sample(0:1,size=sample_size,replace=T,prob=c(0.5,0.5))
-
-  hazard_disc <- exp(beta_disc_0+(0.5-A)*beta_disc_trt+X*beta_disc_X+Z*beta_disc_Z+L*beta_disc_L)
-  logit_withdraw <- beta_wd_0+X*beta_wd_X+Z*beta_wd_Z+L*beta_wd_L+beta_wd_trt*(1-A)
-  beta_fix_mace <- beta_mace_0+X*beta_mace_X+Z*beta_mace_Z+L*beta_mace_L
-
-  ## Defining time-varying treatment effect after discontinuation
-  beta_tot_before <- beta_fix_mace+(1-A)*beta_mace_trt_before
-  beta_tot_buffer <- beta_fix_mace+(1-A)*beta_mace_trt_buffer
-  beta_tot_after <- beta_fix_mace
-  cov_df <- data.frame(X=X,Z=Z,L=L,A=A,hazard_disc=hazard_disc,logit_withdraw=logit_withdraw,beta_tot_before=beta_tot_before,beta_tot_buffer=beta_tot_buffer,beta_tot_after=beta_tot_after,ID=1:sample_size)
-  #################### Simulate TTE  ####################
-  res <- generate_all_tte2(cov_df,condition=condition,no_withdraw=FALSE)
-
-  dat_f <- res %>%
-    select(-prob_withdraw,-u_mace,-m_logu,-censor_mace,-censor_disc,-disc_before_mace,-prob_withdraw)
-
-  return(dat_f)
+    return(dat_f)
+  })
 }
 
+#' @param Design Design dataset
+#'
+#' @importFrom dplyr if_else
+#' @returns Design data set with additional column `true_trt`
+#' @export
+#' @describeIn generate_mace Calculate true treatment effect for MACE scenario
+true_trt_mace <- function(Design){
+  true_trt_mace_rowwise <- function(condition) {
+    with(condition, {
+      count_events_mace <- 0
+      X <- Z <- L <- rep(0,1000000)
+      A <-sample(0:1,1000000,prob = c(0.5,0.5),replace=T)
+      ID <- 1:1000000
+      # cov_df <- data.frame(X=rep(0,1000000),Z=rep(0,1000000),L=rep(0,1000000),A=sample(0:1,1000000,prob = c(0.5,0.5),replace=T),)
 
-calc_true_trt <- function(condition,fixed_objects) {
+      hazard_disc <- exp(beta_disc_0+(0.5-A)*beta_disc_trt)
+      logit_withdraw <- 0
+      beta_fix_mace <- beta_mace_0
 
-  ########## MACE parameters ##########
-  beta_mace_0 = condition$beta_mace_0
-  beta_mace_trt_before = condition$beta_mace_trt_before
-  beta_mace_trt_buffer = condition$beta_mace_trt_buffer
-  beta_mace_post = condition$beta_mace_post
+      # Defining time-varying treatment effect after discontinuation
+      beta_tot_before <- beta_fix_mace+(1-A)*beta_mace_trt_before
+      beta_tot_buffer <- beta_fix_mace+(1-A)*beta_mace_trt_buffer
+      beta_tot_after <- beta_fix_mace
 
-  ########## Discontinuation parameters ##########
-  beta_disc_0 = condition$beta_disc_0
-  beta_disc_trt = condition$beta_disc_trt
+      cov_df <- data.frame(X=X,Z=Z,L=L,A=A,hazard_disc=hazard_disc,logit_withdraw=logit_withdraw,beta_tot_before=beta_tot_before,beta_tot_buffer=beta_tot_buffer,beta_tot_after=beta_tot_after,ID=ID)
 
-  ########## Buffer window ##########
-  true_window = condition$true_window
-  assumed_window = condition$assumed_window
+      dat_bind_bl <- generate_all_tte2(cov_df, condition=condition, no_withdraw=T)
+      count_events_mace <- sum(dat_bind_bl$event_mace)
+      dat_bind <- c()
 
-  ########## Assumed HR #############
-  logHR_assumed = condition$logHRassumed
+      dat <- rbind(dat_bind_bl,bind_rows(dat_bind))
+      dat <- transform_disc_tte(dat)%>%select(-censor)
+      dat2 <- censor_buffer_window(dat,true_window)
+      fit <- coxph(Surv(t_mace, event_mace) ~ A, data = dat2, id = ID)
+      true_trt <- c()
+      true_trt[[1]] <- fit
+      true_trt[[2]] <- dat2
+      return(true_trt)
+    })
+  }
 
-  count_events_mace <- 0
-  X <- Z <- L <- rep(0,1000000)
-  A <-sample(0:1,1000000,prob = c(0.5,0.5),replace=T)
-  ID <- 1:1000000
-  # cov_df <- data.frame(X=rep(0,1000000),Z=rep(0,1000000),L=rep(0,1000000),A=sample(0:1,1000000,prob = c(0.5,0.5),replace=T),)
+  true_trt <- Design |>
+    split(1:nrow(Design))|>
+    lapply(true_trt_mace_rowwise)
 
-  hazard_disc <- exp(beta_disc_0+(0.5-A)*beta_disc_trt)
-  logit_withdraw <- 0
-  beta_fix_mace <- beta_mace_0
-
-  ## Defining time-varying treatment effect after discontinuation
-  beta_tot_before <- beta_fix_mace+(1-A)*beta_mace_trt_before
-  beta_tot_buffer <- beta_fix_mace+(1-A)*beta_mace_trt_buffer
-  beta_tot_after <- beta_fix_mace
-
-  cov_df <- data.frame(X=X,Z=Z,L=L,A=A,hazard_disc=hazard_disc,logit_withdraw=logit_withdraw,beta_tot_before=beta_tot_before,beta_tot_buffer=beta_tot_buffer,beta_tot_after=beta_tot_after,ID=ID)
-
-  dat_bind_bl <- generate_all_tte2(cov_df, condition=condition, no_withdraw=T)
-  count_events_mace <- sum(dat_bind_bl$event_mace)
-  dat_bind <- c()
-
-  dat <- rbind(dat_bind_bl,bind_rows(dat_bind))
-  dat <- transform_disc_tte(dat)%>%select(-censor)
-  dat2 <- censor_buffer_window(dat,true_window)
-  fit <- coxph(Surv(t_mace, event_mace) ~ A, data = dat2, id = ID)
-  true_trt <- c()
-  true_trt[[1]] <- fit
-  true_trt[[2]] <- dat2
-  return(true_trt)
+  Design$true_trt <- true_trt
+  Design
 }
+
