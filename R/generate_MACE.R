@@ -97,7 +97,7 @@ generate_all_tte2 <- function(cov_df, condition=condition, no_withdraw=F) {
     }
     #################### Simulate discontinuation times ####################
     u_disc <- runif(N,0,1)
-    T_disc <- -log(u_disc)/cov_dv$hazard_disc
+    T_disc <- -log(u_disc)/hazard_disc
 
     t_0 <- T_disc
     t_1 <- T_disc+true_window
@@ -107,15 +107,14 @@ generate_all_tte2 <- function(cov_df, condition=condition, no_withdraw=F) {
 
     u_mace <- runif(N,0,1)
     m_logu <- -log(u_mace)
-    if ((m_logu <= t_0*exp(beta_tot_before))) {
-      T_mace <- m_logu/(exp(beta_tot_before))
-    } else {
-      if ((m_logu > t_0*exp(beta_tot_before) & m_logu<= t_0*exp(beta_tot_before) +(t_1-t_0)*exp(beta_tot_buffer))) {
-        T_mace <-(m_logu-t_0*exp(beta_tot_before)+(t_0)*exp(beta_tot_buffer))/exp(beta_tot_buffer)
-      } else {
-        T_mace <- t_1+(m_logu -t_0*exp(beta_tot_before)-(t_1-t_0)*exp(beta_tot_buffer))/(exp(beta_tot_after))
-      }
-    }
+    T_mace <- rep(NA_real_, N)
+
+
+    T_mace <- case_when(
+      (m_logu <= t_0*exp(beta_tot_before))                                                                      ~ m_logu/(exp(beta_tot_before)),
+      ((m_logu > t_0*exp(beta_tot_before) & m_logu<= t_0*exp(beta_tot_before) +(t_1-t_0)*exp(beta_tot_buffer))) ~ (m_logu-t_0*exp(beta_tot_before)+(t_0)*exp(beta_tot_buffer))/exp(beta_tot_buffer),
+      .default                                                                                                  = (t_1+(m_logu -t_0*exp(beta_tot_before)-(t_1-t_0)*exp(beta_tot_buffer))/(exp(beta_tot_after)))
+    )
 
 
     data <- data.frame(ID=ID,X=X,Z=Z,A=A,T_disc=T_disc,T_mace=T_mace,u_mace=u_mace,prob_withdraw,m_logu=m_logu)
@@ -129,27 +128,16 @@ generate_all_tte2 <- function(cov_df, condition=condition, no_withdraw=F) {
 
     ### simulate withdrawal
     u_withdraw <- runif(N,0,1)
-    is_withdraw <- u_withdraw<prob_withdraw
+    is_withdraw <- u_withdraw < prob_withdraw
 
-    if (is_withdraw & (dat_i$T_mace>dat_i$T_disc)) {
-      ### censoring only if disc is before MACE and patient withdrew, with
-      ### administrative censoring at one year
-      dat_temp$t_mace <- pmin(dat_i$T_disc,1)
-      dat_temp$event_mace <- c(0)
-      dat_temp$censor  <- 1
-      dat_temp$withdraw  <- dat_i$T_disc<1
-      dat_temp$t_disc <- pmin(dat_i$T_disc,1)
-      dat_temp$event_disc <- dat_i$T_disc<1
+    withdrawn_and_mace <- (is_withdraw & (dat_i$T_mace>dat_i$T_disc))
+    dat_temp$t_mace     <- if_else(withdrawn_and_mace, pmin(dat_i$T_disc,1), pmin(dat_i$T_mace,1)                                                       )
+    dat_temp$event_mace <- if_else(withdrawn_and_mace, c(0)                , ifelse(dat_i$T_mace>1,0,1)                                                 )
+    dat_temp$censor     <- if_else(withdrawn_and_mace, 1                   , ifelse(dat_i$T_mace>1,1,0)                                                 )
+    dat_temp$withdraw   <- if_else(withdrawn_and_mace, dat_i$T_disc<1      , 0                                                                          )
+    dat_temp$t_disc     <- if_else(withdrawn_and_mace, pmin(dat_i$T_disc,1), ifelse(dat_i$T_mace<dat_i$T_disc,pmin(dat_i$T_mace,1),pmin(dat_i$T_disc,1)))
+    dat_temp$event_disc <- if_else(withdrawn_and_mace, dat_i$T_disc<1      , ifelse(dat_i$T_mace<dat_i$T_disc,0,dat_i$T_disc<1)                         )
 
-    } else {
-      ### otherwise, record MACE event, with administrative censoring at one year
-      dat_temp$t_mace <- pmin(dat_i$T_mace,1)
-      dat_temp$event_mace <- ifelse(dat_i$T_mace>1,0,1)
-      dat_temp$censor  <- ifelse(dat_i$T_mace>1,1,0)
-      dat_temp$withdraw  <- 0
-      dat_temp$t_disc <- ifelse(dat_i$T_mace<dat_i$T_disc,pmin(dat_i$T_mace,1),pmin(dat_i$T_disc,1))
-      dat_temp$event_disc <- ifelse(dat_i$T_mace<dat_i$T_disc,0,dat_i$T_disc<1)
-    }
     data_formatted <- dat_temp
     data_formatted$T_mace <- T_mace
     return(data_formatted)
@@ -210,7 +198,6 @@ Generate <- function(condition, fixed_objects) {
   beta_tot_after <- beta_fix_mace
   cov_df <- data.frame(X=X,Z=Z,L=L,A=A,hazard_disc=hazard_disc,logit_withdraw=logit_withdraw,beta_tot_before=beta_tot_before,beta_tot_buffer=beta_tot_buffer,beta_tot_after=beta_tot_after,ID=1:sample_size)
   #################### Simulate TTE  ####################
-
   res <- generate_all_tte2(cov_df,condition=condition,no_withdraw=FALSE)
 
   dat_f <- res %>%
@@ -218,6 +205,7 @@ Generate <- function(condition, fixed_objects) {
 
   return(dat_f)
 }
+
 
 calc_true_trt <- function(condition,fixed_objects) {
 
