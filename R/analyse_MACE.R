@@ -42,30 +42,18 @@ cox_model_cov <- function(data) {
 ### a time varying covariate
 
 data_process_start_stop <- function(data) {
-  df_final <- c()
-  for (i in 1:dim(data)[1]) {
-    dat_i <- data[i,]
-    dat_i2 <- c() 
-    dat_i$disc <- 0
-    if (dat_i$event_disc==1) {
-      dat_i$t_mace_start <- 0
-      dat_i$t_mace_stop <- dat_i$t_disc
-      dat_i$event_mace <- 0
-      if (dat_i$withdraw==0) {
-        dat_i2 <- data[i,]
-        dat_i2$t_mace_start <- dat_i$t_disc
-        dat_i2$t_mace_stop <- dat_i2$t_mace
-        dat_i2$event_mace <- dat_i2$event_mace
-        dat_i2$disc <- 1
-      }
-    } else {
-      dat_i$t_mace_start <- 0
-      dat_i$t_mace_stop <- dat_i$t_mace
-      
-    }
-    df_final[[i]] <- rbind(dat_i,dat_i2)
-  }
-  return(bind_rows(df_final))
+  disc_not_withdraw <- data$event_disc==1 & data$withdraw==0
+  data$disc=0
+  data2 <- data[disc_not_withdraw,]
+  
+  data$tstart <- 0
+  data$tstop <- ifelse(data$event_disc==1,data$t_disc,ifelse(data$event_mace==1,data$t_mace,1))
+  
+  data2$tstart <- data2$t_disc
+  data2$tstop <- data2$t_mace
+  data2$disc <- 1
+  
+  return(rbind(data,data2)%>%arrange(ID,tstart))
 }
 
 
