@@ -3,29 +3,27 @@ library(SimDesign)
 library(survival)
 library(survminer)
 
-source("data_generation_scenario_4.R")
+source("generate_MACE.R")
 
 
 
 ###     censor MACE events after discontinuation + buffer window
 ###     t_mace = T_disc + buffer is censored at one year
 
-within_buffer_apply <- function(ID,X,Z,A,t_disc,t_mace,event_mace,T_mace,event_disc,withdraw,buffer,...) {
-  if (t_disc< t_mace) { ### if disc before mace
-    if (between(t_mace,t_disc,t_disc+buffer)) { ### if  within buffer
-      t_mace <-t_mace 
-      event_mace <- event_mace
-    } else { ### not within buffer
-      t_mace <- min(t_disc+buffer,1)
-      event_mace <- 0
-    }
-  } 
-  return(data.frame(ID=ID,X=X,Z=Z,A=A,t_disc=t_disc,t_mace=t_mace,event_mace=event_mace,event_disc=event_disc,withdraw=withdraw))
+censor_buffer_window <- function(data,buffer) {
+  disc_not_withdraw <- data$event_disc==1 & data$withdraw==0
+  
+  data[disc_not_withdraw,"event_mace"] <- ifelse(data[disc_not_withdraw,"t_mace"]-data[disc_not_withdraw,"t_disc"]<buffer,
+                                                 data[disc_not_withdraw,"event_mace"],
+                                                 0)
+  
+  data[disc_not_withdraw,"t_mace"] <- ifelse(data[disc_not_withdraw,"t_mace"]-data[disc_not_withdraw,"t_disc"]<buffer,
+                                                 data[disc_not_withdraw,"t_mace"],
+                                                 pmin(1,data[disc_not_withdraw,"t_disc"]+buffer))
+  return(data)
 }
 
-censor_buffer_window <- function(data,buffer) {
-  return(pmap(data,within_buffer_apply,buffer=buffer)%>%bind_rows)
-}
+
 
 
 cox_model_nocov <- function(data) {

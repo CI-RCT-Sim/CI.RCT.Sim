@@ -248,6 +248,7 @@ generate_mace <- function(condition, fixed_objects) {
   })
 }
 
+
 #' @param Design Design dataset
 #'
 #' @importFrom dplyr if_else
@@ -288,21 +289,13 @@ true_trt_mace <- function(Design) {
         ID = ID
       )
 
-      dat_bind_bl <- generate_all_tte2(cov_df, condition = condition, no_withdraw =
+      dat <- generate_all_tte2(cov_df, condition = condition, no_withdraw =
                                          T)
-      count_events_mace <- sum(dat_bind_bl$event_mace)
-      dat_bind <- c()
-
-      dat <- rbind(dat_bind_bl, bind_rows(dat_bind))
-      dat <- transform_disc_tte(dat) %>% select(-censor)
       dat2 <- censor_buffer_window(dat, true_window)
       fit <- coxph(Surv(t_mace, event_mace) ~ A,
                    data = dat2,
                    id = ID)
-      true_trt <- c()
-      true_trt[[1]] <- fit
-      true_trt[[2]] <- dat2
-      return(true_trt)
+      return(coef(fit))
     })
   }
 
