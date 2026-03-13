@@ -46,14 +46,14 @@ data_process_start_stop <- function(data) {
   data$disc=0
   data2 <- data[disc_not_withdraw,]
   
-  data$tstart <- 0
-  data$tstop <- ifelse(data$event_disc==1,data$t_disc,ifelse(data$event_mace==1,data$t_mace,1))
+  data$t_mace_start <- 0
+  data$t_mace_stop <- ifelse(data$event_disc==1,data$t_disc,ifelse(data$event_mace==1,data$t_mace,1))
   
-  data2$tstart <- data2$t_disc
-  data2$tstop <- data2$t_mace
+  data2$t_mace_start <- data2$t_disc
+  data2$t_mace_stop <- data2$t_mace
   data2$disc <- 1
   
-  return(rbind(data,data2)%>%arrange(ID,tstart))
+  return(rbind(data,data2)%>%arrange(ID,t_mace_start))
 }
 
 
