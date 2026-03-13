@@ -51,3 +51,27 @@ test_that("ps weighting vaccine works", {
 
   expect_no_error({res4 <- my_analyse(condition4, dat4)})
 })
+
+test_that("ps weigthed analysis does not use unobserved covariates", {
+  Design <- vaccine_scenario(print=FALSE) |>
+    vaccine_scenario_set_gamma_0() |>
+    vaccine_scenario_set_true_eff() |>
+    vaccine_scenario_set_samplesize()
+
+  my_analyse <- analyse_vaccine_ps(ci_level=0.95)
+
+  condition <- Design[sample(1:nrow(Design), 1), ]
+
+  withr::with_seed(123, {
+    dat1 <- generate_vaccine(condition, fixed_objects = list(include_unobserved=FALSE))
+  })
+
+  withr::with_seed(123, {
+    dat2 <- generate_vaccine(condition, fixed_objects = list(include_unobserved=TRUE))
+  })
+
+  res1 <- my_analyse(condition, dat1)
+  res2 <- my_analyse(condition, dat2)
+
+  expect_identical(res1, res2)
+})
