@@ -1,6 +1,5 @@
 #' Analyse Dataset with G-estimation (G-computation via gformula_continuous_eof)
 #'
-#' @param setup determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
 #'
 #' @return A function that, when called with `condition` and `dat`, returns a list with:
 #' * `coef`      estimated difference in mean change in HbA1c between treatment groups
@@ -56,12 +55,11 @@
 #' analyse_diabetes_gcomputation(setup = 1)(condition, dat)
 #' analyse_diabetes_gcomputation(setup = 0)(condition, dat)
 #' }
-analyse_diabetes_gcomputation <- function(setup = 1) {
-
-  stopifnot(setup %in% c(1, 0))
+analyse_diabetes_gcomputation <- function() {
 
   function(condition, dat, fixed_objects = NULL) {
     k <- condition$k # number of last visit
+    setup <- condition$s # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
 
     # reformate dat to long format with outcome column 'y' for the change in HbA1c at each visit
     dat_long <- tidyr::pivot_longer(dat,
@@ -90,7 +88,7 @@ analyse_diabetes_gcomputation <- function(setup = 1) {
     # Remove final visit i.e. visit k
     dat_long <- dat_long[dat_long$visit != k, ]
 
-    # Under scenario 1 (setup = 0)
+    # Under assumption 1 (setup = 0)
     # when rescue is started
     # treatment group should switch to control, and control should stay in control
     if (setup == 0) {
