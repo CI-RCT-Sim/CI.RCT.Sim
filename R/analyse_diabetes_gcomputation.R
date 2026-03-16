@@ -52,8 +52,8 @@
 #'
 #' dat <- generate_diabetes_rescue(condition)
 #'
-#' analyse_diabetes_gcomputation(setup = 1)(condition, dat)
-#' analyse_diabetes_gcomputation(setup = 0)(condition, dat)
+#' analyse_diabetes_gcomputation()(condition, dat)
+#' analyse_diabetes_gcomputation()(condition, dat)
 #' }
 analyse_diabetes_gcomputation <- function() {
 
