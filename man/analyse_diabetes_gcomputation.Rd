@@ -4,10 +4,7 @@
 \alias{analyse_diabetes_gcomputation}
 \title{Analyse Dataset with G-estimation (G-computation via gformula_continuous_eof)}
 \usage{
-analyse_diabetes_gcomputation(setup = 1)
-}
-\arguments{
-\item{setup}{determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)}
+analyse_diabetes_gcomputation()
 }
 \value{
 A function that, when called with \code{condition} and \code{dat}, returns a list with:

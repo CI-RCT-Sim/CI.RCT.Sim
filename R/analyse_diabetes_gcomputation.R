@@ -59,7 +59,7 @@ analyse_diabetes_gcomputation <- function() {
 
   function(condition, dat, fixed_objects = NULL) {
     k <- condition$k # number of last visit
-    setup <- condition$s # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
+    setup <- condition$setup # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
 
     # reformate dat to long format with outcome column 'y' for the change in HbA1c at each visit
     dat_long <- tidyr::pivot_longer(dat,
@@ -92,7 +92,7 @@ analyse_diabetes_gcomputation <- function() {
     # when rescue is started
     # treatment group should switch to control, and control should stay in control
     if (setup == 0) {
-      dat_long[!is.na(dat_long$R) & dat_long$R == 1,]$trt <- 0
+      test <- dat_long %>% mutate(trt = replace(trt, R == 1, 0))
     }
     # Run g-computation with bootstrap
     # We simulate Hba1c values under the intervention (no rescue) and then
