@@ -92,7 +92,7 @@ analyse_diabetes_gcomputation <- function() {
     # when rescue is started
     # treatment group should switch to control, and control should stay in control
     if (setup == 0) {
-      test <- dat_long %>% mutate(trt = replace(trt, R == 1, 0))
+      dat_long <- dat_long %>% mutate(trt = replace(trt, R == 1, 0))
     }
     # Run g-computation with bootstrap
     # We simulate Hba1c values under the intervention (no rescue) and then
