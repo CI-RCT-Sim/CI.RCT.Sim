@@ -32,4 +32,5 @@ analyse_diabetes_ipw_tp(condition, dat)
 
 analyse_diabetes_ipw_hyp <- analyse_diabetes_ipw(estimand = "hyp")
 analyse_diabetes_ipw_hyp(condition, dat)
+
 }
