@@ -72,18 +72,20 @@ analyse_diabetes_ipw <- function(estimand = "hyp") {
         type = "first",
         data = dat_long
       )
-      model <- lm_robust( # OLS with HC2 variance estimator
+      fit <- lm( # OLS with HC2 variance estimator
         as.formula(paste0("y ~ trt + hba1c_0 + age")),
         weights = temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0],
         data = dat_long[dat_long$visit == k & dat_long$exposure == 0,]
       )
+      model<-lmtest::coeftest(fit, vcov = sandwich::vcovHC(fit, type = "HC2"))
+      ci <- stats::confint(model)
 
       list(
-        coef = summary(model)$coefficients["trt", "Estimate"],
-        sd = summary(model)$coefficients["trt", "Std. Error"],
-        p = summary(model)$coefficients["trt", "Pr(>|t|)"],
-        ci_lower = summary(model)$coefficients["trt", "CI Lower"],
-        ci_upper = summary(model)$coefficients["trt", "CI Upper"]
+        coef = model["trt", "Estimate"],
+        sd = model["trt", "Std. Error"],
+        p = model["trt", "Pr(>|t|)"],
+        ci_lower = ci[2,1],
+        ci_upper = ci[2,2]
       )
     } else if (estimand == "hyp") {
       dat_long$exposure <- ifelse(is.na(dat_long$y) | dat_long$R == 1, 1L, 0L) # indicator for missing outcomes and rescue medication
