@@ -153,7 +153,7 @@ generate_all_tte2 <- function(cov_df,
     data$censor_disc = T_disc > 1
 
     dat_i <- data
-    dat_temp <- dat_i %>% select(-T_mace)     # MC comment 3
+    dat_temp <- dat_i |> select(-T_mace)     # MC comment 3
     data_formatted <- c()
 
     # simulate withdrawal
@@ -191,7 +191,6 @@ generate_mace <- function(condition, fixed_objects) {
   with(condition, {
     # Compute sample size
     e_mace = 4 * (qnorm(1 - 0.05 / 2) + qnorm(1 - 0.2))^2 / (logHRassumed^2)  ### Schoenfeld’s formula
-    # MC: should this be e_mace <- ((qnorm(1-0.05/2) + qnorm(1-0.2))/logHRassumed)^2 * 4   ?
     sample_size = floor(e_mace / (1 - exp(-exp(beta_mace_0))))  ####### sample size calculation
 
     # Simulate covariates
@@ -233,7 +232,7 @@ generate_mace <- function(condition, fixed_objects) {
     res <- generate_all_tte2(cov_df, condition = condition, no_withdraw =
                                FALSE)
 
-    dat_f <- res %>%
+    dat_f <- res |>
       select(
         -prob_withdraw,
         -u_mace,
@@ -310,3 +309,4 @@ true_trt_mace <- function(Design) {
   Design$true_trt <- true_trt
   Design
 }
+
