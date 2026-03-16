@@ -14,6 +14,7 @@ sim_parameters <- vaccine_scenario() |>
   vaccine_scenario_set_samplesize() |>
   within({
     VE = 1-rr_ps
+    scenario_nr = seq_along(VE)
   })
 
 # -------------------------------------------------------------------
