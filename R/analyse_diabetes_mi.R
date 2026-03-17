@@ -5,7 +5,7 @@
 #' with multiple imputation after rescue initiation is applied,
 #' or a treatment policy strategy using observed data only.
 #'
-#' @param estimand Either `"hypothetical"` or `"treatment_policy"`.
+#' @param strategy Either `"hypothetical"` or `"treatment_policy"`.
 #' @param m Number of imputations (used for hypothetical only).
 #' @param maxit Maximum number of MICE iterations.
 #' @param ci_level Confidence level.
@@ -18,24 +18,28 @@
 #' @importFrom dplyr filter select bind_rows all_of
 #' @importFrom stats lm
 #' @export
-analyse_diabetes_rescue_mi <- function(
-    estimand = c("hypothetical", "treatment_policy"),
-    m = 10,
-    maxit = 20,
-    ci_level = 0.95,
-    seed = 123) {
-
-  estimand <- match.arg(estimand)
+#'
+#' @examples
+#' setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
+#' dat <- generate_diabetes(setting)
+#' analyse_diabetes_mi()(setting, dat)
+#'
+analyse_diabetes_mi <- function(
+  strategy = c("hypothetical", "treatment_policy"),
+  m = 10,
+  maxit = 20,
+  ci_level = 0.95,
+  seed = 123
+) {
+  strategy <- match.arg(strategy)
 
   function(condition, dat, fixed_objects = NULL) {
-
     k <- condition$k
 
     ############################################################
     # TREATMENT POLICY ESTIMAND
     ############################################################
-    if (estimand == "treatment_policy") {
-
+    if (strategy == "treatment_policy") {
       dat$chg <- dat[[paste0("y", k)]] - dat$y0
 
       fit <- stats::lm(chg ~ trt + age + y0, data = dat)
@@ -60,11 +64,9 @@ analyse_diabetes_rescue_mi <- function(
 
     # Set all post-rescue Y values to NA
     for (i in seq_len(nrow(dat_hyp))) {
-
       rs <- dat_hyp$rescue_start[i]
 
       if (!is.na(rs) && rs < k) {
-
         miss_visits <- (rs + 1):k
 
         for (v in miss_visits) {
@@ -101,7 +103,6 @@ analyse_diabetes_rescue_mi <- function(
     imp_list <- vector("list", 2)
 
     for (g in 0:1) {
-
       dat_g <- dat_hyp |>
         dplyr::filter(trt == g) |>
         dplyr::select(dplyr::all_of(vars_imp))

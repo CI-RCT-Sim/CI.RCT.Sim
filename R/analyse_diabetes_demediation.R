@@ -1,6 +1,8 @@
-#' Create Analyse Functions for ...
+#' Create Analysis Function for De-mediation
 #'
-#' @param X input can be used to pass parameters to the analyse function
+#' @param separate Default is TRUE which means that the imputation will be
+#' performed separately for the treatment and control groups. If FALSE, the
+#' imputation will be performed on the combined data set.
 #'
 #' @return an analyse function that can be used in runSimulation
 #' @export
@@ -11,17 +13,26 @@
 #' @importFrom logistf logistf
 #' @importFrom tidyselect starts_with
 #'
+#' @details
+#' This function implements the de-mediation approach described in the paper
+#' by Bartlett et al. (2024) for handling rescue medication in diabetes trials.
+#' The function first imputes the missing rescue medication data using the
+#' `mice` package, and then performs a de-mediation analysis by fitting a series
+#' of models to estimate the effect of treatment on the outcome while accounting
+#' for the potential mediation through rescue medication use.
+#' The final estimate of the treatment effect is obtained by pooling the results
+#' from the multiple imputations using Rubin's rules.
+#'
 #' @examples
 #' \donttest{
-#' setting <- assumptions_diabetes_rescue()[1, ] |> true_summary_statistics_diabetes_rescue()
-#' dat <- generate_diabetes_rescue(setting)
+#' setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
+#' dat <- generate_diabetes(setting)
 #' analyse_diabetes_demediation()(setting, dat)
 #' }
-analyse_diabetes_demediation <- function(X) {
+analyse_diabetes_demediation <- function(separate = TRUE) {
   function(condition, dat, fixed_objects = NULL) {
     # Convert the logical of receiving rescue at any point in to a longitudinal measurement in wide format
     daat <- dat |> mutate(
-      # rescue_start = ifelse(is.na(rescue_start), condition$k + 2, rescue_start),
       across(
         starts_with("R") & !R0 & !rescue_start,
         ~ ifelse(is.na(.) & rescue_start <= as.numeric(gsub("R", "", cur_column())), 1, .),
@@ -30,35 +41,35 @@ analyse_diabetes_demediation <- function(X) {
     )
     Rcols <- grep("^R[0-9]+$", names(daat), value = TRUE)
 
-    # dat1 <- daat |> filter(trt == 1)
-    # pred1 <- make.predictorMatrix(dat1)
-    # pred1[Rcols,] <- 0
-    # pred1["m_start",] <- 0
-    # pred1[, c("id", "rescue_start", "trt", "m_start", Rcols)] <- 0
-    # meth1 <- make.method(dat1)
-    # meth1[Rcols] <- ""
-    # dat0 <- daat |> filter(trt == 0)
-    # pred0 <- make.predictorMatrix(dat0)
-    # pred0[Rcols,] <- 0
-    # pred0["m_start",] <- 0
-    # pred0[, c("id", "rescue_start", "trt", "m_start", Rcols)] <- 0
-    # meth0 <- make.method(dat0)
-    # meth0[Rcols] <- ""
-    # # for (j in 1:(condition$k - 1)) {
-    # #   meth1[paste0("R", j)] <- meth0[paste0("R", j)] <-
-    # #     paste0("~ I(pmax(R", j - 1, ", R", j, "))")
-    # # }
-    # dats <- rbind(
-    #   mice(dat1, m = 5, printFlag = FALSE, predictorMatrix = pred1, method = meth1, ridge = 1e-5, remove.collinear = FALSE),
-    #   mice(dat0, m = 5, printFlag = FALSE, predictorMatrix = pred0, method = meth0, ridge = 1e-5, remove.collinear = FALSE)
-    # )
-    pred <- make.predictorMatrix(daat)
-    pred[Rcols,] <- 0
-    pred["m_start",] <- 0
-    pred[, c("id", "m_start", Rcols)] <- 0
-    meth <- make.method(dat)
-    meth[Rcols] <- ""
-    dats <- mice(daat, m = 5, printFlag = FALSE, predictorMatrix = pred, method = meth, ridge = 1e-5, remove.collinear = FALSE)
+    if (separate) {
+      dat1 <- daat |> filter(trt == 1)
+      pred1 <- make.predictorMatrix(dat1)
+      pred1[Rcols, ] <- 0
+      pred1["m_start", ] <- 0
+      pred1[, c("id", "trt", "m_start", Rcols)] <- 0
+      meth1 <- make.method(dat1)
+      meth1[Rcols] <- ""
+      dat0 <- daat |> filter(trt == 0)
+      pred0 <- make.predictorMatrix(dat0)
+      pred0[Rcols, ] <- 0
+      pred0["m_start", ] <- 0
+      pred0[, c("id", "trt", "m_start", Rcols)] <- 0
+      meth0 <- make.method(dat0)
+      meth0[Rcols] <- ""
+      dats <- rbind(
+        mice(dat1, m = 5, printFlag = FALSE, predictorMatrix = pred1, method = meth1, ridge = 1e-5, remove.collinear = FALSE),
+        mice(dat0, m = 5, printFlag = FALSE, predictorMatrix = pred0, method = meth0, ridge = 1e-5, remove.collinear = FALSE)
+      )
+    } else {
+      pred <- make.predictorMatrix(daat)
+      pred[Rcols, ] <- 0
+      pred["m_start", ] <- 0
+      pred[, c("id", "m_start", Rcols)] <- 0
+      meth <- make.method(dat)
+      meth[Rcols] <- ""
+      dats <- mice(daat, m = 5, printFlag = FALSE, predictorMatrix = pred, method = meth, ridge = 1e-5, remove.collinear = FALSE)
+    }
+
     analysis <- function(dataa) {
       dat_comp <- dataa |> mutate(
         across(
@@ -72,7 +83,7 @@ analyse_diabetes_demediation <- function(X) {
       visits <- as.numeric(sub("R", "", Rcols))
 
       Rmat <- as.matrix(dat_comp[Rcols])
-      rs   <- dat_comp$rescue_start
+      rs <- dat_comp$rescue_start
 
       # NA & visit < rescue_start -> 0
       mask0 <- is.na(Rmat) & outer(rs, visits, `>`)
@@ -91,13 +102,14 @@ analyse_diabetes_demediation <- function(X) {
           dat_comp[, paste0("j", 12 - k - 1)] <- dat_comp[, paste0("j", 12 - k)]
           next
         }
-        # browser()
+
         # Fit a model to predict the probability of receiving rescue medication at visit 12 - k
         mod <- logistf(
           as.formula(paste0("R", 12 - k, " ~ trt + age + y0", paste0("+ y", 1:(12 - k), collapse = " "))),
           data = dat_comp,
           pl = FALSE,
-          control = logistf::logistf.control(maxit = 2000, maxstep = 0.5))
+          control = logistf::logistf.control(maxit = 2000, maxstep = 0.5)
+        )
         dat_comp[, paste0("pred_R", 12 - k)] <- predict(mod, type = "response")
 
         # Subset the data
@@ -129,7 +141,6 @@ analyse_diabetes_demediation <- function(X) {
             dat_comp[, paste0("R", 12 - k)]
       }
 
-
       final.model <- lm(j0 ~ trt + y0, data = dat_comp)
       c(
         p = summary(final.model)$coefficients["trt", "Pr(>|t|)"],
@@ -139,11 +150,8 @@ analyse_diabetes_demediation <- function(X) {
     }
     effect <- rep(NA, dats$m)
     effect.var <- rep(NA, dats$m)
-    # browser()
     for (i in 1:dats$m) {
       dat <- complete(dats, i)
-      # dat[is.na(dat)] <- 0
-      # browser(expr = sum(is.na(dat)) != 0)
       res <- analysis(dat)
       effect[i] <- res["coef.trt"]
       effect.var[i] <- res["se"]^2
@@ -153,48 +161,11 @@ analyse_diabetes_demediation <- function(X) {
       end_res$qbar - 1.96 * sqrt(end_res$t),
       end_res$qbar + 1.96 * sqrt(end_res$t)
     )
-    # browser()
+
     list(
-      # effect,
-      # effect.var,
       ci = ci,
-      # coefs = end_res$qhat,
       coef = end_res$qbar,
       sd = sqrt(end_res$t)
     )
   }
 }
-
-
-#' Summarise Output from Analyse Functions for ...
-#'
-#' @param name also input used to name the summarise function
-#'
-#' @describeIn summarise_diabetes_demediation Summarise Output from Analyse X
-#'
-#' @return
-#' Returns a function with the arguments:
-#'  * condition
-#'  * results
-#'  * fixed objects
-#'
-#' that can be passed to create_summarise_function or to
-#' SimDesign::runSimulation and that returns a `data.frame` with the columns
-#'  * `Y` ...
-#'  * ...
-#'
-#' @export
-#'
-#' @examples
-#' summarise_diabetes_demediation("tell")
-# summarise_diabetes_demediation <- function(name = NULL) {
-#   # res <- function(condition, results, fixed_objects = NULL) {
-#   res <- data.frame(
-#     "Y" = NA_real_
-#   )
-#   # }
-#' #
-#   attr(res, "name") <- name
-#' #
-#   res
-# }

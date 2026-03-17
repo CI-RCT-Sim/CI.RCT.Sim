@@ -27,7 +27,7 @@
 #'   * miss_resc
 #'
 #' @return
-#' For generate_diabetes_rescue: A data set with n rows and the columns id, trt
+#' For generate_diabetes: A data set with n rows and the columns id, trt
 #' (1=treatment, 0=control), age, y0, y1, ..., yk
 #' (the repeated measurements of the outcome), R1, ..., Rk-1 (indicators for
 #' rescue medication at each visit except baseline and the last visit),
@@ -37,12 +37,12 @@
 #' @importFrom stats rbinom rnorm runif qnorm qlogis plogis
 #'
 #' @export
-#' @describeIn generate_diabetes_rescue simulates a data set with n rows.
+#' @describeIn generate_diabetes simulates a data set with n rows.
 #'
 #' @examples
-#' Design <- assumptions_diabetes_rescue()
-#' generate_diabetes_rescue(Design[1, ])
-generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
+#' Design <- diabetes_scenario()
+#' generate_diabetes(Design[1, ])
+generate_diabetes <- function(condition, fixed_objects = NULL) {
   # sequence with the visits
   visit <- 0:condition$k
 
@@ -117,7 +117,7 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
         resid[rescue_set]
       any_rescue[i] <- TRUE
     } else {
-      rescue_start[i] <- condition$k+2
+      rescue_start[i] <- condition$k + 2
       any_rescue[i] <- FALSE
     }
   }
@@ -147,24 +147,24 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   out
 }
 
-#' Create an empty assumptions data.frame for generate_diabetes_rescue
+#' Create an empty assumptions data.frame for generate_diabetes
 #'
 #' @param print print code to generate parameter set?
 #'
-#' @return For assumptions_diabetes_rescue: a design tibble with default values invisibly
+#' @return For diabetes_scenario: a design tibble with default values invisibly
 #'
-#' @details assumptions_diabetes_rescue generates a default design `data.frame`
-#'   for use with generate_diabetes_rescue If print is `TRUE` code to produce
+#' @details diabetes_scenario generates a default design `data.frame`
+#'   for use with generate_diabetes If print is `TRUE` code to produce
 #'   the template is also printed for copying, pasting and editing by the user.
 #'   (This is the default when run in an interactive session.)
 #'
 #' @export
-#' @describeIn assumptions_diabetes_rescue generate default design tibble
+#' @describeIn diabetes_scenario generate default design tibble
 #'
 #' @examples
-#' Design <- assumptions_diabetes_rescue()[1, ]
+#' Design <- diabetes_scenario()[1, ]
 #' Design
-assumptions_diabetes_rescue <- function(print = interactive()) {
+diabetes_scenario <- function(print = interactive()) {
   skel <- "params_scenarios_grid(
   k           = 12,                   # Number of visits post baseline
   mean_age    = 60,                       # mean of the variable age
@@ -218,23 +218,11 @@ assumptions_diabetes_rescue <- function(print = interactive()) {
 #'
 #' @export
 #'
-#' @describeIn generate_diabetes_rescue  calculate true summary statistics for ...
+#' @describeIn generate_diabetes  calculate true summary statistics for ...
 #'
 #' @examples
-#' true_summary_statistics_diabetes_rescue(assumptions_diabetes_rescue())
-true_summary_statistics_diabetes_rescue <- function(Design, cutoff_stats = 10, fixed_objects = NULL) {
-  # true_summary_statistics_diabetes_rescue_rowwise <- function(condition, cutoff_stats) {
-  #   res <- data.frame(
-  #     eff_true <- condition$delta / 2 * (1 - exp(-condition$lambda * condition$k))
-  #   )
-  #   res
-  # }
-  #
-  # Design <- Design |>
-  #   split(1:nrow(Design)) |>
-  #   mapply(FUN = true_summary_statistics_diabetes_rescue_rowwise, cutoff_stats = cutoff_stats, SIMPLIFY = FALSE)
-  #
-  # Design <- do.call(rbind, Design)
+#' diabetes_scenario_set_truevalues(diabetes_scenario())
+diabetes_scenario_set_truevalues <- function(Design, cutoff_stats = 10, fixed_objects = NULL) {
   Design$eff_true <- Design$delta / 2 * (1 - exp(-Design$lambda * Design$k))
 
   # specifying parameters for sample size calculation

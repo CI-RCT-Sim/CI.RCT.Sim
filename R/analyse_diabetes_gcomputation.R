@@ -1,9 +1,10 @@
 #' Analyse Dataset with G-estimation (G-computation via gformula_continuous_eof)
 #'
-#'
 #' @return A function that, when called with `condition` and `dat`, returns a list with:
 #' * `coef`      estimated difference in mean change in HbA1c between treatment groups
-#' * `sd`       standard error for coef
+#' * `sd`        standard error for coef
+#' * `ci_lower`  lower bound of 95% confidence interval for coef
+#' * `ci_upper`  upper bound of 95% confidence interval for coef
 #'
 #' @export
 #'
@@ -45,18 +46,17 @@
 #'
 #' @examples
 #' \donttest{
-#' Design <- assumptions_diabetes_rescue() |>
-#'   true_summary_statistics_diabetes_rescue()
+#' Design <- diabetes_scenario() |>
+#'   diabetes_scenario_set_truevalues()
 #'
 #' condition <- Design[1, ]
 #'
-#' dat <- generate_diabetes_rescue(condition)
+#' dat <- generate_diabetes(condition)
 #'
 #' analyse_diabetes_gcomputation()(condition, dat)
 #' analyse_diabetes_gcomputation()(condition, dat)
 #' }
 analyse_diabetes_gcomputation <- function() {
-
   function(condition, dat, fixed_objects = NULL) {
     k <- condition$k # number of last visit
     setup <- condition$setup # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
@@ -82,8 +82,8 @@ analyse_diabetes_gcomputation <- function() {
         # i.e. final outcome
         # to preserve this value while deleting the last row for the model estimation
         y_k = ifelse(visit == k - 1, dplyr::lead(y), NA)
-      )# |>
-      #dplyr::select(-R)
+      ) # |>
+    # dplyr::select(-R)
 
     # Remove final visit i.e. visit k
     dat_long <- dat_long[dat_long$visit != k, ]
@@ -130,7 +130,7 @@ analyse_diabetes_gcomputation <- function() {
       )
     ) # no rescue
     int_descript <- c("treatment no rescue", "control no rescue")
-    restrictions <- list(c("R",  "lag1_R != 1", gfoRmula::carry_forward))
+    restrictions <- list(c("R", "lag1_R != 1", gfoRmula::carry_forward))
 
     nsamples <- 200
 

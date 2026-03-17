@@ -17,21 +17,17 @@
 #' @importFrom magrittr `%>%`
 #'
 #' @examples
-#' Design <- assumptions_diabetes_rescue() |>
-#'   true_summary_statistics_diabetes_rescue()
+#' Design <- diabetes_scenario() |>
+#'   diabetes_scenario_set_truevalues()
 #'
 #' condition <- Design[1, ]
 #'
-#' dat <- generate_diabetes_rescue(condition)
+#' dat <- generate_diabetes(condition)
 #'
-#' analyse_diabetes_ipw_tp <- analyse_diabetes_ipw(estimand = "tp")
-#' analyse_diabetes_ipw_tp(condition, dat)
-#'
-#' analyse_diabetes_ipw_hyp <- analyse_diabetes_ipw(estimand = "hyp")
-#' analyse_diabetes_ipw_hyp(condition, dat)
+#' analyse_diabetes_ipw(estimand = "tp")(condition, dat)
+#' analyse_diabetes_ipw(estimand = "hyp")(condition, dat)
 #'
 analyse_diabetes_ipw <- function(estimand = "hyp") {
-
   function(condition, dat, fixed_objects = NULL) {
     stopifnot(estimand %in% c("hyp", "tp"))
 
@@ -39,9 +35,9 @@ analyse_diabetes_ipw <- function(estimand = "hyp") {
 
     # reformate dat to long format with one Hba1c column, one outcome column 'y' (change of Hba1c) and a time variable 'visit'
     dat_long <- tidyr::pivot_longer(dat,
-                                    cols = matches("^[yR]\\d+$"),
-                                    names_to = c(".value", "visit"),
-                                    names_pattern = "([yR])(\\d+)"
+      cols = matches("^[yR]\\d+$"),
+      names_to = c(".value", "visit"),
+      names_pattern = "([yR])(\\d+)"
     ) %>%
       mutate(
         hba1c = y,
@@ -59,14 +55,12 @@ analyse_diabetes_ipw <- function(estimand = "hyp") {
       filter(visit != 0) # do not include baseline visits
 
     if (estimand == "tp") {
-
       dat_long$exposure <- ifelse(is.na(dat_long$y), 1L, 0L) # indicator for missing outcomes (somehow this only works if variable named exactly "exposure")
-
     } else if (estimand == "hyp") {
       dat_long$exposure <- ifelse(is.na(dat_long$y) | dat_long$R == 1, 1L, 0L) # indicator for missing outcomes and rescue medication
     }
 
-    if (nrow(dat_long[dat_long$visit == k & dat_long$exposure == 1,]) > 1) { # there need to be more than one missing value due to discontinuation (both estimands) or rescue (in case of hypothetical estimand only)
+    if (nrow(dat_long[dat_long$visit == k & dat_long$exposure == 1, ]) > 1) { # there need to be more than one missing value due to discontinuation (both estimands) or rescue (in case of hypothetical estimand only)
 
       temp <- ipw::ipwtm(
         exposure = exposure, # indicator for missing data at visit j
@@ -81,24 +75,24 @@ analyse_diabetes_ipw <- function(estimand = "hyp") {
       fit <- lm( # OLS with HC2 variance estimator
         as.formula(paste0("y ~ trt + hba1c_0 + age")),
         weights = temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0],
-        data = dat_long[dat_long$visit == k & dat_long$exposure == 0,]
+        data = dat_long[dat_long$visit == k & dat_long$exposure == 0, ]
       )
     } else {
-        fit <- lm( # OLS with HC2 variance estimator
-          as.formula(paste0("y ~ trt + hba1c_0 + age")),
-          data = dat_long[dat_long$visit == k & dat_long$exposure == 0,]
-        )
-      }
-
-      model<-lmtest::coeftest(fit, vcov = sandwich::vcovHC(fit, type = "HC2"))
-      ci <- stats::confint(model)
-
-      list(
-        coef = model["trt", "Estimate"],
-        sd = model["trt", "Std. Error"],
-        p = model["trt", "Pr(>|t|)"],
-        ci_lower = ci[2,1],
-        ci_upper = ci[2,2]
+      fit <- lm( # OLS with HC2 variance estimator
+        as.formula(paste0("y ~ trt + hba1c_0 + age")),
+        data = dat_long[dat_long$visit == k & dat_long$exposure == 0, ]
       )
+    }
+
+    model <- lmtest::coeftest(fit, vcov = sandwich::vcovHC(fit, type = "HC2"))
+    ci <- stats::confint(model)
+
+    list(
+      coef = model["trt", "Estimate"],
+      sd = model["trt", "Std. Error"],
+      p = model["trt", "Pr(>|t|)"],
+      ci_lower = ci[2, 1],
+      ci_upper = ci[2, 2]
+    )
   }
 }

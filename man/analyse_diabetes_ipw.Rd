@@ -20,17 +20,14 @@ an analyse function that can be used in runSimulation that returns a list with t
 Analyse Dataset with the Inverse probability weighting
 }
 \examples{
-Design <- assumptions_diabetes_rescue() |>
-  true_summary_statistics_diabetes_rescue()
+Design <- diabetes_scenario() |>
+  diabetes_scenario_set_truevalues()
 
 condition <- Design[1, ]
 
-dat <- generate_diabetes_rescue(condition)
+dat <- generate_diabetes(condition)
 
-analyse_diabetes_ipw_tp <- analyse_diabetes_ipw(estimand = "tp")
-analyse_diabetes_ipw_tp(condition, dat)
-
-analyse_diabetes_ipw_hyp <- analyse_diabetes_ipw(estimand = "hyp")
-analyse_diabetes_ipw_hyp(condition, dat)
+analyse_diabetes_ipw(estimand = "tp")(condition, dat)
+analyse_diabetes_ipw(estimand = "hyp")(condition, dat)
 
 }

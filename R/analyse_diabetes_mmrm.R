@@ -1,6 +1,7 @@
 #' Analyse diabetes endpoint using MMRM
 #'
 #' @param ci_level confidence level for the CI (default 0.95)
+#' @param strategy strategy to handle rescue medication: either "treatment_policy" (use all observed data) or "hypothetical" (set post-rescue values to missing and ignore them in the analysis)
 #'
 #' @returns an analyse function that returns a list with
 #' * `p` p-value for treatment effect at final visit
@@ -11,7 +12,13 @@
 #' @export
 #' @importFrom mmrm mmrm
 #' @importFrom stats vcov pnorm pt qt
-analyse_diabetes_rescue_mmrm <- function(
+#'
+#' @examples
+#' setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
+#' dat <- generate_diabetes(setting)
+#' analyse_diabetes_mmrm()(setting, dat)
+#'
+analyse_diabetes_mmrm <- function(
   ci_level = 0.95,
   strategy = c("treatment_policy", "hypothetical")
 ) {
