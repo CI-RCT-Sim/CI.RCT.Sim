@@ -117,7 +117,7 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
         resid[rescue_set]
       any_rescue[i] <- TRUE
     } else {
-      rescue_start[i] <- NA
+      rescue_start[i] <- condition$k+2
       any_rescue[i] <- FALSE
     }
   }
@@ -136,7 +136,7 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
     if (miss_start <= (condition$k + 1)) {
       Y[i, miss_start:(condition$k + 1)] <- NA
       rescue[i, miss_start:(condition$k + 1)] <- NA
-      if (any_rescue[i] & (miss_start - 1) <= rescue_start[i]) {
+      if ((miss_start - 1) <= rescue_start[i]) {
         rescue_start[i] <- NA
       }
     }

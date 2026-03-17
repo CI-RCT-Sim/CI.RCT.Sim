@@ -21,30 +21,44 @@ analyse_diabetes_demediation <- function(X) {
   function(condition, dat, fixed_objects = NULL) {
     # Convert the logical of receiving rescue at any point in to a longitudinal measurement in wide format
     daat <- dat |> mutate(
-      rescue_start = ifelse(is.na(rescue_start), condition$k + 2, rescue_start),
-      R0 = 0, .before = R1,
+      # rescue_start = ifelse(is.na(rescue_start), condition$k + 2, rescue_start),
       across(
         starts_with("R") & !R0 & !rescue_start,
         ~ ifelse(is.na(.) & rescue_start <= as.numeric(gsub("R", "", cur_column())), 1, .),
         .names = "R{gsub('R', '', .col)}"
       )
     )
-    # if (sd(daat$R1, na.rm = TRUE) == 0) {
-    #   daat$R1[is.na(daat$R1)] <- unique(daat$R1[!is.na(daat$R1)])
-    # }
+    Rcols <- grep("^R[0-9]+$", names(daat), value = TRUE)
 
-    dat1 <- daat |> filter(trt == 1)
-    pred1 <- make.predictorMatrix(dat1)
-    pred1[, c("id", "rescue_start", "trt")] <- 0
-    meth1 <- make.method(dat1)
-    dat0 <- daat |> filter(trt == 0)
-    pred0 <- make.predictorMatrix(dat0)
-    pred0[, c("id", "rescue_start", "trt")] <- 0
-    meth0 <- make.method(dat0)
-    dats <- rbind(
-      mice(dat1, m = 5, printFlag = FALSE, predictorMatrix = pred1, method = make.method(dat1), ridge = 1e-5, remove.collinear = FALSE),
-      mice(dat0, m = 5, printFlag = FALSE, predictorMatrix = pred0, method = make.method(dat0), ridge = 1e-5, remove.collinear = FALSE)
-    )
+    # dat1 <- daat |> filter(trt == 1)
+    # pred1 <- make.predictorMatrix(dat1)
+    # pred1[Rcols,] <- 0
+    # pred1["m_start",] <- 0
+    # pred1[, c("id", "rescue_start", "trt", "m_start", Rcols)] <- 0
+    # meth1 <- make.method(dat1)
+    # meth1[Rcols] <- ""
+    # dat0 <- daat |> filter(trt == 0)
+    # pred0 <- make.predictorMatrix(dat0)
+    # pred0[Rcols,] <- 0
+    # pred0["m_start",] <- 0
+    # pred0[, c("id", "rescue_start", "trt", "m_start", Rcols)] <- 0
+    # meth0 <- make.method(dat0)
+    # meth0[Rcols] <- ""
+    # # for (j in 1:(condition$k - 1)) {
+    # #   meth1[paste0("R", j)] <- meth0[paste0("R", j)] <-
+    # #     paste0("~ I(pmax(R", j - 1, ", R", j, "))")
+    # # }
+    # dats <- rbind(
+    #   mice(dat1, m = 5, printFlag = FALSE, predictorMatrix = pred1, method = meth1, ridge = 1e-5, remove.collinear = FALSE),
+    #   mice(dat0, m = 5, printFlag = FALSE, predictorMatrix = pred0, method = meth0, ridge = 1e-5, remove.collinear = FALSE)
+    # )
+    pred <- make.predictorMatrix(daat)
+    pred[Rcols,] <- 0
+    pred["m_start",] <- 0
+    pred[, c("id", "m_start", Rcols)] <- 0
+    meth <- make.method(dat)
+    meth[Rcols] <- ""
+    dats <- mice(daat, m = 5, printFlag = FALSE, predictorMatrix = pred, method = meth, ridge = 1e-5, remove.collinear = FALSE)
     analysis <- function(dataa) {
       dat_comp <- dataa |> mutate(
         across(
@@ -54,6 +68,23 @@ analyse_diabetes_demediation <- function(X) {
         )
       )
 
+      Rcols <- grep("^R[0-9]+$", names(dat_comp), value = TRUE)
+      visits <- as.numeric(sub("R", "", Rcols))
+
+      Rmat <- as.matrix(dat_comp[Rcols])
+      rs   <- dat_comp$rescue_start
+
+      # NA & visit < rescue_start -> 0
+      mask0 <- is.na(Rmat) & outer(rs, visits, `>`)
+
+      # NA & visit >= rescue_start -> 1
+      mask1 <- is.na(Rmat) & outer(rs, visits, `<=`)
+
+      Rmat[mask0] <- 0
+      Rmat[mask1] <- 1
+
+      dat_comp[Rcols] <- Rmat
+
       dat_comp[, "j11"] <- dat_comp$yc12
       for (k in 1:11) {
         if (sum(dat_comp[, paste0("R", 12 - k)], na.rm = TRUE) == 0) {
@@ -62,19 +93,15 @@ analyse_diabetes_demediation <- function(X) {
         }
         # browser()
         # Fit a model to predict the probability of receiving rescue medication at visit 12 - k
-        # mod <- logistf(
-        #   as.formula(paste0("R", 12 - k, "~ trt + age + y0 + yc", 12 - k)),#, paste0("+ yc", 1:(12 - k), collapse = " "))),
-        #   data = dat_comp)
-        mod <- glm(as.formula(paste0("R", 12 - k, "~ trt + age + y0 + yc", 12 - k)), # , paste0("+ yc", 1:(12 - k), collapse = " "))),
-          data = dat_comp, family = binomial
-        )
-        browser(expr = length(predict(mod, type = "response")) != nrow(dat_comp))
-        # index <- which(!is.na(dat_comp[, paste0("R", 12 - k)]))
-        # data[index, paste0("pred_R", 12 - k)] <- pred
+        mod <- logistf(
+          as.formula(paste0("R", 12 - k, " ~ trt + age + y0", paste0("+ y", 1:(12 - k), collapse = " "))),
+          data = dat_comp,
+          pl = FALSE,
+          control = logistf::logistf.control(maxit = 2000, maxstep = 0.5))
         dat_comp[, paste0("pred_R", 12 - k)] <- predict(mod, type = "response")
 
         # Subset the data
-        daat <- dat_comp |>
+        daats <- dat_comp |>
           select(
             trt,
             age,
@@ -89,10 +116,10 @@ analyse_diabetes_demediation <- function(X) {
         model <- lm(
           as.formula(
             paste0("j", 12 - k, "~ .")
-            # paste0("j", 12 - k, "~ trt + age + y0 + pred_R", 12 - k, " + R", 12 - k)
           ),
-          data = daat
+          data = daats
         )
+        browser(expr = is.na(coef(model)[paste0("R", 12 - k)]))
         dat_comp[, paste0("j", 12 - k - 1)] <-
           dat_comp[, paste0("j", 12 - k)] -
           case_when(
@@ -104,7 +131,6 @@ analyse_diabetes_demediation <- function(X) {
 
 
       final.model <- lm(j0 ~ trt + y0, data = dat_comp)
-      # browser()
       c(
         p = summary(final.model)$coefficients["trt", "Pr(>|t|)"],
         coef = coef(final.model)["trt"],

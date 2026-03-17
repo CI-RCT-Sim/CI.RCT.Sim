@@ -103,35 +103,25 @@ my_summarise <- create_summarise_function(
 # Run the simulations
 # -------------------------------------------------------------------
 
+cl <- makeCluster(detectCores()-1)
+clusterEvalQ(cl, {
+  library("CI.RCT.Sim")
+})
+
+clusterExport(cl = cl, varlist = c("alpha"))
+
 results <- runSimulation(
   design = sim_parameters,
   replications = N_sim,
   generate = generate_diabetes_rescue,
   analyse = my_analyse,
   summarise = my_summarise,
-  parallel = TRUE
+  parallel = TRUE,
+  cl = cl
 )
 
 # -------------------------------------------------------------------
 # Inspect results
 # -------------------------------------------------------------------
 
-# results |>
-#   subset(select = c(
-#     # names(sim_parameters),
-#     "ipwtp.bias",
-#     "ipwtp.sd_est",
-#     "ipwhyp.bias",
-#     "ipwhyp.sd_est",
-#     "dm.bias",
-#     "dm.sd_est",
-#     "mmrm.bias",
-#     "mmrm.sd_est",
-#     "mmrm.coverage",
-#     "mmrm.1.mean_ci_width",
-#     "gcom.bias",
-#     "gcom.sd_est"
-#   ))
-
-saveRDS(results, "results.rds")
-save.image("final_workspace.RData")
+save(results, file=format(Sys.Date(), "results_test_%Y-%m%-%d_%H%M.Rdata"))
