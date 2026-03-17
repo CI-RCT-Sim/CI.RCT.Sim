@@ -34,7 +34,7 @@ assumptions_mace <- function() {
 
   # mace parameters
   further1 <- baseline |> replace("beta_mace_0", log(-log(1 - 0.3))) # higher beta_mace_0
-  further2 <- baseline |> replace("beta_mace_trt_before", 0) # no TE
+  further2 <- baseline |> replace(c("beta_mace_trt_before","beta_mace_trt_buffer"), c(0,0)) # no TE
   further3 <- baseline |> replace("beta_mace_trt_before", log(2)) # greater TE
   further4 <- baseline |> replace("beta_mace_trt_buffer", 0) # no effect in buffer
   further5 <- baseline |> replace("beta_mace_trt_buffer", log(1.25)) # lower effect in buffer
@@ -306,7 +306,7 @@ true_trt_mace <- function(Design) {
     split(1:nrow(Design)) |>
     lapply(true_trt_mace_rowwise)
   
-  Design$true_trt <- true_trt
+  Design$true_trt <- as.numeric(true_trt)
   Design
 }
 

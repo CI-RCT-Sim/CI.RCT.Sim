@@ -1,11 +1,3 @@
-library(tidyverse)
-library(SimDesign)
-library(survival)
-
-source("generate_MACE.R")
-
-
-
 #' Function that censor MACE events after discontinuation + buffer window
 #' t_mace = T_disc + buffer is censored at one year
 #'
@@ -186,25 +178,28 @@ cox_model_ipw_nocov <- function(data) {
 }
 
 
-#' Function estimating all analysis functions on a simualted data set
+
+
+#' Analysis function with parameter extraction : cox model without covariates
 #'
-#' @param condition row of Design dataset
-#' @param dat output from generate_mace function
-#' @param fixed_objects list of parameters that are fixed across simulations
+#' @param condition SimDesign object
+#' @param dat SimDesign object
+#' @param fixed_objects SimDesign object
 #'
-#' @return named list with estimation metrics from the simulated replicate
+#' @return named list of results
+#' coef = estimated treatment effect
+#' se = standard error of the coef
+#' HR = hazard ratio
+#' CI.l CI.u = lower and upper CI of HR
 #' @export
 #'
 #' @examples
-#' for internal use by RunSimulation function
-analyse_mace <- function(condition, dat, fixed_objects) {
+#' internal use by SimDesign
+analyse_cox_nocov <- function(condition, dat, fixed_objects = NULL) {
   assumed_window <- condition$assumed_window
   
   trunc_data <- censor_buffer_window(dat,assumed_window)
-  long_trunc_data <- data_process_start_stop(trunc_data)
-  
   cox_nocov <- cox_model_nocov(trunc_data)
-  cox_cov <- cox_model_cov(trunc_data)
   
   cox_nocov.trt <- coef(cox_nocov)["A"]
   cox_nocov.trt.se <- summary(cox_nocov)$coefficient[1,"se(coef)"]
@@ -212,15 +207,76 @@ analyse_mace <- function(condition, dat, fixed_objects) {
   cox_nocov.HR.CI.l <- summary(cox_nocov)$conf.int[1,3]
   cox_nocov.HR.CI.u <- summary(cox_nocov)$conf.int[1,4]
   
+  list(
+       coef=cox_nocov.trt,
+       se=cox_nocov.trt.se,
+       HR=cox_nocov.HR,
+       CI.l=cox_nocov.HR.CI.l,
+       CI.u=cox_nocov.HR.CI.u
+       )
+}
+
+
+#' Analysis function with parameter extraction : cox model with covariates
+#'
+#' @param condition SimDesign object
+#' @param dat SimDesign object
+#' @param fixed_objects SimDesign object
+#'
+#' @return named list of results
+#' coef = estimated treatment effect
+#' se = standard error of the coef
+#' HR = hazard ratio
+#' CI.l CI.u = lower and upper CI of HR
+#' @export
+#'
+#' @examples
+#' internal use by SimDesign
+analyse_cox_cov <- function(condition, dat, fixed_objects = NULL) {
+  assumed_window <- condition$assumed_window
+  
+  trunc_data <- censor_buffer_window(dat,assumed_window)
+  cox_cov <- cox_model_cov(trunc_data)
+  
   cox_cov.trt <- coef(cox_cov)["A"]
   cox_cov.trt.se <- summary(cox_cov)$coefficient[1,"se(coef)"]
   cox_cov.HR <- exp(cox_cov.trt)
   cox_cov.HR.CI.l <- summary(cox_cov)$conf.int[1,3]
   cox_cov.HR.CI.u <- summary(cox_cov)$conf.int[1,4]
   
+  list(
+    coef=cox_cov.trt,
+    se=cox_cov.trt.se,
+    HR=cox_cov.HR,
+    CI.l=cox_cov.HR.CI.l,
+    CI.u=cox_cov.HR.CI.u
+  )
+}
+
+
+
+#' Analysis function with parameter extraction : ipw model without covariates
+#'
+#' @param condition SimDesign object
+#' @param dat SimDesign object
+#' @param fixed_objects SimDesign object
+#'
+#' @return named list of results
+#' coef = estimated treatment effect
+#' se = standard error of the coef
+#' HR = hazard ratio
+#' CI.l CI.u = lower and upper CI of HR
+#' @export
+#'
+#' @examples
+#' internal use by SimDesign
+analyse_ipw_nocov <- function(condition, dat, fixed_objects = NULL) {
+  assumed_window <- condition$assumed_window
   
+  trunc_data <- censor_buffer_window(dat,assumed_window)
+  long_trunc_data <- data_process_start_stop(trunc_data)
+
   ipw_nocov <- cox_model_ipw_nocov(long_trunc_data)
-  ipw_cov <- cox_model_ipw(long_trunc_data)
   
   ipw_nocov.trt <- coef(ipw_nocov)["A"]
   ipw_nocov.trt.se <- summary(ipw_nocov)$coefficient[1,"robust se"]
@@ -228,110 +284,88 @@ analyse_mace <- function(condition, dat, fixed_objects) {
   ipw_nocov.HR.CI.l <- summary(ipw_nocov)$conf.int[1,3]
   ipw_nocov.HR.CI.u <- summary(ipw_nocov)$conf.int[1,4]
   
+  list(
+    coef=ipw_nocov.trt,
+    se=ipw_nocov.trt.se,
+    HR=ipw_nocov.HR,
+    CI.l=ipw_nocov.HR.CI.l,
+    CI.u=ipw_nocov.HR.CI.u
+  )
+}
+
+
+#' Analysis function with parameter extraction : ipw model with covariates
+#'
+#' @param condition SimDesign object
+#' @param dat SimDesign object
+#' @param fixed_objects SimDesign object
+#'
+#' @return named list of results
+#' coef = estimated treatment effect
+#' se = standard error of the coef
+#' HR = hazard ratio
+#' CI.l CI.u = lower and upper CI of HR
+#' @export
+#'
+#' @examples
+#' internal use by SimDesign
+analyse_ipw_cov <- function(condition, dat, fixed_objects = NULL) {
+  assumed_window <- condition$assumed_window
+  
+  trunc_data <- censor_buffer_window(dat,assumed_window)
+  long_trunc_data <- data_process_start_stop(trunc_data)
+  ipw_cov <- cox_model_ipw(long_trunc_data)
+  
   ipw_cov.trt <- coef(ipw_cov)["A"]
   ipw_cov.trt.se <- summary(ipw_cov)$coefficient[1,"robust se"]
   ipw_cov.HR <- exp(ipw_cov.trt)
   ipw_cov.HR.CI.l <- summary(ipw_cov)$conf.int[1,3]
   ipw_cov.HR.CI.u <- summary(ipw_cov)$conf.int[1,4]
   
-  res <- nc(cox_nocov.trt=cox_nocov.trt,
-            cox_nocov.trt.se=cox_nocov.trt.se,
-            cox_nocov.HR=cox_nocov.HR,
-            cox_nocov.HR.CI.l=cox_nocov.HR.CI.l,
-            cox_nocov.HR.CI.u=cox_nocov.HR.CI.u,
-            
-            cox_cov.trt=cox_cov.trt,
-            cox_cov.trt.se=cox_cov.trt.se,
-            cox_cov.HR=cox_cov.HR,
-            cox_cov.HR.CI.l=cox_cov.HR.CI.l,
-            cox_cov.HR.CI.u=cox_cov.HR.CI.u,
-            
-            ipw_nocov.trt=ipw_nocov.trt,
-            ipw_nocov.trt.se=ipw_nocov.trt.se,
-            ipw_nocov.HR=ipw_nocov.HR,
-            ipw_nocov.HR.CI.l=ipw_nocov.HR.CI.l,
-            ipw_nocov.HR.CI.u=ipw_nocov.HR.CI.u,
-            
-            ipw_cov.trt=ipw_cov.trt,
-            ipw_cov.trt.se=ipw_cov.trt.se,
-            ipw_cov.HR=ipw_cov.HR,
-            ipw_cov.HR.CI.l=ipw_cov.HR.CI.l,
-            ipw_cov.HR.CI.u=ipw_cov.HR.CI.u
-            )
-  
-  res
-  
+  list(
+    coef=ipw_cov.trt,
+    se=ipw_cov.trt.se,
+    HR=ipw_cov.HR,
+    CI.l=ipw_cov.HR.CI.l,
+    CI.u=ipw_cov.HR.CI.u
+  )
 }
 
 
-#' Function that calculates all simulation metrics for each scenario 
-#'
-#' @param condition row of Design dataset
-#' @param results output from analyse_mace function
-#' @param fixed_objects list of parameters that are fixed across simulations
 
+
+#' Generic Summarise function 
 #'
-#' @return named list of summarized results from the given Design row
+#' @param condition SimDesign element
+#' @param results SimDesign element
+#' @param fixed_objects SimDesign element
+#'
+#' @return
+#' bias = bias on the treatment effect
+#' mean_se = mean estimated standard error
+#' emp_se = empirical se
+#' mean_HR = mean estimated hazard ratio
+#' mean_HR_CI_width = mean width of 95% confidence interval of HR
+#' power = power/type 1 error using a Wald test
 #' @export
 #'
 #' @examples
-#' internal use by RunSimulation
-summarise_mace <- function(condition, results, fixed_objects) {
+#' internal use by SimDesign
+summarise_func <- function(condition, results, fixed_objects) {
   true_trt <- as.numeric(condition$true_trt)
   
   with(results, {
     
-list_results <- c(    
-    bias_cox_nocov_trt = mean(cox_nocov.trt-true_trt),
-    bias_cox_cov_trt = mean(cox_cov.trt-true_trt),
-    bias_ipw_nocov_trt = mean(ipw_nocov.trt-true_trt),
-    bias_ipw_cov_trt = mean(ipw_cov.trt-true_trt),
-    
-    mean_se_trt_cox_nocov = mean(cox_nocov.trt.se),
-    mean_se_trt_cox_cov = mean(cox_cov.trt.se),
-    mean_se_trt_ipw_nocov = mean(ipw_nocov.trt.se),
-    mean_se_trt_ipw_cov = mean(ipw_cov.trt.se),
-    
-    emp_se_trt_cox_nocov = sd(cox_nocov.trt),
-    emp_se_trt_cox_cov = sd(cox_cov.trt),
-    emp_se_trt_ipw_nocov = sd(ipw_nocov.trt),
-    emp_se_trt_ipw_cov = sd(ipw_cov.trt),
-    
-    mean_HR_cox_nocov = mean(cox_nocov.HR),
-    mean_HR_cox_cov = mean(cox_cov.HR),
-    mean_HR_ipw_nocov = mean(ipw_nocov.HR),
-    mean_HR_ipw_cov = mean(ipw_cov.HR),
-    
-    mean_HR_CI_width_cox_nocov = mean(cox_nocov.HR.CI.u-cox_nocov.HR.CI.l),
-    mean_HR_CI_width_cox_cov = mean(cox_cov.HR.CI.u-cox_cov.HR.CI.l),
-    mean_HR_CI_width_ipw_nocov = mean(ipw_nocov.HR.CI.u-ipw_nocov.HR.CI.l),
-    mean_HR_CI_width_ipw_cov = mean(ipw_cov.HR.CI.u-ipw_cov.HR.CI.l),
-    
-    power_cox_nocov = mean((cox_nocov.trt^2)/(cox_nocov.trt.se^2)>qchisq(0.95,1)),
-    power_cox_cov = mean((cox_cov.trt^2)/(cox_cov.trt.se^2)>qchisq(0.95,1)),
-    power_ipw_nocov = mean((ipw_nocov.trt^2)/(ipw_cov.trt.se^2)>qchisq(0.95,1)),
-    power_ipw_cov = mean((ipw_cov.trt^2)/(ipw_cov.trt.se^2)>qchisq(0.95,1))
-  
-  )
-return(list_results)
+    list_results <- data.frame(   
+      
+      bias = mean(coef-true_trt),
+      mean_se = mean(se),
+      emp_se = sd(coef),
+      mean_HR = mean(HR),
+      mean_HR_CI_width = mean(CI.u-CI.l),
+      power = mean((coef^2)/(se^2)>qchisq(0.95,1))
+      
+    )
+    return((list_results))
   })
-  
 }
-
-Design <- assumptions_mace()
-
-complete_design <- true_trt_mace(Design)
-
-results <- runSimulation(
-  complete_design,
-  replications = 1000,
-  generate = generate_mace,
-  analyse = analyse_mace,
-  summarise = summarise_mace,
-  fixed_objects = c()
-)
-
-### example of results for power and bias
-
-results[,grep("power",colnames(results))]
-results[,grep("bias",colnames(results))]
