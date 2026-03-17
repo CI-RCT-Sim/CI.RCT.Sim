@@ -29,9 +29,8 @@
 #'
 #' analyse_diabetes_ipw_hyp <- analyse_diabetes_ipw(estimand = "hyp")
 #' analyse_diabetes_ipw_hyp(condition, dat)
+#'
 analyse_diabetes_ipw <- function(estimand = "hyp") {
-  # What still remains to be done is
-  # documentation
 
   function(condition, dat, fixed_objects = NULL) {
     stopifnot(estimand %in% c("hyp", "tp"))
@@ -60,7 +59,14 @@ analyse_diabetes_ipw <- function(estimand = "hyp") {
       filter(visit != 0) # do not include baseline visits
 
     if (estimand == "tp") {
+
       dat_long$exposure <- ifelse(is.na(dat_long$y), 1L, 0L) # indicator for missing outcomes (somehow this only works if variable named exactly "exposure")
+
+    } else if (estimand == "hyp") {
+      dat_long$exposure <- ifelse(is.na(dat_long$y) | dat_long$R == 1, 1L, 0L) # indicator for missing outcomes and rescue medication
+    }
+
+    if (nrow(dat_long[dat_long$visit == k & dat_long$exposure == 1,]) > 1) { # there need to be more than one missing value due to discontinuation (both estimands) or rescue (in case of hypothetical estimand only)
 
       temp <- ipw::ipwtm(
         exposure = exposure, # indicator for missing data at visit j
@@ -72,37 +78,18 @@ analyse_diabetes_ipw <- function(estimand = "hyp") {
         type = "first",
         data = dat_long
       )
-      model <- lm_robust( # OLS with HC2 variance estimator
-        as.formula(paste0("y ~ trt + hba1c_0 + age")),
-        weights = temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0],
-        data = dat_long[dat_long$visit == k & dat_long$exposure == 0,]
-      )
-
-      list(
-        coef = summary(model)$coefficients["trt", "Estimate"],
-        sd = summary(model)$coefficients["trt", "Std. Error"],
-        p = summary(model)$coefficients["trt", "Pr(>|t|)"],
-        ci_lower = summary(model)$coefficients["trt", "CI Lower"],
-        ci_upper = summary(model)$coefficients["trt", "CI Upper"]
-      )
-    } else if (estimand == "hyp") {
-      dat_long$exposure <- ifelse(is.na(dat_long$y) | dat_long$R == 1, 1L, 0L) # indicator for missing outcomes and rescue medication
-
-      temp <- ipw::ipwtm(
-        exposure = exposure, # indicator for missingness or rescue
-        family = "binomial",
-        link = "logit",
-        denominator = ~ trt + age + hba1c_lag,
-        id = id,
-        timevar = visit,
-        type = "first", #  models are fitted only on observations up to and including the first time point where y is missing, afterwards weights will be constant
-        data = dat_long
-      )
       fit <- lm( # OLS with HC2 variance estimator
         as.formula(paste0("y ~ trt + hba1c_0 + age")),
         weights = temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0],
         data = dat_long[dat_long$visit == k & dat_long$exposure == 0,]
       )
+    } else {
+        fit <- lm( # OLS with HC2 variance estimator
+          as.formula(paste0("y ~ trt + hba1c_0 + age")),
+          data = dat_long[dat_long$visit == k & dat_long$exposure == 0,]
+        )
+      }
+
       model<-lmtest::coeftest(fit, vcov = sandwich::vcovHC(fit, type = "HC2"))
       ci <- stats::confint(model)
 
@@ -113,6 +100,5 @@ analyse_diabetes_ipw <- function(estimand = "hyp") {
         ci_lower = ci[2,1],
         ci_upper = ci[2,2]
       )
-    }
   }
 }

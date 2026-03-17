@@ -70,7 +70,25 @@ To contribute code:
    * If all works out, merge the pull request to main. If all work on the 
      feature branch is done, delete the feature branch after merging.
 
-# Coding Style
+# Package Structure
+
+Short checklist:
+
+* Proposed naming convention:
+  * data generation
+    * `xxx_scenario` for the function that generates the scenario parameter values
+    * `xxx_scenario_set_yyy` for the functions that calculate additional quantities from the scenario parameter values
+    * `generate_xxx` for the data-generation function
+  * anaylsis functions
+    * `analyse_xxx_zzz` for the analysis method zzz in the xxx scenario
+* Roxygen Documentation
+  * document all function arguments
+  * document all return values
+  * document all related data-generation function in one help page
+  * add one example-block per help page
+  * wrap long-running examples in `\donttest{}`
+   
+## Style Guide
 
 Please approximately keep to the 
 [tidyverse style guide](https://style.tidyverse.org/) to keep the code easily
@@ -78,19 +96,57 @@ readable.
 
 ## Roxygen documentation
 
-Documentation and package metadata are automatically generated with the 
-`roxygen2` package. You can add the roxygen tags in r-studio with 
-`Code > Insert Roxygen Skeleton`. When using functions from other packages, also
-insert an `@importFrom <package> <function1> <function2> ...` tag.
-(See `R/utility_functions.R` for an example.) 
+### General
+
+Documentation and package metadata are automatically generated with the
+`roxygen2` package. To get started with roxygen, have a look at this
+[vignette](https://roxygen2.r-lib.org/articles/roxygen2.html)
+In r-studio you can add empty roxygen tags with `Code > Insert Roxygen Skeleton`.
+
+### Function Documentation
+
+Each documentation block starts with the title of the manual page. The most
+important part of documentation are arguments and return values of functions.
+They are documented with the `@param` and the `@returns` tags. Those should be
+present for all functions.
+
+To document multiple functions in one manual page use the `@describeIn` tag
+followed by the name of the function where the documnetation should be added and
+by the title to be used there. When documenting multiple functions in one page,
+make sure to mention which function the description refers to. For example for
+the return value. See
+[generate_minimal_example.R](https://github.com/CI-RCT-Sim/CI.RCT.Sim/blob/main/R/generate_minimal_example.R)
+for an example.
+
+### Examples
 
 Please also add examples to your function. When adding examples, please ensure
 that they run without error, since examples are checked when building the
 package.
 
-Wrap examples that take a long time to run (e.g. requiring simulations) in a
-`\donttest{}` block. So they are not tested each time when `devtools::check` is
-run.
+Examples for data generation could be generating a list of parameters and
+calculating additional quantities and then generating one dataset from one of
+the lines of the parameter values. Here one example using all related functions
+will be sufficient in most cases.
+
+For analysis functions you can use the same
+example but add two lines to analyse the dataset. See
+[analyse_minimal_example.R](https://github.com/CI-RCT-Sim/CI.RCT.Sim/blob/vaccine_analysis_functions/R/analyse_minimal_example.R)
+for an example.
+
+Wrap examples that take a long time to run (e.g. requiring simulations or
+bootstrapping) in a `\donttest{}` block. So they are not tested each time when
+`devtools::check` is run.
+
+### Imports, Dependencies
+
+When using functions from other packages access them by `package::function` or
+insert an `@importFrom <package> <function1> <function2> ...` tag. See
+[utility_functions.R](https://github.com/CI-RCT-Sim/CI.RCT.Sim/blob/vaccine_analysis_functions/R/utility_funtions.R)
+for an example.
+
+If dependencies are not added to DESCRIPTION by `devtools::document()` add them
+manually in `Imports`.
 
 ## Tests
 
