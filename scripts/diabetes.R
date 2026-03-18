@@ -4,8 +4,8 @@ devtools::load_all()
 # Define parameter values and derived quantities
 # -------------------------------------------------------------------
 
-sim_parameters <- assumptions_diabetes_rescue() |>
-  true_summary_statistics_diabetes_rescue()
+sim_parameters <- diabetes_scenario() |>
+  diabetes_scenario_set_truevalues()
 
 # -------------------------------------------------------------------
 # Constants for simulation
@@ -21,14 +21,14 @@ alpha <- 0.05
 my_analyse <- list(
   ## Treatment policy estimands
   ipwtp = analyse_diabetes_ipw(strategy = "treatment_policy"),
-  mmrmtp = analyse_diabetes_rescue_mmrm(strategy = "treatment_policy"),
-  mitp = analyse_diabetes_rescue_mi(strategy = "treatment_policy"),
+  mmrmtp = analyse_diabetes_mmrm(strategy = "treatment_policy"),
+  mitp = analyse_diabetes_mi(strategy = "treatment_policy"),
   ## Hypothetical estimands
   ipwhyp = analyse_diabetes_ipw(strategy = "hypothetical"),
   dm = analyse_diabetes_demediation(),
   gcom = analyse_diabetes_gcomputation(),
-  mmrmhyp = analyse_diabetes_rescue_mmrm(strategy = "hypothetical"),
-  mihyp = analyse_diabetes_rescue_mi(strategy = "hypothetical")
+  mmrmhyp = analyse_diabetes_mmrm(strategy = "hypothetical"),
+  mihyp = analyse_diabetes_mi(strategy = "hypothetical")
 )
 
 # -------------------------------------------------------------------
@@ -113,7 +113,7 @@ clusterExport(cl = cl, varlist = c("alpha"))
 results <- runSimulation(
   design = sim_parameters,
   replications = N_sim,
-  generate = generate_diabetes_rescue,
+  generate = generate_diabetes,
   analyse = my_analyse,
   summarise = my_summarise,
   parallel = TRUE,
