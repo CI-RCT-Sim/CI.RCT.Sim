@@ -114,7 +114,7 @@ generate_diabetes <- function(condition, fixed_objects = NULL) {
       rescue_set <- (rescue_start[i] + 2):(condition$k + 1)
       Y[i, rescue_set] <- mu[i, rescue_set] +
         response_rescue[i] * rescue_effect[rescue_set - rescue_start[i] + 1] +
-        resid[rescue_set]
+        resid[i, rescue_set]
       any_rescue[i] <- TRUE
     } else {
       rescue_start[i] <- condition$k + 2

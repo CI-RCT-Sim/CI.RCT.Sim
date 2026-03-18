@@ -16,7 +16,7 @@
 #'
 #' @importFrom mice mice make.method make.predictorMatrix complete as.mira pool
 #' @importFrom dplyr filter select bind_rows all_of
-#' @importFrom stats lm
+#' @importFrom stats lm confint coef
 #' @export
 #'
 #' @examples
@@ -42,7 +42,7 @@ analyse_diabetes_mi <- function(
     if (strategy == "treatment_policy") {
       dat$chg <- dat[[paste0("y", k)]] - dat$y0
 
-      fit <- stats::lm(chg ~ trt + age + y0, data = dat)
+      fit <- lm(chg ~ trt + age + y0, data = dat)
 
       sum_fit <- summary(fit)
       ci <- confint(fit, level = ci_level)["trt", ]
@@ -134,7 +134,7 @@ analyse_diabetes_mi <- function(
 
     fit_models <- lapply(imp_full, function(d) {
       d$chg <- d[[paste0("y", k)]] - d$y0
-      stats::lm(chg ~ trt + age + y0, data = d)
+      lm(chg ~ trt + age + y0, data = d)
     })
 
     imp_obj <- mice::as.mira(fit_models)
