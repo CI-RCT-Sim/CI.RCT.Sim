@@ -35,7 +35,7 @@ analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3){
         trt <- factor(trt, levels=c("1", "0"))
       })
     mod_ps <- glm(C~V+W, subset = (trt==1), data=dat1, family=binomial())
-    odds <- predict(mod_ps, newdata = dat1, type="response") |>
+    odds <- predict(mod_ps, newdata = dat1, type="link") |>
       exp()
 
     dat1 <- dat1 |>

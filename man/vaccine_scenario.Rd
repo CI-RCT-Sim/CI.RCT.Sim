@@ -34,7 +34,7 @@ vaccine_scenario_set_samplesize(
 
 \item{Design}{Design dataset as returned by \code{vaccine_scenario}}
 
-\item{r}{for setting gamm_0 and sample size calculation: allocation ratio}
+\item{r}{for setting gamma_0 and sample size calculation: allocation ratio}
 
 \item{alpha}{for sample size calculation: one-sided alpha level}
 

@@ -14,14 +14,15 @@ analyse_vaccine_pp(ci_level = 0.95, VE_margin = 0.3)
 \value{
 an analyse function that returns a list with the elements
 \itemize{
-\item \code{p} the p-value of the exact binomial test
+\item \code{p} the p-value of the super-superiority test
 \item \code{VE} the point estimate for the vaccine efficacy
 \item \code{VE_lower} the lower CI limit
 \item \code{VE_upper} the upper CI limit
 }
 }
 \description{
-Analyse dataset from vaccine scenario, per-protocol analysis
+Estimates and tests are based on marginal estimates from a Poisson regression
+adjusted for \code{V} and \code{W}.
 }
 \examples{
 Design <- vaccine_scenario() |>

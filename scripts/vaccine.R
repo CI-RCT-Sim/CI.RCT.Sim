@@ -75,4 +75,4 @@ results <- runSimulation(
 # Inspect results
 # -------------------------------------------------------------------
 
-save(results, file=format(Sys.Date(), "results_test_%Y-%m%-%d_%H%M.Rdata"))
+save(results, file=format(Sys.time(), "results_test_%Y-%m-%d_%H%M.Rdata"))

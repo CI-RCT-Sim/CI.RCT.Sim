@@ -1,10 +1,13 @@
 #' Analyse dataset from vaccine scenario, per-protocol analysis
 #'
+#' Estimates and tests are based on marginal estimates from a Poisson regression
+#' adjusted for `V` and `W`.
+#'
 #' @param ci_level the confidence level for the CIs (defaults to 0.95)
 #' @param VE_margin vaccine efficacy margin for the super-superiority test
 #'
 #' @returns an analyse function that returns a list with the elements
-#'  * `p` the p-value of the exact binomial test
+#'  * `p` the p-value of the super-superiority test
 #'  * `VE` the point estimate for the vaccine efficacy
 #'  * `VE_lower` the lower CI limit
 #'  * `VE_upper` the upper CI limit

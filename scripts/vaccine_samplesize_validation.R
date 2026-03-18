@@ -1,5 +1,6 @@
 ## Sample size justification and validation of corresponding algorithms against gsDesign
 library(tidyverse)
+devtools::load_all()
 
 #' Compute sample size requirements for VE trial using Lachin-Foulkes method
 #'

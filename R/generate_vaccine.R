@@ -25,7 +25,7 @@ vaccine_scenario <- function(print=interactive()){
   p_V = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk
   p_W = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk and modifying treatment effect
   lambda_post = -log(1-(1/c(1000, 500, 2000)))/(30/7), # force of infection as weekly incidence rate (baseline infection hazard) after 14 days, monthly incidence of 1/500, 1/1000, 1/2000
-  overall_compliance = c(0.95, 0.5), # used to callibrate gamma0
+  overall_compliance = c(0.95, 0.5), # used to calibrate gamma0
   gamma_W  = c(-0.8, 0), # compliance modifier predictive covariate
   gamma_V  = c(0.5, 0), # compliance modifier prognostic covariate
   gamma_A  = c(-0.357, 0), # compliance modifier treatment group
@@ -39,7 +39,7 @@ vaccine_scenario <- function(print=interactive()){
   dose_interval = c(2) # time of second dose (weeks)
 ) |>
 transform(
-  # either 0 (no effect with one dose) or VE with one dose is VE with two dose 2 - 0.2
+  # either 0 (no effect with one dose) or VE with one dose is VE with two doses - 0.2
   beta_A1 = (ifelse(
     beta_A2 == 0,
     0,
@@ -168,7 +168,7 @@ generate_vaccine <- function(condition, fixed_objects = list(include_unobserved=
 
 
 #' @param Design Design dataset as returned by `vaccine_scenario`
-#' @param r for setting gamm_0 and sample size calculation: allocation ratio
+#' @param r for setting gamma_0 and sample size calculation: allocation ratio
 #'
 #' @describeIn vaccine_scenario vaccine_scenario_set_gamma_0 calculate gamma_0 from other parameters
 #'
