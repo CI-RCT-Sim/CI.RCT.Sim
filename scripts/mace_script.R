@@ -4,7 +4,7 @@ devtools::load_all()
 # Define parameter values and derived quantities
 # -------------------------------------------------------------------
 
-sim_parameters <- assumptions_mace() |> true_trt_mace()
+sim_parameters <- mace_scenario() |> true_trt_mace()
 
 # -------------------------------------------------------------------
 # Constants for simulation
@@ -17,18 +17,18 @@ N_sim <- 1000
 # -------------------------------------------------------------------
 
 my_analyse <- list(
-  cox_nocov=analyse_cox_nocov,
-  cox_cov=analyse_cox_cov,
-  ipw_nocov=analyse_ipw_nocov,
-  ipw_cov=analyse_ipw_cov 
+  cox_nocov=analyse_mace_cox_nocov,
+  cox_cov=analyse_mace_cox_cov,
+  ipw_nocov=analyse_mace_ipw_nocov,
+  ipw_cov=analyse_mace_ipw_cov 
 )
 
 
 my_summarise <- create_summarise_function(
-  cox_nocov=summarise_func,
-  cox_cov=summarise_func,
-  ipw_nocov=summarise_func,
-  ipw_cov=summarise_func 
+  cox_nocov=summarise_func_mace,
+  cox_cov=summarise_func_mace,
+  ipw_nocov=summarise_func_mace,
+  ipw_cov=summarise_func_mace 
 )
 # -------------------------------------------------------------------
 # Run the simulations

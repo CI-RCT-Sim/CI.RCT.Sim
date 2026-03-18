@@ -195,7 +195,7 @@ cox_model_ipw_nocov <- function(data) {
 #'
 #' @examples
 #' internal use by SimDesign
-analyse_cox_nocov <- function(condition, dat, fixed_objects = NULL) {
+analyse_mace_cox_nocov <- function(condition, dat, fixed_objects = NULL) {
   assumed_window <- condition$assumed_window
   
   trunc_data <- censor_buffer_window(dat,assumed_window)
@@ -232,7 +232,7 @@ analyse_cox_nocov <- function(condition, dat, fixed_objects = NULL) {
 #'
 #' @examples
 #' internal use by SimDesign
-analyse_cox_cov <- function(condition, dat, fixed_objects = NULL) {
+analyse_mace_cox_cov <- function(condition, dat, fixed_objects = NULL) {
   assumed_window <- condition$assumed_window
   
   trunc_data <- censor_buffer_window(dat,assumed_window)
@@ -270,7 +270,7 @@ analyse_cox_cov <- function(condition, dat, fixed_objects = NULL) {
 #'
 #' @examples
 #' internal use by SimDesign
-analyse_ipw_nocov <- function(condition, dat, fixed_objects = NULL) {
+analyse_mace_ipw_nocov <- function(condition, dat, fixed_objects = NULL) {
   assumed_window <- condition$assumed_window
   
   trunc_data <- censor_buffer_window(dat,assumed_window)
@@ -309,7 +309,7 @@ analyse_ipw_nocov <- function(condition, dat, fixed_objects = NULL) {
 #'
 #' @examples
 #' internal use by SimDesign
-analyse_ipw_cov <- function(condition, dat, fixed_objects = NULL) {
+analyse_mace_ipw_cov <- function(condition, dat, fixed_objects = NULL) {
   assumed_window <- condition$assumed_window
   
   trunc_data <- censor_buffer_window(dat,assumed_window)
@@ -351,7 +351,7 @@ analyse_ipw_cov <- function(condition, dat, fixed_objects = NULL) {
 #'
 #' @examples
 #' internal use by SimDesign
-summarise_func <- function(condition, results, fixed_objects) {
+summarise_func_mace <- function(condition, results, fixed_objects) {
   true_trt <- as.numeric(condition$true_trt)
   
   with(results, {

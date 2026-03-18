@@ -1,7 +1,7 @@
 #' @returns A data.frame with parameter Values for scenarios
 #' @export
 #' @describeIn generate_mace generate default assumptions `tibble`
-assumptions_mace <- function() {
+mace_scenario <- function() {
   baseline <- list(
     # MACE parameters
     beta_mace_0 = c(log(-log(1 - 0.1))),
@@ -184,7 +184,7 @@ generate_all_tte2 <- function(cov_df,
 #' @export
 #'
 #' @examples
-#' Design <- assumptions_mace() |>
+#' Design <- mace_scenario() |>
 #' dat <- generate_mace(Design[1,])
 #' head(dat)
 generate_mace <- function(condition, fixed_objects) {
