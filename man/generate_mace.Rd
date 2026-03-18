@@ -37,7 +37,7 @@ Generate Data for MACE Scenario
 
 }}
 \examples{
-Design <- mace_scenario() |>
+Design <- mace_scenario()
 dat <- generate_mace(Design[1,])
 head(dat)
 }
