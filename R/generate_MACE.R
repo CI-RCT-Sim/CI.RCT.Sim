@@ -184,7 +184,7 @@ generate_all_tte2 <- function(cov_df,
 #' @export
 #'
 #' @examples
-#' Design <- mace_scenario() |>
+#' Design <- mace_scenario()
 #' dat <- generate_mace(Design[1,])
 #' head(dat)
 generate_mace <- function(condition, fixed_objects) {
