@@ -28,7 +28,7 @@
 #' dat <- generate_diabetes(condition)
 #'
 #' analyse_diabetes_ipw(strategy = "treatment_policy")(condition, dat)
-#' analyse_diabetes_ipw(estimand = "hypothetical")(condition, dat)
+#' analyse_diabetes_ipw(strategy = "hypothetical")(condition, dat)
 #'
 analyse_diabetes_ipw <- function(strategy = "hypothetical") {
   function(condition, dat, fixed_objects = NULL) {
