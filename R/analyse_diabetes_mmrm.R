@@ -69,7 +69,10 @@ analyse_diabetes_mmrm <- function(
 
     # --- Fit MMRM ---
     fit <- mmrm::mmrm(
-      formula = y ~ trt * visit + y0 + us(visit | id),
+      y ~ trt * visit +
+        y0 * visit +
+        age * visit +
+        us(visit | id),
       data = long
     )
 
