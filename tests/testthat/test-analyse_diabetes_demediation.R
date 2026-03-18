@@ -21,6 +21,6 @@ test_that("demediation diabetes works", {
   })
 
   # sanity checks under the null hypothesis
-  expect_lt(res$ci[1], 0)
-  expect_gt(res$ci[2], 0)
+  expect_lt(res$ci_lower, 0)
+  expect_gt(res$ci_upper, 0)
 })
