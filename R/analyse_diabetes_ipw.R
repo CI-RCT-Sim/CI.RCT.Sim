@@ -4,7 +4,7 @@
 #'
 #' @return an analyse function that can be used in runSimulation that returns a list with the elements
 #' * `coef` coefficient for `trt`
-#' * `sd` standard deviation for coef
+#' * `se` standard error for coef
 #' * `p` p-value for coef
 #' * `ci_lower` lower bound of confidence interval for coef
 #' * `ci_upper` upper bound of confidence interval for coef
@@ -36,7 +36,7 @@ analyse_diabetes_ipw <- function(strategy = "hypothetical") {
 
     k <- condition$k # number of last visit
 
-    # reformate dat to long format with one Hba1c column, one outcome column 'y' (change of Hba1c) and a time variable 'visit'
+    # reformat dat to long format with one HbA1c column, one outcome column 'y' (change of HbA1c) and a time variable 'visit'
     dat_long <- tidyr::pivot_longer(dat,
       cols = matches("^[yR]\\d+$"),
       names_to = c(".value", "visit"),
@@ -51,8 +51,8 @@ analyse_diabetes_ipw <- function(strategy = "hypothetical") {
       arrange(id, visit) %>%
       group_by(id) %>% # make sure table is grouped by id and ordered by visit
       mutate(
-        hba1c_0 = hba1c[visit == 0], # HbA1 at baseline
-        hba1c_lag = dplyr::lag(hba1c, default = NA), # HbA1 at visit j-1
+        hba1c_0 = hba1c[visit == 0], # HbA1c at baseline
+        hba1c_lag = dplyr::lag(hba1c, default = NA), # HbA1c at visit j-1
         y = hba1c - hba1c_0
       ) %>% # HbA1c change
       filter(visit != 0) # do not include baseline visits
@@ -92,7 +92,7 @@ analyse_diabetes_ipw <- function(strategy = "hypothetical") {
 
     list(
       coef = model["trt", "Estimate"],
-      sd = model["trt", "Std. Error"],
+      se = model["trt", "Std. Error"],
       p = model["trt", "Pr(>|t|)"],
       ci_lower = ci[2, 1],
       ci_upper = ci[2, 2]

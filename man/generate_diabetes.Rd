@@ -8,20 +8,14 @@ can be introduced}
 \usage{
 generate_diabetes(condition, fixed_objects = NULL)
 
-diabetes_scenario_set_truevalues(
-  Design,
-  cutoff_stats = 10,
-  fixed_objects = NULL
-)
+diabetes_scenario_set_truevalues(Design)
 }
 \arguments{
 \item{condition}{condition row of Design dataset}
 
-\item{fixed_objects}{fixed objects not used for now}
+\item{fixed_objects}{fixed objects of Design dataset}
 
-\item{Design}{Design data.frame for x}
-
-\item{cutoff_stats}{Cutoff time for rmst and average hazard ratios}
+\item{Design}{Design data.frame for diabetes scenarios, e.g. created with diabetes_scenario()}
 }
 \value{
 For generate_diabetes: A data set with n rows and the columns id, trt
@@ -31,16 +25,7 @@ rescue medication at each visit except baseline and the last visit),
 and rescue_start (the visit at which rescue medication was started,
 NA if no rescue medication was received).
 
-For true_summary_statistics_x: the design data.frame
-passed as argument with the additional columns:
-\itemize{
-\item \code{rmst_trt} rmst in the treatment group
-\item \code{median_surv_trt} median survival in the treatment group
-\item \code{rmst_ctrl} rmst in the control group
-\item \code{median_surv_ctrl} median survial in the control group
-\item \code{gAHR} geometric average hazard ratio
-\item \code{AHR} average hazard ratio
-}
+For diabetes_scenario_set_truevalues: a design tibble with true values for the treatment effect at final visit and the sample size needed to achieve 80\% power for a two-sided test at alpha = 0.05
 }
 \description{
 Generate Dataset that simulates a diabetes trial in which rescue medication
@@ -65,10 +50,7 @@ Condition has to contain the following columns:
 \item resc_0
 \item resc_y
 \item resc_age
-\item miss_0
-\item miss_y
-\item miss_age
-\item miss_resc
+\item miss
 }
 }
 \section{Functions}{

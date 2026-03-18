@@ -96,21 +96,21 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
 
       dat_comp[Rcols] <- Rmat
 
-      dat_comp[, "j11"] <- dat_comp$yc12
-      for (k in 1:11) {
-        if (sum(dat_comp[, paste0("R", 12 - k)], na.rm = TRUE) == 0) {
-          dat_comp[, paste0("j", 12 - k - 1)] <- dat_comp[, paste0("j", 12 - k)]
+      dat_comp[, paste0("j", condition$k - 1)] <- dat_comp[, paste0("yc", condition$k)]
+      for (k in 1:(condition$k - 1)) {
+        if (sum(dat_comp[, paste0("R", condition$k - k)], na.rm = TRUE) == 0) {
+          dat_comp[, paste0("j", condition$k - k - 1)] <- dat_comp[, paste0("j", condition$k - k)]
           next
         }
 
         # Fit a model to predict the probability of receiving rescue medication at visit 12 - k
         mod <- logistf(
-          as.formula(paste0("R", 12 - k, " ~ trt + age + y0", paste0("+ y", 1:(12 - k), collapse = " "))),
+          as.formula(paste0("R", condition$k - k, " ~ trt + age + y0", paste0("+ y", 1:(condition$k - k), collapse = " "))),
           data = dat_comp,
           pl = FALSE,
           control = logistf::logistf.control(maxit = 2000, maxstep = 0.5)
         )
-        dat_comp[, paste0("pred_R", 12 - k)] <- predict(mod, type = "response")
+        dat_comp[, paste0("pred_R", condition$k - k)] <- predict(mod, type = "response")
 
         # Subset the data
         daats <- dat_comp |>
@@ -118,27 +118,27 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
             trt,
             age,
             y0,
-            paste0("R", (12 - k):1),
-            paste0("yc", (12 - k):1),
-            paste0("pred_R", 12 - k),
-            paste0("j", 12 - k)
+            paste0("R", (condition$k - k):1),
+            paste0("yc", (condition$k - k):1),
+            paste0("pred_R", condition$k - k),
+            paste0("j", condition$k - k)
           )
 
         # Fit a model for the outcome
         model <- lm(
           as.formula(
-            paste0("j", 12 - k, "~ .")
+            paste0("j", condition$k - k, "~ .")
           ),
           data = daats
         )
-        browser(expr = is.na(coef(model)[paste0("R", 12 - k)]))
-        dat_comp[, paste0("j", 12 - k - 1)] <-
-          dat_comp[, paste0("j", 12 - k)] -
+
+        dat_comp[, paste0("j", condition$k - k - 1)] <-
+          dat_comp[, paste0("j", condition$k - k)] -
           case_when(
-            !is.na(coef(model)[paste0("R", 12 - k)]) ~ coef(model)[paste0("R", 12 - k)],
+            !is.na(coef(model)[paste0("R", condition$k - k)]) ~ coef(model)[paste0("R", condition$k - k)],
             TRUE ~ 0
           ) *
-            dat_comp[, paste0("R", 12 - k)]
+            dat_comp[, paste0("R", condition$k - k)]
       }
 
       final.model <- lm(j0 ~ trt + y0, data = dat_comp)
@@ -163,7 +163,8 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
     )
 
     list(
-      ci = ci,
+      ci_lower = ci[1],
+      ci_upper = ci[2],
       coef = end_res$qbar,
       sd = sqrt(end_res$t)
     )

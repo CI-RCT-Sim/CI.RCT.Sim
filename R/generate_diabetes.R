@@ -21,10 +21,7 @@
 #'   * resc_0
 #'   * resc_y
 #'   * resc_age
-#'   * miss_0
-#'   * miss_y
-#'   * miss_age
-#'   * miss_resc
+#'   * miss
 #'
 #' @return
 #' For generate_diabetes: A data set with n rows and the columns id, trt
@@ -170,15 +167,15 @@ diabetes_scenario <- function(print = interactive()) {
   mean_age    = 60,                       # mean of the variable age
   sd_age      = 10,                       # standard deviation of the variable age
   b_age       = log(2)/10,                # age coefficient
-  mean_bl     = 8,                        # mean hbalc value at baseline
-  sd_bl       = 1,                        # standard deviation of hba1c at baseline
+  mean_bl     = 8,                        # mean HbA1c value at baseline
+  sd_bl       = 1,                        # standard deviation of HbA1c at baseline
   rho         = c(0.5,0),                 # Correlation between repeated HbA1c measurements
   delta       = -c(1,0.5),                # Maximal treatment effect
   lambda      = log(2)/2,                 # Rate of increasing treatment effect
   delta_resc  = -0.75,                    # Maximal effect of rescue medication
   lambda_resc = log(2),                        # Rate of increasing effect of rescue medication
   resc_0      = qlogis(c(0.05,0.02)),     # probability for rescue medication
-  resc_y      = log(c(3,150)),            # strong effect due to high hba1c
+  resc_y      = log(c(3,150)),            # strong effect due to high HbA1c
   resc_age    = -log(1.01),               # weaker age effect than for dropout
   setup       = c(0,1), # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
   miss        = list(
@@ -203,18 +200,9 @@ diabetes_scenario <- function(print = interactive()) {
 
 #' Calculate true summary statistics for scenarios with delayed treatment effect
 #'
-#' @param Design Design data.frame for x
-#' @param cutoff_stats Cutoff time for rmst and average hazard ratios
-#' @param fixed_objects fixed objects not used for now
+#' @param Design Design data.frame for diabetes scenarios, e.g. created with diabetes_scenario()
 #'
-#' @return For true_summary_statistics_x: the design data.frame
-#'   passed as argument with the additional columns:
-#' * `rmst_trt` rmst in the treatment group
-#' * `median_surv_trt` median survival in the treatment group
-#' * `rmst_ctrl` rmst in the control group
-#' * `median_surv_ctrl` median survial in the control group
-#' * `gAHR` geometric average hazard ratio
-#' * `AHR` average hazard ratio
+#' @return For diabetes_scenario_set_truevalues: a design tibble with true values for the treatment effect at final visit and the sample size needed to achieve 80% power for a two-sided test at alpha = 0.05
 #'
 #' @export
 #'
@@ -222,7 +210,7 @@ diabetes_scenario <- function(print = interactive()) {
 #'
 #' @examples
 #' diabetes_scenario_set_truevalues(diabetes_scenario())
-diabetes_scenario_set_truevalues <- function(Design, cutoff_stats = 10, fixed_objects = NULL) {
+diabetes_scenario_set_truevalues <- function(Design) {
   Design$eff_true <- Design$delta / 2 * (1 - exp(-Design$lambda * Design$k))
 
   # specifying parameters for sample size calculation

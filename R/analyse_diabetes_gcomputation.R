@@ -2,7 +2,7 @@
 #'
 #' @return A function that, when called with `condition` and `dat`, returns a list with:
 #' * `coef`      estimated difference in mean change in HbA1c between treatment groups
-#' * `sd`        standard error for coef
+#' * `se`        standard error for coef
 #' * `ci_lower`  lower bound of 95% confidence interval for coef
 #' * `ci_upper`  upper bound of 95% confidence interval for coef
 #'
@@ -54,14 +54,13 @@
 #' dat <- generate_diabetes(condition)
 #'
 #' analyse_diabetes_gcomputation()(condition, dat)
-#' analyse_diabetes_gcomputation()(condition, dat)
 #' }
 analyse_diabetes_gcomputation <- function() {
   function(condition, dat, fixed_objects = NULL) {
     k <- condition$k # number of last visit
     setup <- condition$setup # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
 
-    # reformate dat to long format with outcome column 'y' for the change in HbA1c at each visit
+    # reformat dat to long format with outcome column 'y' for the change in HbA1c at each visit
     dat_long <- tidyr::pivot_longer(dat,
       cols = matches("^[yR]\\d+$"),
       names_to = c(".value", "visit"),
@@ -75,7 +74,7 @@ analyse_diabetes_gcomputation <- function() {
       arrange(id, visit) %>%
       group_by(id) %>% # make sure table is grouped by id and ordered by visit
       mutate(
-        hba1c_0 = hba1c[visit == 0], # HbA1 at baseline
+        hba1c_0 = hba1c[visit == 0], # HbA1c at baseline
         y = hba1c - hba1c_0, # HbA1c change
         # want to fit models on data up to time k-1, then simulate forward to predict the outcome at time k:
         # create a new column at second-to-last timepoint that holds y at last time point
@@ -95,7 +94,7 @@ analyse_diabetes_gcomputation <- function() {
       dat_long <- dat_long %>% mutate(trt = replace(trt, R == 1, 0))
     }
     # Run g-computation with bootstrap
-    # We simulate Hba1c values under the intervention (no rescue) and then
+    # We simulate HbA1c values under the intervention (no rescue) and then
     # estimate the mean change in HbA1c at the final visit
 
     # Parameters for g-formula function

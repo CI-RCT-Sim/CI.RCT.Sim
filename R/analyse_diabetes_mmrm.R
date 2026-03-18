@@ -81,8 +81,6 @@ analyse_diabetes_mmrm <- function(
 
     tcrit <- qt(1 - (1 - ci_level) / 2, df)
 
-    z <- qnorm(1 - (1 - ci_level) / 2)
-
     list(
       p = 2 * (1 - pt(abs(est / se), df)),
       coef = est,

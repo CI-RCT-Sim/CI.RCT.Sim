@@ -72,8 +72,8 @@ my_summarise <- create_summarise_function(
   dm = summarise_estimator(
     est = coef,
     real = eff_true,
-    lower = ci[1],
-    upper = ci[2],
+    lower = ci_lower,
+    upper = ci_upper,
     null = 0
   ),
   gcom = summarise_estimator(
@@ -124,4 +124,4 @@ results <- runSimulation(
 # Inspect results
 # -------------------------------------------------------------------
 
-save(results, file = format(Sys.Date(), "results_test_%Y-%m%-%d_%H%M.Rdata"))
+save(results, file = format(Sys.time(), "results_test_%Y-%m-%d_%H%M.Rdata"))
