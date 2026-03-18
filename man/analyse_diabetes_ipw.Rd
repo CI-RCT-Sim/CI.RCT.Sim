@@ -31,6 +31,6 @@ condition <- Design[1, ]
 dat <- generate_diabetes(condition)
 
 analyse_diabetes_ipw(strategy = "treatment_policy")(condition, dat)
-analyse_diabetes_ipw(estimand = "hypothetical")(condition, dat)
+analyse_diabetes_ipw(strategy = "hypothetical")(condition, dat)
 
 }
