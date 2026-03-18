@@ -4,16 +4,19 @@
 \alias{analyse_diabetes_ipw}
 \title{Analyse Dataset with the Inverse probability weighting}
 \usage{
-analyse_diabetes_ipw(estimand = "hyp")
+analyse_diabetes_ipw(strategy = "hypothetical")
 }
 \arguments{
-\item{estimand}{the estimand targeted by the CI method, default: "hyp" (hypothetical). Allowed also: "tp" (treatment policy).}
+\item{strategy}{the estimand targeted by the CI method, default: "hypothetical". Allowed also: "treatment_policy".}
 }
 \value{
 an analyse function that can be used in runSimulation that returns a list with the elements
 \itemize{
 \item \code{coef} coefficient for \code{trt}
 \item \code{sd} standard deviation for coef
+\item \code{p} p-value for coef
+\item \code{ci_lower} lower bound of confidence interval for coef
+\item \code{ci_upper} upper bound of confidence interval for coef
 }
 }
 \description{
@@ -27,7 +30,7 @@ condition <- Design[1, ]
 
 dat <- generate_diabetes(condition)
 
-analyse_diabetes_ipw(estimand = "tp")(condition, dat)
-analyse_diabetes_ipw(estimand = "hyp")(condition, dat)
+analyse_diabetes_ipw(strategy = "treatment_policy")(condition, dat)
+analyse_diabetes_ipw(estimand = "hypothetical")(condition, dat)
 
 }

@@ -1,10 +1,13 @@
 #' Analyse Dataset with the Inverse probability weighting
 #'
-#' @param estimand the estimand targeted by the CI method, default: "hyp" (hypothetical). Allowed also: "tp" (treatment policy).
+#' @param strategy the estimand targeted by the CI method, default: "hypothetical". Allowed also: "treatment_policy".
 #'
 #' @return an analyse function that can be used in runSimulation that returns a list with the elements
 #' * `coef` coefficient for `trt`
 #' * `sd` standard deviation for coef
+#' * `p` p-value for coef
+#' * `ci_lower` lower bound of confidence interval for coef
+#' * `ci_upper` upper bound of confidence interval for coef
 #'
 #' @export
 #'
@@ -24,12 +27,12 @@
 #'
 #' dat <- generate_diabetes(condition)
 #'
-#' analyse_diabetes_ipw(estimand = "tp")(condition, dat)
-#' analyse_diabetes_ipw(estimand = "hyp")(condition, dat)
+#' analyse_diabetes_ipw(strategy = "treatment_policy")(condition, dat)
+#' analyse_diabetes_ipw(estimand = "hypothetical")(condition, dat)
 #'
-analyse_diabetes_ipw <- function(estimand = "hyp") {
+analyse_diabetes_ipw <- function(strategy = "hypothetical") {
   function(condition, dat, fixed_objects = NULL) {
-    stopifnot(estimand %in% c("hyp", "tp"))
+    stopifnot(strategy %in% c("hypothetical", "treatment_policy"))
 
     k <- condition$k # number of last visit
 
@@ -54,9 +57,9 @@ analyse_diabetes_ipw <- function(estimand = "hyp") {
       ) %>% # HbA1c change
       filter(visit != 0) # do not include baseline visits
 
-    if (estimand == "tp") {
+    if (strategy == "treatment_policy") {
       dat_long$exposure <- ifelse(is.na(dat_long$y), 1L, 0L) # indicator for missing outcomes (somehow this only works if variable named exactly "exposure")
-    } else if (estimand == "hyp") {
+    } else if (strategy == "hypothetical") {
       dat_long$exposure <- ifelse(is.na(dat_long$y) | dat_long$R == 1, 1L, 0L) # indicator for missing outcomes and rescue medication
     }
 

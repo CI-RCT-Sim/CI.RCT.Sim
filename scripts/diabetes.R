@@ -12,7 +12,7 @@ sim_parameters <- assumptions_diabetes_rescue() |>
 # -------------------------------------------------------------------
 
 N_sim <- 1000
-alpha <- 0.1
+alpha <- 0.05
 
 # -------------------------------------------------------------------
 # List of analysis functions
@@ -20,15 +20,15 @@ alpha <- 0.1
 
 my_analyse <- list(
   ## Treatment policy estimands
-  ipwtp = analyse_diabetes_ipw(estimand = "tp"),
+  ipwtp = analyse_diabetes_ipw(strategy = "treatment_policy"),
   mmrmtp = analyse_diabetes_rescue_mmrm(strategy = "treatment_policy"),
-  mitp = analyse_diabetes_rescue_mi(estimand = "treatment_policy"),
+  mitp = analyse_diabetes_rescue_mi(strategy = "treatment_policy"),
   ## Hypothetical estimands
-  ipwhyp = analyse_diabetes_ipw(estimand = "hyp"),
+  ipwhyp = analyse_diabetes_ipw(strategy = "hypothetical"),
   dm = analyse_diabetes_demediation(),
   gcom = analyse_diabetes_gcomputation(),
   mmrmhyp = analyse_diabetes_rescue_mmrm(strategy = "hypothetical"),
-  mihyp = analyse_diabetes_rescue_mi(estimand = "hypothetical")
+  mihyp = analyse_diabetes_rescue_mi(strategy = "hypothetical")
 )
 
 # -------------------------------------------------------------------
@@ -45,7 +45,7 @@ my_summarise <- create_summarise_function(
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null  = 0
+    null = 0
   ),
   mmrmtp = summarise_estimator(
     est   = coef,
@@ -59,7 +59,7 @@ my_summarise <- create_summarise_function(
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null  = 0
+    null = 0
   ),
   ## Hypothetical estimands
   ipwhyp = summarise_estimator(
@@ -67,7 +67,7 @@ my_summarise <- create_summarise_function(
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null  = 0
+    null = 0
   ),
   dm = summarise_estimator(
     est = coef,
@@ -81,7 +81,7 @@ my_summarise <- create_summarise_function(
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null  = 0
+    null = 0
   ),
   mmrmhyp = summarise_estimator(
     est   = coef,
@@ -95,7 +95,7 @@ my_summarise <- create_summarise_function(
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null  = 0
+    null = 0
   )
 )
 
@@ -103,7 +103,7 @@ my_summarise <- create_summarise_function(
 # Run the simulations
 # -------------------------------------------------------------------
 
-cl <- makeCluster(detectCores()-1)
+cl <- makeCluster(detectCores() - 1)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
 })
@@ -124,4 +124,4 @@ results <- runSimulation(
 # Inspect results
 # -------------------------------------------------------------------
 
-save(results, file=format(Sys.Date(), "results_test_%Y-%m%-%d_%H%M.Rdata"))
+save(results, file = format(Sys.Date(), "results_test_%Y-%m%-%d_%H%M.Rdata"))
