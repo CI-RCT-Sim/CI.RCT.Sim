@@ -8,7 +8,7 @@
 #'
 #' @export
 #'
-#' @importFrom gfoRmula gformula_continuous_eof lagged static
+#' @importFrom gfoRmula gformula_continuous_eof lagged static carry_forward
 #' @importFrom dplyr mutate arrange group_by lead
 #' @importFrom tidyr pivot_longer
 #' @importFrom magrittr `%>%`
@@ -61,7 +61,7 @@ analyse_diabetes_gcomputation <- function() {
     setup <- condition$setup # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
 
     # reformat dat to long format with outcome column 'y' for the change in HbA1c at each visit
-    dat_long <- tidyr::pivot_longer(dat,
+    dat_long <- pivot_longer(dat,
       cols = matches("^[yR]\\d+$"),
       names_to = c(".value", "visit"),
       names_pattern = "([yR])(\\d+)"
@@ -99,13 +99,13 @@ analyse_diabetes_gcomputation <- function() {
 
     # Parameters for g-formula function
     id <- "id"
-    obs_data <- data.table::as.data.table(dat_long)
+    obs_data <- as.data.table(dat_long)
     time_name <- "visit"
     time_points <- k # number of time-points (because baseline is included and last timepoint excluded)
     covnames <- c("y", "trt", "R")
     outcome_name <- "y_k"
     covtypes <- c("normal", "binary", "binary")
-    histories <- c(gfoRmula::lagged, gfoRmula::lagged)
+    histories <- c(lagged, lagged)
     histvars <- list("y", "R")
     basecovs <- c("age")
     covparams <- list(covmodels = c(
@@ -129,11 +129,11 @@ analyse_diabetes_gcomputation <- function() {
       )
     ) # no rescue
     int_descript <- c("treatment no rescue", "control no rescue")
-    restrictions <- list(c("R", "lag1_R != 1", gfoRmula::carry_forward))
+    restrictions <- list(c("R", "lag1_R != 1", carry_forward))
 
     nsamples <- 200
 
-    g.model <- gfoRmula::gformula_continuous_eof(
+    g.model <- gformula_continuous_eof(
       obs_data = obs_data,
       id = id,
       time_name = time_name,
