@@ -53,7 +53,7 @@ analyse_oncology_rpsftm <- function(recensor = TRUE, alpha = 0.05, B = 100) {
       SElogHR = SE,
       low = RPS$hr_CI[1],
       up = RPS$hr_CI[2],
-      p = RPS$cox_pvalue
+      p = RPS$pvalue
     )
   }
 }

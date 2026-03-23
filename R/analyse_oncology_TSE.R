@@ -59,7 +59,7 @@ analyse_oncology_TSE <- function(recensor = TRUE, alpha = 0.05, B = 100) {
       SElogHR = SE,
       low = TSE$hr_CI[1],
       up = TSE$hr_CI[2],
-      p = TSE$cox_pvalue
+      p = TSE$pvalue
     )
   }
 }

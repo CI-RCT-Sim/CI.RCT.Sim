@@ -103,19 +103,26 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   index_sec_BL <- floor(prog_time) + 1
   index_sec_BL[index_sec_BL > condition$k] <- condition$k
 
-  X_2BL <- W_2BL <- L_2BL <- TRT_2BL <- rep(NA, n)
+  X_2BL <- W_2BL <- L_2BL <- TRT_2BL <- Wgrw_2BL <- rep(NA, n)
   for (j in 1:n) {
     X_2BL[j] <- X[j, index_sec_BL[j]]
     W_2BL[j] <- W[j, index_sec_BL[j]]
     L_2BL[j] <- L[j, index_sec_BL[j]]
+    Wgrw_2BL[j] <- Wgrw[j, index_sec_BL[j]]
   }
 
   h_0 <- condition$beta_switch[[1]]["Int"]
   h_X <- condition$beta_switch[[1]]["X"]
   h_W <- condition$beta_switch[[1]]["W"]
+  h_Wgrw <- condition$beta_switch[[1]]["Wgrw"]
+  h_L <- condition$beta_switch[[1]]["L"]
 
   if (fixed_objects$allow_switch) {
-    switch_prob <- ifelse(trt == 0, plogis(h_0 + X_2BL * h_X + W_2BL * h_W), 0)
+    switch_prob <-
+      ifelse(trt == 0,
+        plogis(h_0 + X_2BL * h_X + W_2BL * h_W + Wgrw_2BL * h_Wgrw + L_2BL * h_L),
+        0
+      )
   } else {
     switch_prob <- rep(0, n)
   }

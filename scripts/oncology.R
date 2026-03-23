@@ -22,7 +22,7 @@ my_analyse <- list(
   rpsftm = analyse_oncology_rpsftm(),
   tse = analyse_oncology_TSE(),
   # gformula = analyse_oncology_gformula(),
-  # ipw = analyse_oncology_ipw(),
+  ipw = analyse_oncology_ipw(),
   itt = analyse_oncology_itt(),
   cens = analyse_oncology_cens()
 )
@@ -36,28 +36,44 @@ my_analyse <- list(
 my_summarise <- create_summarise_function(
   # bias, SD, coverage etc. for the treatment effect at final visit
   rpsftm = summarise_estimator(
-    est = coef,
-    real = eff_true
+    est = HR,
+    real = exp(beta_death[[1]][6]),
+    lower = low,
+    upper = up,
+    null = 1
   ),
   tse = summarise_estimator(
-    est = coef,
-    real = eff_true
+    est = HR,
+    real = exp(beta_death[[1]][6]),
+    lower = low,
+    upper = up,
+    null = 1
   ),
   # gformula = summarise_estimator(
-  #   est = coef,
-  #   real = eff_true
+  #   est = HR,
+  #   real = exp(beta_death[[1]][6]),
+  #   null = 1
   # ),
-  # ipw = summarise_estimator(
-  #   est = coef,
-  #   real = eff_true
-  # ),
+  ipw = summarise_estimator(
+    est = HR,
+    real = exp(beta_death[[1]][6]),
+    lower = low,
+    upper = up,
+    null = 1
+  ),
   itt = summarise_estimator(
-    est = coef,
-    real = eff_true
+    est = HR,
+    real = exp(beta_death[[1]][6]),
+    lower = low,
+    upper = up,
+    null = 1
   ),
   cens = summarise_estimator(
-    est = coef,
-    real = eff_true
+    est = HR,
+    real = exp(beta_death[[1]][6]),
+    lower = low,
+    upper = up,
+    null = 1
   )
 )
 
@@ -70,7 +86,8 @@ results <- runSimulation(
   replications = N_sim,
   generate = generate_oncology,
   analyse = my_analyse,
-  summarise = my_summarise
+  summarise = my_summarise,
+  fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL)
 )
 
 # -------------------------------------------------------------------
