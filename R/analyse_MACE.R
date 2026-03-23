@@ -356,7 +356,7 @@ analyse_mace_ipw_cov <- function(condition, dat, fixed_objects = NULL) {
 summarise_func_mace <- function(condition, results, fixed_objects) {
   true_trt <- as.numeric(condition$true_trt)
   
-  with(results, {
+  with(results, {    
     
     list_results <- data.frame(   
       
@@ -365,6 +365,7 @@ summarise_func_mace <- function(condition, results, fixed_objects) {
       emp_se = sd(coef),
       mean_HR = mean(HR),
       mean_HR_CI_width = mean(CI.u-CI.l),
+      CR = mean(((true_trt) > log(CI.l)) & ((true_trt) < log(CI.u))),
       power = mean((coef^2)/(se^2)>qchisq(0.95,1))
       
     )
