@@ -9,14 +9,12 @@
 #' @importFrom stats confint
 #'
 #' @examples
-#' \donttest{
 #' setting <- oncology_scenario()[1, ]
 #' dat <- generate_oncology(setting)
 #' analyse_oncology_itt()(setting, dat)
-#' }
 analyse_oncology_itt <- function(X) {
   function(condition, dat, fixed_objects = NULL) {
-    mod <- coxph(Surv(time = event_time, event = ev) ~ trt + X_0 + W_0, data = data)
+    mod <- coxph(Surv(time = event_time, event = ev) ~ trt + X_0 + W_0, data = dat)
     HR <- exp(coef(mod)[1])
     CI <- exp(confint(mod)[1, ])
     smr <- summary(mod)

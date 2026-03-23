@@ -37,5 +37,7 @@ Imports:
     logistf,
     tidyselect,
     lmtest,
-    sandwich
+    sandwich,
+    survival,
+    trtswitch
 VignetteBuilder: knitr

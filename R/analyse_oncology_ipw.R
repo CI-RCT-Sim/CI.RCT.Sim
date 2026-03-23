@@ -5,14 +5,13 @@
 #' @return an analyse function that can be used in runSimulation
 #' @export
 #'
-#' @importFrom survival tmerge
+#' @importFrom survival tmerge coxph Surv
+#' @importFrom stats confint glm predict
 #'
 #' @examples
-#' \donttest{
 #' setting <- oncology_scenario()[1, ]
 #' dat <- generate_oncology(setting)
 #' analyse_oncology_ipw()(setting, dat)
-#' }
 analyse_oncology_ipw <- function(X) {
   function(condition, dat, fixed_objects = NULL) {
     set <- dat$trt == 0 & dat$prog_ev == 1
@@ -29,7 +28,13 @@ analyse_oncology_ipw <- function(X) {
 
     remo <- sdat$trt == 0 & sdat$PD == 1 & sdat$switch == 1
     dat_a <- sdat[!remo, ]
-    mod <- coxph(Surv(time = tstart, time2 = tstop, event = death_event) ~ trt + X_0 + W_0, data = dat_a, weights = w, robust = TRUE, id = id) # 1:dim(dat_a)[1])
+    mod <- coxph(
+      Surv(time = tstart, time2 = tstop, event = death_event) ~ trt + X_0 + W_0,
+      data = dat_a,
+      weights = w,
+      robust = TRUE,
+      id = id
+    )
 
     HR <- exp(coef(mod)[1])
     CI <- exp(confint(mod)[1, ])

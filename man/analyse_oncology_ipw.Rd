@@ -16,9 +16,7 @@ an analyse function that can be used in runSimulation
 Create Analyse Functions for
 }
 \examples{
-\donttest{
 setting <- oncology_scenario()[1, ]
 dat <- generate_oncology(setting)
 analyse_oncology_ipw()(setting, dat)
-}
 }
