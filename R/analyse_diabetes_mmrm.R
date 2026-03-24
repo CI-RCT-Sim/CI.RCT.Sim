@@ -1,23 +1,99 @@
-#' Analyse diabetes endpoint using MMRM
+#' Analyse diabetes endpoint using a Mixed Model for Repeated Measures (MMRM)
 #'
-#' @param ci_level confidence level for the CI (default 0.95)
-#' @param strategy strategy to handle rescue medication: either "treatment_policy" (use all observed data) or "hypothetical" (set post-rescue values to missing and ignore them in the analysis)
+#' This function fits a Mixed Model for Repeated Measures (MMRM) to estimate
+#' the treatment effect at the final visit in a longitudinal clinical trial setting.
 #'
-#' @returns an analyse function that returns a list with
-#' * `p` p-value for treatment effect at final visit
-#' * `coef` estimated treatment effect at final visit
-#' * `ci_lower` lower confidence limit
-#' * `ci_upper` upper confidence limit
+#' ## Model specification
 #'
-#' @export
-#' @importFrom mmrm mmrm
-#' @importFrom stats vcov pnorm pt qt relevel
+#' The following linear model is fitted:
+#'
+#' \deqn{
+#' y_{ij} = \beta_0
+#' + \beta_1 \cdot \text{trt}_i
+#' + \gamma_j \cdot \text{visit}_j
+#' + \delta_j \cdot (\text{trt}i \times \text{visit}j)
+#' + \alpha_j \cdot y{0,i}
+#' + \eta_j \cdot \text{age}i
+#' + \varepsilon{ij}
+#' }
+#'
+#' where:
+#' * \eqn{y{ij}} is the outcome for subject \eqn{i} at visit \eqn{j}
+#' * \eqn{\text{trt}_i} is the treatment indicator
+#' * \eqn{\text{visit}j} is a categorical visit effect
+#' * \eqn{y{0,i}} is the baseline value
+#' * \eqn{\text{age}i} is a baseline covariate
+#'
+#' The within-subject covariance is modeled using an unstructured covariance matrix:
+#'
+#' \deqn{
+#' \varepsilon_i \sim \mathcal{N}(0, \Sigma)
+#' }
+#'
+#' with \eqn{\Sigma} fully unstructured across visits.
+#'
+#' ## Interpretation of treatment effect
+#'
+#' The visit factor is re-leveled such that the final visit (visit = k) is the
+#' reference category. As a result, the main effect coefficient for trt
+#' corresponds directly to the treatment effect at the final visit.
+#'
+#' Without this releveling, the treatment effect would correspond to the reference
+#' visit (typically the first visit), and additional contrasts would be required
+#' to obtain the effect at the final visit.
+#'
+#' ## Handling of intercurrent events (rescue medication)
+#'
+#' Two strategies are supported:
+#'
+#' * "treatment_policy":
+#' All observed post-baseline data are used regardless of rescue medication.
+#'
+#' * "hypothetical":
+#' For subjects who initiate rescue medication during the study
+#' (i.e. rescue_start <= k), all outcomes from the rescue visit onward are
+#' set to missing. This results in a monotone missingness pattern, where:
+#'
+#' \deqn{
+#' y{i, j} = \text{NA for all } j \geq \text{rescue_start}_i
+#' }
+#'
+#' Subjects without rescue (i.e. rescue_start > k or NA) remain unchanged.
+#'
+#' This approach targets a hypothetical estimand corresponding to outcomes
+#' that would have been observed had rescue medication not been initiated.
+#'
+#' ## Inference
+#'
+#' Treatment effects are estimated using restricted maximum likelihood (REML),
+#' and inference is based on Satterthwaite approximations for the degrees of freedom.
+#'
+#' Confidence intervals are constructed using a t-distribution with the estimated
+#' degrees of freedom.
+#'
+#' @param ci_level Confidence level for the confidence interval (default 0.95)
+#' @param strategy Strategy for handling rescue medication:
+#' "treatment_policy" or "hypothetical"
+#'
+#' @returns A function returning a list with:
+#' * p: p-value for the treatment effect at the final visit
+#' * coef: estimated treatment effect at the final visit
+#' * ci_lower: lower confidence limit
+#' * ci_upper: upper confidence limit
 #'
 #' @examples
-#' setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
+#' setting <- diabetes_scenario()[1, ] |>
+#' diabetes_scenario_set_truevalues()
+#'
 #' dat <- generate_diabetes(setting)
+#'
+#' # Treatment policy estimand
 #' analyse_diabetes_mmrm()(setting, dat)
 #'
+#' # Hypothetical estimand (censor after rescue)
+#' analyse_diabetes_mmrm(strategy = "hypothetical")(setting, dat)
+#'
+#' @export
 analyse_diabetes_mmrm <- function(
     ci_level = 0.95,
     strategy = c("treatment_policy", "hypothetical")
