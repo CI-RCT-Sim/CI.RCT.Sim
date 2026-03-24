@@ -30,10 +30,17 @@ analyse_diabetes_mmrm <- function(
 
     # --- Hypothetical strategy: remove post-rescue values ---
     if (strategy == "hypothetical") {
-      dat_work$rescue_start[is.na(dat_work$rescue_start)] <- condition$k+2
+
+      # Define "no rescue" explicitly
+      no_rescue_value <- condition$k + 1  # anything > k works
+
       for (i in seq_len(nrow(dat_work))) {
+
         start <- dat_work$rescue_start[i]
-        if (start < (condition$k+2)) {
+
+        # Only censor if rescue actually happens within study period
+        if (!is.na(start) && start <= condition$k) {
+
           dat_work[i, paste0("y", start:condition$k)] <- NA
         }
       }
