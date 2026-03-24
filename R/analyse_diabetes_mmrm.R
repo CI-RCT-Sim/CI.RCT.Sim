@@ -82,21 +82,22 @@
 #' * ci_upper: upper confidence limit
 #'
 #' @examples
-#' setting <- diabetes_scenario()[1, ] |>
-#' diabetes_scenario_set_truevalues()
-#'
-#' dat <- generate_diabetes(setting)
-#'
-#'  Treatment policy estimand
-#' analyse_diabetes_mmrm()(setting, dat)
-#'
-#'  Hypothetical estimand (censor after rescue)
-#' analyse_diabetes_mmrm(strategy = "hypothetical")(setting, dat)
+# setting <- diabetes_scenario()[1, ] |>
+# diabetes_scenario_set_truevalues()
+#
+# dat <- generate_diabetes(setting)
+#
+#  #Treatment policy estimand
+# analyse_diabetes_mmrm()(setting, dat)
+#
+#  #Hypothetical estimand (censor after rescue)
+# analyse_diabetes_mmrm(strategy = "hypothetical")(setting, dat)
 #' @export
 analyse_diabetes_mmrm <- function(
     ci_level = 0.95,
     strategy = c("treatment_policy", "hypothetical")
 ) {
+
   strategy <- match.arg(strategy)
 
   function(condition, dat, fixed_objects = NULL) {
@@ -116,22 +117,32 @@ analyse_diabetes_mmrm <- function(
     dat_work <- dat
     baseline <- dat$y0
 
-    # --- Hypothetical strategy (kept stable) ---
+    # ============================================================
+    # HYPOTHETICAL STRATEGY (HARMONIZED)
+    # ============================================================
     if (strategy == "hypothetical") {
 
-      # IMPORTANT: use generator encoding (k + 2), not NA
+      # encode no-rescue consistently with generator
       dat_work$rescue_start[is.na(dat_work$rescue_start)] <- condition$k + 2
 
       for (i in seq_len(nrow(dat_work))) {
+
         start <- dat_work$rescue_start[i]
 
-        if (start < (condition$k + 2)) {
-          dat_work[i, paste0("y", start:condition$k)] <- NA
+        # CENSOR ONLY AFTER rescue visit
+        if (start < condition$k) {
+
+          post_visits <- (start + 1):condition$k
+
+          dat_work[i, paste0("y", post_visits)] <- NA
+
         }
       }
     }
 
-    # --- Reshape to long ---
+    # ============================================================
+    # RESHAPE TO LONG
+    # ============================================================
     visit_vars <- paste0("y", seq_len(condition$k))
 
     long <- tryCatch(
@@ -153,12 +164,14 @@ analyse_diabetes_mmrm <- function(
       levels = seq_len(condition$k)
     )
 
-    # Final visit as reference
+    # Reference = final visit
     long$visit <- stats::relevel(long$visit, ref = as.character(condition$k))
 
     long$y0 <- baseline[match(long$id, dat$id)]
 
-    # --- Helper: build and fit model safely ---
+    # ============================================================
+    # FIT WITH COVARIANCE FALLBACK
+    # ============================================================
     fit_mmrm <- function(cov_type) {
 
       formula_str <- switch(
@@ -174,7 +187,6 @@ analyse_diabetes_mmrm <- function(
       )
     }
 
-    # --- Try US first ---
     fit <- fit_mmrm("us")
     covariance_used <- "us"
 
@@ -194,7 +206,9 @@ analyse_diabetes_mmrm <- function(
 
     safe_result$covariance <- covariance_used
 
-    # --- Extract safely ---
+    # ============================================================
+    # SAFE EXTRACTION
+    # ============================================================
     coefs <- tryCatch(coef(fit), error = function(e) NULL)
     vc <- tryCatch(vcov(fit), error = function(e) NULL)
     summ <- tryCatch(summary(fit), error = function(e) NULL)
