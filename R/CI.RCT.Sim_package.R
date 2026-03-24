@@ -16,5 +16,6 @@ NULL
 # dplyr verbs and ggplot calls.
 globalVariables(c(
   "trt", "R", "id", "Visit", "d", "rescue_start", "y0", "age", "exposure",
-  "hba1c", "hba1c_0", "rescue", "visit", "y", "R0"
+  "hba1c", "hba1c_0", "rescue", "visit", "y", "R0", "ID", "t_mace", "event_mace",
+  "A", "IPW", "beta_mace_trt_before", "event_disc", "t_mace_start"
 ))
