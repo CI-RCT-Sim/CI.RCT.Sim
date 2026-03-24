@@ -21,13 +21,10 @@
 #'   * resc_0
 #'   * resc_y
 #'   * resc_age
-#'   * miss_0
-#'   * miss_y
-#'   * miss_age
-#'   * miss_resc
+#'   * miss
 #'
 #' @return
-#' For generate_diabetes_rescue: A data set with n rows and the columns id, trt
+#' For generate_diabetes: A data set with n rows and the columns id, trt
 #' (1=treatment, 0=control), age, y0, y1, ..., yk
 #' (the repeated measurements of the outcome), R1, ..., Rk-1 (indicators for
 #' rescue medication at each visit except baseline and the last visit),
@@ -37,12 +34,12 @@
 #' @importFrom stats rbinom rnorm runif qnorm qlogis plogis
 #'
 #' @export
-#' @describeIn generate_diabetes_rescue simulates a data set with n rows.
+#' @describeIn generate_diabetes simulates a data set with n rows.
 #'
 #' @examples
-#' Design <- assumptions_diabetes_rescue()
-#' generate_diabetes_rescue(Design[1, ])
-generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
+#' Design <- diabetes_scenario()
+#' generate_diabetes(Design[1, ])
+generate_diabetes <- function(condition, fixed_objects = NULL) {
   # sequence with the visits
   visit <- 0:condition$k
 
@@ -79,14 +76,14 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
   sigma_resid[lower.tri(sigma_resid)] <- rho * sigma^2
 
   resid <- mvtnorm::rmvnorm(n, mu_resid, sigma_resid)
-
   if (condition$setup == 0) {
     mu <- matrix(NA, nrow = n, ncol = length(visit))
+    Y <- matrix(NA, nrow = n, ncol = length(visit))
     for (i in 1:length(visit)) {
       mu[, i] <- condition$mean_bl +
         visit[i] / condition$k * age_slope
+      Y[, i] <- mu[, i] + eff[i] * response_trt * trt + resid[, i]
     }
-    Y <- mu + eff[i] * response_trt * trt + resid
   } else {
     mu <- matrix(NA, nrow = n, ncol = length(visit))
     for (i in 1:length(visit)) {
@@ -114,10 +111,10 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
       rescue_set <- (rescue_start[i] + 2):(condition$k + 1)
       Y[i, rescue_set] <- mu[i, rescue_set] +
         response_rescue[i] * rescue_effect[rescue_set - rescue_start[i] + 1] +
-        resid[rescue_set]
+        resid[i, rescue_set]
       any_rescue[i] <- TRUE
     } else {
-      rescue_start[i] <- NA
+      rescue_start[i] <- condition$k + 2
       any_rescue[i] <- FALSE
     }
   }
@@ -136,46 +133,49 @@ generate_diabetes_rescue <- function(condition, fixed_objects = NULL) {
     if (miss_start <= (condition$k + 1)) {
       Y[i, miss_start:(condition$k + 1)] <- NA
       rescue[i, miss_start:(condition$k + 1)] <- NA
+      if ((miss_start - 1) <= rescue_start[i]) {
+        rescue_start[i] <- NA
+      }
     }
   }
-
-  out <- data.frame(id, trt, age, Y, rescue_start, rescue[, 1:condition$k+1] * 1)
-  names(out) <- c("id", "trt", "age", paste("y", visit, sep = ""), "rescue_start", paste("R", visit[1:condition$k+1], sep = ""))
+  m_start <- rowSums(!wd1)
+  out <- data.frame(id, trt, age, Y, rescue_start, rescue[, 1:(condition$k + 1)] * 1, m_start)
+  names(out) <- c("id", "trt", "age", paste("y", visit, sep = ""), "rescue_start", paste("R", visit[1:(condition$k + 1)], sep = ""), "m_start")
   out
 }
 
-#' Create an empty assumptions data.frame for generate_diabetes_rescue
+#' Create an empty assumptions data.frame for generate_diabetes
 #'
 #' @param print print code to generate parameter set?
 #'
-#' @return For assumptions_diabetes_rescue: a design tibble with default values invisibly
+#' @return For diabetes_scenario: a design tibble with default values invisibly
 #'
-#' @details assumptions_diabetes_rescue generates a default design `data.frame`
-#'   for use with generate_diabetes_rescue If print is `TRUE` code to produce
+#' @details diabetes_scenario generates a default design `data.frame`
+#'   for use with generate_diabetes If print is `TRUE` code to produce
 #'   the template is also printed for copying, pasting and editing by the user.
 #'   (This is the default when run in an interactive session.)
 #'
 #' @export
-#' @describeIn assumptions_diabetes_rescue generate default design tibble
+#' @describeIn diabetes_scenario generate default design tibble
 #'
 #' @examples
-#' Design <- assumptions_diabetes_rescue()[1, ]
+#' Design <- diabetes_scenario()[1, ]
 #' Design
-assumptions_diabetes_rescue <- function(print = interactive()) {
+diabetes_scenario <- function(print = interactive()) {
   skel <- "params_scenarios_grid(
   k           = 12,                   # Number of visits post baseline
   mean_age    = 60,                       # mean of the variable age
   sd_age      = 10,                       # standard deviation of the variable age
   b_age       = log(2)/10,                # age coefficient
-  mean_bl     = 8,                        # mean hbalc value at baseline
-  sd_bl       = 1,                        # standard deviation of hba1c at baseline
+  mean_bl     = 8,                        # mean HbA1c value at baseline
+  sd_bl       = 1,                        # standard deviation of HbA1c at baseline
   rho         = c(0.5,0),                 # Correlation between repeated HbA1c measurements
   delta       = -c(1,0.5),                # Maximal treatment effect
   lambda      = log(2)/2,                 # Rate of increasing treatment effect
   delta_resc  = -0.75,                    # Maximal effect of rescue medication
   lambda_resc = log(2),                        # Rate of increasing effect of rescue medication
   resc_0      = qlogis(c(0.05,0.02)),     # probability for rescue medication
-  resc_y      = log(c(3,150)),            # strong effect due to high hba1c
+  resc_y      = log(c(3,150)),            # strong effect due to high HbA1c
   resc_age    = -log(1.01),               # weaker age effect than for dropout
   setup       = c(0,1), # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
   miss        = list(
@@ -200,38 +200,17 @@ assumptions_diabetes_rescue <- function(print = interactive()) {
 
 #' Calculate true summary statistics for scenarios with delayed treatment effect
 #'
-#' @param Design Design data.frame for x
-#' @param cutoff_stats Cutoff time for rmst and average hazard ratios
-#' @param fixed_objects fixed objects not used for now
+#' @param Design Design data.frame for diabetes scenarios, e.g. created with diabetes_scenario()
 #'
-#' @return For true_summary_statistics_x: the design data.frame
-#'   passed as argument with the additional columns:
-#' * `rmst_trt` rmst in the treatment group
-#' * `median_surv_trt` median survival in the treatment group
-#' * `rmst_ctrl` rmst in the control group
-#' * `median_surv_ctrl` median survial in the control group
-#' * `gAHR` geometric average hazard ratio
-#' * `AHR` average hazard ratio
+#' @return For diabetes_scenario_set_truevalues: a design tibble with true values for the treatment effect at final visit and the sample size needed to achieve 80% power for a two-sided test at alpha = 0.05
 #'
 #' @export
 #'
-#' @describeIn generate_diabetes_rescue  calculate true summary statistics for ...
+#' @describeIn generate_diabetes  calculate true summary statistics for ...
 #'
 #' @examples
-#' true_summary_statistics_diabetes_rescue(assumptions_diabetes_rescue())
-true_summary_statistics_diabetes_rescue <- function(Design, cutoff_stats = 10, fixed_objects = NULL) {
-  # true_summary_statistics_diabetes_rescue_rowwise <- function(condition, cutoff_stats) {
-  #   res <- data.frame(
-  #     eff_true <- condition$delta / 2 * (1 - exp(-condition$lambda * condition$k))
-  #   )
-  #   res
-  # }
-  #
-  # Design <- Design |>
-  #   split(1:nrow(Design)) |>
-  #   mapply(FUN = true_summary_statistics_diabetes_rescue_rowwise, cutoff_stats = cutoff_stats, SIMPLIFY = FALSE)
-  #
-  # Design <- do.call(rbind, Design)
+#' diabetes_scenario_set_truevalues(diabetes_scenario())
+diabetes_scenario_set_truevalues <- function(Design) {
   Design$eff_true <- Design$delta / 2 * (1 - exp(-Design$lambda * Design$k))
 
   # specifying parameters for sample size calculation

@@ -1,5 +1,5 @@
 test_that("assumptions_diabetes_rescue works", {
-  assumptions <- assumptions_diabetes_rescue()
+  assumptions <- diabetes_scenario()
 
   expect_named(assumptions, c(
     "k", "mean_age", "sd_age", "b_age", "mean_bl", "sd_bl", "rho", "delta",
