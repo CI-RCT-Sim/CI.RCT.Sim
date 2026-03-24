@@ -1,14 +1,14 @@
 test_that("ipw diabetes works", {
-  Design <- assumptions_diabetes_rescue(print = FALSE) |>
-    true_summary_statistics_diabetes_rescue()
+  Design <- diabetes_scenario(print = FALSE) |>
+    diabetes_scenario_set_truevalues()
 
   my_analyse <- analyse_diabetes_ipw(
-    estimand = "tp"
+    strategy = "treatment_policy"
   )
 
   # Generate
   withr::with_seed(123, { # problems with seed 1, 12, 1122, 12345
-    dat <- generate_diabetes_rescue(Design[1, ])
+    dat <- generate_diabetes(Design[1, ])
   })
   expect_no_error({
     res <- my_analyse(Design[1, ], dat)
@@ -16,12 +16,12 @@ test_that("ipw diabetes works", {
 
   # Check the hypothetical strategy
   my_analyse <- analyse_diabetes_ipw(
-    estimand = "hyp"
+    strategy = "hypothetical"
   )
 
   # Generate
   withr::with_seed(122, {
-    dat <- generate_diabetes_rescue(Design[12, ])
+    dat <- generate_diabetes(Design[12, ])
   })
   expect_no_error({
     res <- my_analyse(Design[12, ], dat)
