@@ -4,6 +4,58 @@
 #' Depending on the chosen estimand, either a hypothetical strategy
 #' with multiple imputation after rescue initiation is applied,
 #' or a treatment policy strategy using observed data only.
+#' ## Multiple Imputation (Hypothetical Strategy)
+#'
+#' Multiple imputation is used as a comparator method for the hypothetical
+#' estimand, targeting the scenario in which rescue medication had not been
+#' available.
+#'
+#' ### Handling of rescue medication
+#'
+#' For subjects initiating rescue medication at visit \eqn{s}, all post-rescue
+#' outcomes are set to missing:
+#'
+#' \deqn{
+#' y_{i,j} = \text{NA} \quad \text{for all } j > s
+#' }
+#'
+#' The outcome at the rescue visit itself (\eqn{j = s}) is retained.
+#'
+#' This ensures consistency with the hypothetical estimand and aligns with the
+#' data-generating mechanism.
+#'
+#' ### Imputation model
+#'
+#' The imputation is performed using the \pkg{mice} package.
+#'
+#' * HbA1c at each visit is imputed if missing.
+#' * The imputation model includes:
+#'   - all available HbA1c measurements,
+#'   - baseline HbA1c (\eqn{y_0}),
+#'   - age at baseline.
+#'
+#' The imputation is performed **separately within each treatment group** to
+#' reflect protocol-driven stratification.
+#'
+#' A total of 10 imputations are generated.
+#'
+#' ### Analysis model
+#'
+#' For each imputed dataset, an ANCOVA model is fitted:
+#'
+#' \deqn{
+#' \Delta y_i = \beta_0 + \beta_1 \cdot \text{trt}_i + \beta_2 \cdot \text{age}_i + \beta_3 \cdot y_{0,i} + \varepsilon_i
+#' }
+#'
+#' where:
+#' * \eqn{\Delta y_i} is the change from baseline in HbA1c
+#' * \eqn{y_{0,i}} is baseline HbA1c
+#'
+#' ### Pooling
+#'
+#' Estimates from the imputed datasets are pooled using Rubin’s rules via
+#' \code{mice::pool}.
+#'
 #'
 #' @param strategy Either `"hypothetical"` or `"treatment_policy"`.
 #' @param m Number of imputations (used for hypothetical only).
@@ -20,11 +72,35 @@
 #' @export
 #'
 #' @examples
-#' setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
-#' dat <- generate_diabetes(setting)
-#' analyse_diabetes_mi(strategy = "treatment_policy")(setting, dat)
-#' analyse_diabetes_mi(strategy = "hypothetical")(setting, dat)
+#' setting <- diabetes_scenario()[1, ] |>
+#'   diabetes_scenario_set_truevalues()
 #'
+#' dat <- generate_diabetes(setting)
+#'
+#' ## ----------------------------
+#' ## Treatment policy estimand
+#' ## ----------------------------
+#' res_tp <- analyse_diabetes_mi(
+#'   strategy = "treatment_policy"
+#' )(setting, dat)
+#'
+#' res_tp
+#'
+#' ## ----------------------------
+#' ## Hypothetical estimand
+#' ## (censor after rescue + MI)
+#' ## ----------------------------
+#' res_hyp <- analyse_diabetes_mi(
+#'   strategy = "hypothetical"
+#' )(setting, dat)
+#'
+#' res_hyp
+#'
+#' ## Compare results
+#' c(
+#'   treatment_policy = res_tp$coef,
+#'   hypothetical     = res_hyp$coef
+#' )
 analyse_diabetes_mi <- function(
   strategy = c("hypothetical", "treatment_policy"),
   m = 10,
