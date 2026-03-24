@@ -13,18 +13,19 @@
 #'   * power          # power for the logrank test at the end of the trial (i.e. at max_duration)
 #'   * p_trt          # proportion of patients randomized to the treatment arm
 #'   * w              # threshold for covariate W to determine the effect of W on the hazard
-#'   * mu_W           # list of length 1 with two data.frames of dimension k x 2, one for control and one for treatment, with the mean values of W at each visit for control and treatment group
-#'   * mu_L           # list of length 1 with two data.frames of dimension k x 2, one for control and one for treatment, with the mean values of L at each visit for control and treatment group
-#'   * Sigma_W_L      # list of length 1 with one data.frame of dimension 2k x 2k with the covariance matrix of W and L at all visits (assuming the same covariance matrix for control and treatment group)
-#'   * beta_prog      # list of length 1 with one data.frame of dimension 7 x k with the coefficients for the progression hazard at each visit for the variables Int, X, W, W>0, L, trt, switched
-#'   * beta_switch    # list of length 1 with one data.frame of dimension 3 x k with the coefficients for the switching probability at each visit for the variables Int, X, W
-#'   * beta_death     # list of length 1 with one data.frame of dimension 7 x k with the coefficients for the death hazard at each visit for the variables Int, X, W, W>0, L, trt, switched
-#'   * beta_cens      # list of length 1 with one data.frame of dimension 7 x k with the coefficients for the censoring hazard at each visit for the variables Int, X, W, W>0, L, trt, switched
+#'   * mu_W           # list with list entries containing mean values of W at each visit for control and treatment group in k dimensional vectors
+#'   * mu_L           # list with list entries containing mean values of L at each visit for control and treatment group in k dimensional vectors
+#'   * Sigma_W_L      # list with matrix of dimension k x k with the covariance matrix of W and L at all visits (assuming the same covariance matrix for control and treatment group)
+#'   * beta_prog      # list with vectors of dimension 7 with the coefficients for the progression hazard at each visit for the variables Int, X, W, W>0, L, trt, switched
+#'   * beta_switch    # list with vectors of dimension 7 with the coefficients for the switching probability at each visit for the variables Int, X, W, W>0, L, trt, switched
+#'   * beta_cens      # list with vectors of dimension 7 with the coefficients for the censoring hazard at each visit for the variables Int, X, W, W>0, L, trt, switched
+#'   * beta_death     # list with vectors of dimension 8 with the coefficients for the death hazard at each visit for the variables Int, X, W, W>0, L, trt, switched, logHR_assumed
 #'
 #' @return
 #' For generate_oncology: A data set with n rows and the columns .....
 #'
 #' @importFrom stats plogis rbinom rpois runif rnorm
+#' @importFrom SimDesign rmvnorm
 #'
 #' @export
 #' @describeIn generate_oncology simulates a data set with n rows.
@@ -57,7 +58,7 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
       }
       temp <- temp[order(temp$time), ]
       temp$switched <- as.numeric(temp$time >= switchtime[i])
-      # browser()
+
 
       temp$haz <- exp(as.matrix(temp[, -1]) %*% b)
       ntime <- dim(temp)[1]
@@ -75,9 +76,15 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
     time
   }
 
-  if (is.null(fixed_objects$logHR_assumed)) logHR_assumed <- as.numeric(condition$beta_death[[1]]["logHR_assumed"])
-  #
-  if (is.null(fixed_objects$ev_soll)) ev_soll <- ceiling(((qnorm(1 - condition$alpha / 2) + qnorm(condition$power)) / logHR_assumed)^2 / condition$p_trt / (1 - condition$p_trt))
+  ifelse(is.null(fixed_objects$logHR_assumed),
+    logHR_assumed <- as.numeric(condition$beta_death[[1]]["logHR_assumed"]),
+    logHR_assumed <- fixed_objects$logHR_assumed
+  )
+
+  ifelse(is.null(fixed_objects$ev_soll),
+    ev_soll <- ceiling(((qnorm(1 - condition$alpha / 2) + qnorm(condition$power)) / logHR_assumed)^2 / condition$p_trt / (1 - condition$p_trt)),
+    ev_soll <- fixed_objects$ev_soll
+  )
 
   n_aim <- ceiling(ev_soll) * 2
   n <- rpois(1, n_aim)
@@ -85,7 +92,7 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   n1 <- n - n0
   trt <- rep(c(0, 1), times = c(n0, n1))
   X <- matrix(rep(rnorm(n, 0, 1), condition$k), ncol = condition$k)
-  # browser()
+
   W <- rbind(
     rmvnorm(n0, mean = condition$mu_W[[1]]$ctr, sigma = as.matrix(condition$Sigma_W_L[[1]])),
     rmvnorm(n1, mean = condition$mu_W[[1]]$trt, sigma = condition$Sigma_W_L[[1]])
