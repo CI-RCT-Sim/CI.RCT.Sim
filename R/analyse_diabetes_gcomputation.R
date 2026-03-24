@@ -1,13 +1,14 @@
 #' Analyse Dataset with G-estimation (G-computation via gformula_continuous_eof)
 #'
-#'
 #' @return A function that, when called with `condition` and `dat`, returns a list with:
 #' * `coef`      estimated difference in mean change in HbA1c between treatment groups
-#' * `sd`       standard error for coef
+#' * `se`        standard error for coef
+#' * `ci_lower`  lower bound of 95% confidence interval for coef
+#' * `ci_upper`  upper bound of 95% confidence interval for coef
 #'
 #' @export
 #'
-#' @importFrom gfoRmula gformula_continuous_eof lagged static
+#' @importFrom gfoRmula gformula_continuous_eof lagged static carry_forward
 #' @importFrom dplyr mutate arrange group_by lead
 #' @importFrom tidyr pivot_longer
 #' @importFrom magrittr `%>%`
@@ -45,24 +46,22 @@
 #'
 #' @examples
 #' \donttest{
-#' Design <- assumptions_diabetes_rescue() |>
-#'   true_summary_statistics_diabetes_rescue()
+#' Design <- diabetes_scenario() |>
+#'   diabetes_scenario_set_truevalues()
 #'
 #' condition <- Design[1, ]
 #'
-#' dat <- generate_diabetes_rescue(condition)
+#' dat <- generate_diabetes(condition)
 #'
-#' analyse_diabetes_gcomputation()(condition, dat)
 #' analyse_diabetes_gcomputation()(condition, dat)
 #' }
 analyse_diabetes_gcomputation <- function() {
-
   function(condition, dat, fixed_objects = NULL) {
     k <- condition$k # number of last visit
     setup <- condition$setup # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
 
-    # reformate dat to long format with outcome column 'y' for the change in HbA1c at each visit
-    dat_long <- tidyr::pivot_longer(dat,
+    # reformat dat to long format with outcome column 'y' for the change in HbA1c at each visit
+    dat_long <- pivot_longer(dat,
       cols = matches("^[yR]\\d+$"),
       names_to = c(".value", "visit"),
       names_pattern = "([yR])(\\d+)"
@@ -75,15 +74,15 @@ analyse_diabetes_gcomputation <- function() {
       arrange(id, visit) %>%
       group_by(id) %>% # make sure table is grouped by id and ordered by visit
       mutate(
-        hba1c_0 = hba1c[visit == 0], # HbA1 at baseline
+        hba1c_0 = hba1c[visit == 0], # HbA1c at baseline
         y = hba1c - hba1c_0, # HbA1c change
         # want to fit models on data up to time k-1, then simulate forward to predict the outcome at time k:
         # create a new column at second-to-last timepoint that holds y at last time point
         # i.e. final outcome
         # to preserve this value while deleting the last row for the model estimation
         y_k = ifelse(visit == k - 1, dplyr::lead(y), NA)
-      )# |>
-      #dplyr::select(-R)
+      ) # |>
+    # dplyr::select(-R)
 
     # Remove final visit i.e. visit k
     dat_long <- dat_long[dat_long$visit != k, ]
@@ -95,18 +94,18 @@ analyse_diabetes_gcomputation <- function() {
       dat_long <- dat_long %>% mutate(trt = replace(trt, R == 1, 0))
     }
     # Run g-computation with bootstrap
-    # We simulate Hba1c values under the intervention (no rescue) and then
+    # We simulate HbA1c values under the intervention (no rescue) and then
     # estimate the mean change in HbA1c at the final visit
 
     # Parameters for g-formula function
     id <- "id"
-    obs_data <- data.table::as.data.table(dat_long)
+    obs_data <- as.data.table(dat_long)
     time_name <- "visit"
     time_points <- k # number of time-points (because baseline is included and last timepoint excluded)
     covnames <- c("y", "trt", "R")
     outcome_name <- "y_k"
     covtypes <- c("normal", "binary", "binary")
-    histories <- c(gfoRmula::lagged, gfoRmula::lagged)
+    histories <- c(lagged, lagged)
     histvars <- list("y", "R")
     basecovs <- c("age")
     covparams <- list(covmodels = c(
@@ -130,11 +129,11 @@ analyse_diabetes_gcomputation <- function() {
       )
     ) # no rescue
     int_descript <- c("treatment no rescue", "control no rescue")
-    restrictions <- list(c("R",  "lag1_R != 1", gfoRmula::carry_forward))
+    restrictions <- list(c("R", "lag1_R != 1", carry_forward))
 
     nsamples <- 200
 
-    g.model <- gfoRmula::gformula_continuous_eof(
+    g.model <- gformula_continuous_eof(
       obs_data = obs_data,
       id = id,
       time_name = time_name,
