@@ -1,22 +1,24 @@
 #' Analyse diabetes endpoint using MMRM
 #'
-#' Supports two intercurrent event strategies:
-#' * "treatment_policy" (default) uses all observed data
-#' * "hypothetical" sets post-rescue data to missing
+#' @param ci_level confidence level for the CI (default 0.95)
+#' @param strategy strategy to handle rescue medication: either "treatment_policy" (use all observed data) or "hypothetical" (set post-rescue values to missing and ignore them in the analysis)
 #'
-#' @param ci_level Confidence level for CIs (default 0.95)
-#' @param strategy "treatment_policy" or "hypothetical"
-#'
-#' @return A function that takes (condition, dat) and returns a list:
+#' @returns an analyse function that returns a list with
 #' * `p` p-value for treatment effect at final visit
 #' * `coef` estimated treatment effect at final visit
-#' * `ci_lower` lower CI
-#' * `ci_upper` upper CI
+#' * `ci_lower` lower confidence limit
+#' * `ci_upper` upper confidence limit
 #'
 #' @export
 #' @importFrom mmrm mmrm
-#' @importFrom stats vcov pnorm pt qt
-analyse_diabetes_rescue_mmrm <- function(
+#' @importFrom stats vcov pnorm pt qt relevel
+#'
+#' @examples
+#' setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
+#' dat <- generate_diabetes(setting)
+#' analyse_diabetes_mmrm()(setting, dat)
+#'
+analyse_diabetes_mmrm <- function(
   ci_level = 0.95,
   strategy = c("treatment_policy", "hypothetical")
 ) {
@@ -28,9 +30,10 @@ analyse_diabetes_rescue_mmrm <- function(
 
     # --- Hypothetical strategy: remove post-rescue values ---
     if (strategy == "hypothetical") {
+      dat_work$rescue_start[is.na(dat_work$rescue_start)] <- condition$k+2
       for (i in seq_len(nrow(dat_work))) {
         start <- dat_work$rescue_start[i]
-        if (!is.na(start)) {
+        if (start < (condition$k+2)) {
           dat_work[i, paste0("y", start:condition$k)] <- NA
         }
       }
@@ -55,18 +58,12 @@ analyse_diabetes_rescue_mmrm <- function(
     )
 
     # Set FINAL visit as reference so trt coefficient = effect at final visit
-    long$visit <- stats::relevel(long$visit, ref = as.character(condition$k))
+    long$visit <- relevel(long$visit, ref = as.character(condition$k))
 
-    long$y0 <- baseline[match(long$id, dat$id)]
-
-    long$visit <- factor(
-      as.integer(sub("y", "", long$visit)),
-      levels = 1:condition$k
-    )
     long$y0 <- baseline[match(long$id, dat$id)]
 
     # --- Fit MMRM ---
-    fit <- mmrm::mmrm(
+    fit <- mmrm(
       y ~ trt * visit +
         y0 * visit +
         age * visit +
@@ -76,18 +73,14 @@ analyse_diabetes_rescue_mmrm <- function(
 
     # --- Extract treatment effect at final visit ---
     term <- "trt" # Main effect of treatment
-    int_term <- paste0("trt:visit", condition$k) # Effect of the interaction of trt and the final visit
 
-    est <- coef(fit)[term] + coef(fit)[int_term]
-    se <- sqrt(vcov(fit)[term, term] + vcov(fit)[int_term, int_term] + 2 * vcov(fit)[term, int_term])
+    est <- coef(fit)[term]
+    se <- sqrt(vcov(fit)[term, term])
 
     # Satterthwaite df from mmrm
-    # df <- fit$beta_vcov_denom_df[term]
-    df <- (summary(fit)$coefficients[term, "df"] + summary(fit)$coefficients[int_term, "df"]) / 2
+    df <- summary(fit)$coefficients[term, "df"]
 
     tcrit <- qt(1 - (1 - ci_level) / 2, df)
-
-    z <- qnorm(1 - (1 - ci_level) / 2)
 
     list(
       p = 2 * (1 - pt(abs(est / se), df)),

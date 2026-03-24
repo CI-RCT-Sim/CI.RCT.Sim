@@ -10,7 +10,9 @@ analyse_diabetes_gcomputation()
 A function that, when called with \code{condition} and \code{dat}, returns a list with:
 \itemize{
 \item \code{coef}      estimated difference in mean change in HbA1c between treatment groups
-\item \code{sd}       standard error for coef
+\item \code{se}        standard error for coef
+\item \code{ci_lower}  lower bound of 95\% confidence interval for coef
+\item \code{ci_upper}  upper bound of 95\% confidence interval for coef
 }
 }
 \description{
@@ -54,14 +56,13 @@ No formal p-value is calculated.
 }
 \examples{
 \donttest{
-Design <- assumptions_diabetes_rescue() |>
-  true_summary_statistics_diabetes_rescue()
+Design <- diabetes_scenario() |>
+  diabetes_scenario_set_truevalues()
 
 condition <- Design[1, ]
 
-dat <- generate_diabetes_rescue(condition)
+dat <- generate_diabetes(condition)
 
-analyse_diabetes_gcomputation()(condition, dat)
 analyse_diabetes_gcomputation()(condition, dat)
 }
 }
