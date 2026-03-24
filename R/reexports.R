@@ -38,3 +38,10 @@ SimNPH::combined_plot
 #' @importFrom SimNPH labs_from_labels
 SimNPH::labs_from_labels
 
+#' @export
+#' @importFrom SimNPH wrap_all_in_trycatch
+SimNPH::wrap_all_in_trycatch
+
+#' @export
+#' @importFrom SimNPH wrap_all_in_preserve_seed
+SimNPH::wrap_all_in_preserve_seed
