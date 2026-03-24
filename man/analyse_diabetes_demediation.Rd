@@ -2,23 +2,35 @@
 % Please edit documentation in R/analyse_diabetes_demediation.R
 \name{analyse_diabetes_demediation}
 \alias{analyse_diabetes_demediation}
-\title{Create Analyse Functions for ...}
+\title{Create Analysis Function for De-mediation}
 \usage{
-analyse_diabetes_demediation(X)
+analyse_diabetes_demediation(separate = TRUE)
 }
 \arguments{
-\item{X}{input can be used to pass parameters to the analyse function}
+\item{separate}{Default is TRUE which means that the imputation will be
+performed separately for the treatment and control groups. If FALSE, the
+imputation will be performed on the combined data set.}
 }
 \value{
 an analyse function that can be used in runSimulation
 }
 \description{
-Create Analyse Functions for ...
+Create Analysis Function for De-mediation
+}
+\details{
+This function implements the de-mediation approach described in the paper
+by Bartlett et al. (2024) for handling rescue medication in diabetes trials.
+The function first imputes the missing rescue medication data using the
+\code{mice} package, and then performs a de-mediation analysis by fitting a series
+of models to estimate the effect of treatment on the outcome while accounting
+for the potential mediation through rescue medication use.
+The final estimate of the treatment effect is obtained by pooling the results
+from the multiple imputations using Rubin's rules.
 }
 \examples{
 \donttest{
-setting <- assumptions_diabetes_rescue()[1, ] |> true_summary_statistics_diabetes_rescue()
-dat <- generate_diabetes_rescue(setting)
+setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
+dat <- generate_diabetes(setting)
 analyse_diabetes_demediation()(setting, dat)
 }
 }
