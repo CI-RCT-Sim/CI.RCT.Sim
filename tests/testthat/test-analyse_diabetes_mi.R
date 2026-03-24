@@ -1,15 +1,15 @@
 test_that("mi diabetes works", {
-  Design <- assumptions_diabetes_rescue(print = FALSE) |>
-    true_summary_statistics_diabetes_rescue()
+  Design <- diabetes_scenario(print = FALSE) |>
+    diabetes_scenario_set_truevalues()
 
-  my_analyse <- analyse_diabetes_rescue_mi(
+  my_analyse <- analyse_diabetes_mi(
     ci_level = 0.95,
-    estimand = "treatment_policy"
+    strategy = "treatment_policy"
   )
 
   # Generate data with no missingness to check equivalence with linear regression
   withr::with_seed(123, {
-    dat <- generate_diabetes_rescue(Design[7, ])
+    dat <- generate_diabetes(Design[7, ])
   })
   expect_no_error({
     res <- my_analyse(Design[7, ], dat)
@@ -20,7 +20,7 @@ test_that("mi diabetes works", {
 
   # Generate data with no missingness, and no treatment effect, to check equivalence with linear regression
   withr::with_seed(129, {
-    dat <- generate_diabetes_rescue(Design[12, ])
+    dat <- generate_diabetes(Design[12, ])
   })
   expect_no_error({
     res <- my_analyse(Design[12, ], dat)
@@ -36,14 +36,14 @@ test_that("mi diabetes works", {
 
 
   # Hypothetical strategy
-  my_analyse <- analyse_diabetes_rescue_mi(
+  my_analyse <- analyse_diabetes_mi(
     ci_level = 0.95,
-    estimand = "hypothetical"
+    strategy = "hypothetical"
   )
 
   # Generate data with no missingness to check equivalence with linear regression
   withr::with_seed(123, {
-    dat <- generate_diabetes_rescue(Design[7, ])
+    dat <- generate_diabetes(Design[7, ])
   })
   expect_no_error({
     suppressWarnings(
