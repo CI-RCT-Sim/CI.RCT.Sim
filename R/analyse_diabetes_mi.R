@@ -166,7 +166,8 @@ analyse_diabetes_mi <- function(
     if (k > 2) {
       for (j in 2:(k - 1)) {
         meth[paste0("R", j)] <-
-          paste0("~ I(pmax(R", j - 1, ", R", j, "))")
+          paste0("~ I(pmax(as.numeric(as.character(R", j - 1, ")), ",
+                 "as.numeric(as.character(R", j, "))))")
       }
     }
 
