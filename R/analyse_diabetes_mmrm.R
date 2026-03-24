@@ -87,12 +87,11 @@
 #'
 #' dat <- generate_diabetes(setting)
 #'
-#' # Treatment policy estimand
+#'  Treatment policy estimand
 #' analyse_diabetes_mmrm()(setting, dat)
 #'
-#' # Hypothetical estimand (censor after rescue)
+#'  Hypothetical estimand (censor after rescue)
 #' analyse_diabetes_mmrm(strategy = "hypothetical")(setting, dat)
-#'
 #' @export
 analyse_diabetes_mmrm <- function(
     ci_level = 0.95,
@@ -101,75 +100,143 @@ analyse_diabetes_mmrm <- function(
   strategy <- match.arg(strategy)
 
   function(condition, dat, fixed_objects = NULL) {
+
+    term <- "trt"
+
+    safe_result <- list(
+      p = NA_real_,
+      coef = NA_real_,
+      ci_lower = NA_real_,
+      ci_upper = NA_real_,
+      converged = FALSE,
+      covariance = NA_character_,
+      fallback = FALSE
+    )
+
     dat_work <- dat
     baseline <- dat$y0
 
-    # --- Hypothetical strategy: remove post-rescue values ---
+    # --- Hypothetical strategy (kept stable) ---
     if (strategy == "hypothetical") {
 
-      # Define "no rescue" explicitly
-      no_rescue_value <- condition$k + 1  # anything > k works
+      # IMPORTANT: use generator encoding (k + 2), not NA
+      dat_work$rescue_start[is.na(dat_work$rescue_start)] <- condition$k + 2
 
       for (i in seq_len(nrow(dat_work))) {
-
         start <- dat_work$rescue_start[i]
 
-        # Only censor if rescue actually happens within study period
-        if (!is.na(start) && start <= condition$k) {
-
+        if (start < (condition$k + 2)) {
           dat_work[i, paste0("y", start:condition$k)] <- NA
         }
       }
     }
 
     # --- Reshape to long ---
-    visit_vars <- paste0("y", 1:condition$k)
+    visit_vars <- paste0("y", seq_len(condition$k))
 
-    long <- tidyr::pivot_longer(
-      dat_work,
-      cols = tidyselect::all_of(visit_vars),
-      names_to = "visit",
-      values_to = "y"
+    long <- tryCatch(
+      tidyr::pivot_longer(
+        dat_work,
+        cols = tidyselect::all_of(visit_vars),
+        names_to = "visit",
+        values_to = "y"
+      ),
+      error = function(e) NULL
     )
 
-    # --- Prepare variables ---
+    if (is.null(long)) return(safe_result)
+
     long$id <- factor(long$id)
 
     long$visit <- factor(
       as.integer(sub("y", "", long$visit)),
-      levels = 1:condition$k
+      levels = seq_len(condition$k)
     )
 
-    # Set FINAL visit as reference so trt coefficient = effect at final visit
-    long$visit <- relevel(long$visit, ref = as.character(condition$k))
+    # Final visit as reference
+    long$visit <- stats::relevel(long$visit, ref = as.character(condition$k))
 
     long$y0 <- baseline[match(long$id, dat$id)]
 
-    # --- Fit MMRM ---
-    fit <- mmrm(
-      y ~ trt * visit +
-        y0 * visit +
-        age * visit +
-        us(visit | id),
-      data = long
+    # --- Helper: build and fit model safely ---
+    fit_mmrm <- function(cov_type) {
+
+      formula_str <- switch(
+        cov_type,
+        "us" = y ~ trt * visit + y0 * visit + age * visit + us(visit | id),
+        "cs" = y ~ trt * visit + y0 * visit + age * visit + cs(visit | id),
+        "diag" = y ~ trt * visit + y0 * visit + age * visit + diag(visit | id)
+      )
+
+      tryCatch(
+        mmrm::mmrm(formula_str, data = long),
+        error = function(e) NULL
+      )
+    }
+
+    # --- Try US first ---
+    fit <- fit_mmrm("us")
+    covariance_used <- "us"
+
+    if (is.null(fit)) {
+      fit <- fit_mmrm("cs")
+      covariance_used <- "cs"
+      safe_result$fallback <- TRUE
+    }
+
+    if (is.null(fit)) {
+      fit <- fit_mmrm("diag")
+      covariance_used <- "diag"
+      safe_result$fallback <- TRUE
+    }
+
+    if (is.null(fit)) return(safe_result)
+
+    safe_result$covariance <- covariance_used
+
+    # --- Extract safely ---
+    coefs <- tryCatch(coef(fit), error = function(e) NULL)
+    vc <- tryCatch(vcov(fit), error = function(e) NULL)
+    summ <- tryCatch(summary(fit), error = function(e) NULL)
+
+    if (
+      is.null(coefs) ||
+      is.null(vc) ||
+      is.null(summ) ||
+      !(term %in% names(coefs)) ||
+      !(term %in% rownames(vc)) ||
+      !(term %in% rownames(summ$coefficients))
+    ) {
+      return(safe_result)
+    }
+
+    est <- coefs[term]
+
+    se <- tryCatch(
+      sqrt(vc[term, term]),
+      error = function(e) NA_real_
     )
 
-    # --- Extract treatment effect at final visit ---
-    term <- "trt" # Main effect of treatment
+    df <- summ$coefficients[term, "df"]
 
-    est <- coef(fit)[term]
-    se <- sqrt(vcov(fit)[term, term])
+    if (
+      is.na(est) || is.na(se) || is.na(df) ||
+      se <= 0 || df <= 0 ||
+      !is.finite(se) || !is.finite(df)
+    ) {
+      return(safe_result)
+    }
 
-    # Satterthwaite df from mmrm
-    df <- summary(fit)$coefficients[term, "df"]
-
-    tcrit <- qt(1 - (1 - ci_level) / 2, df)
+    tcrit <- stats::qt(1 - (1 - ci_level) / 2, df)
 
     list(
-      p = 2 * (1 - pt(abs(est / se), df)),
+      p = 2 * (1 - stats::pt(abs(est / se), df)),
       coef = est,
       ci_lower = est - tcrit * se,
-      ci_upper = est + tcrit * se
+      ci_upper = est + tcrit * se,
+      converged = TRUE,
+      covariance = covariance_used,
+      fallback = safe_result$fallback
     )
   }
 }
