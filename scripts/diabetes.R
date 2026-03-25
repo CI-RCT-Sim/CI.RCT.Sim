@@ -4,12 +4,12 @@ devtools::load_all()
 # Derive true treatment effect under treatment policy
 # -------------------------------------------------------------------
 
-sim_parameters <- diabetes_scenario() |>
+pre_sim_parameters <- diabetes_scenario() |>
   dplyr::mutate(nfix = 1e6, miss = rep(list(c(-1e5, 0, 0, 0)), 16))
 
-N_sim <- 20
+pre_N_sim <- 20
 
-my_analyse <- list(
+pre_my_analyse <- list(
   tp_mean = function(condition, dat, fixed_objects = NULL) {
     new_dat <- dat |>
       dplyr::group_by(trt) |>
@@ -22,7 +22,7 @@ my_analyse <- list(
   }
 )
 
-my_summarise <- create_summarise_function(
+pre_my_summarise <- create_summarise_function(
   tp_mean = summarise_estimator(
     est = est,
     real = 0,
@@ -30,13 +30,13 @@ my_summarise <- create_summarise_function(
   )
 )
 
-preliminary_results <- runSimulation(
-  design = sim_parameters,
-  replications = N_sim,
+pre_results <- runSimulation(
+  design = pre_sim_parameters,
+  replications = pre_N_sim,
   generate = generate_diabetes,
-  analyse = my_analyse,
-  summarise = my_summarise,
-  parallel = TRUE
+  analyse = pre_my_analyse,
+  summarise = pre_my_summarise,
+  parallel = "future"
 )
 
 
@@ -45,14 +45,14 @@ preliminary_results <- runSimulation(
 # -------------------------------------------------------------------
 
 sim_parameters <- diabetes_scenario() |>
-  diabetes_scenario_set_truevalues()
+  diabetes_scenario_set_truevalues() |>
+  dplyr::mutate(tp_eff = pre_results$tp_mean.mean_est)
 
 # -------------------------------------------------------------------
 # Constants for simulation
 # -------------------------------------------------------------------
 
 N_sim <- 1000
-alpha <- 0.05
 
 # -------------------------------------------------------------------
 # List of analysis functions
@@ -82,21 +82,21 @@ my_summarise <- create_summarise_function(
   ## Treatment policy estimands
   ipwtp = summarise_estimator(
     est = coef,
-    real = eff_true,
+    real = tp_eff,
     lower = ci_lower,
     upper = ci_upper,
     null = 0
   ),
   mmrmtp = summarise_estimator(
     est   = coef,
-    real  = eff_true,
+    real  = tp_eff,
     lower = ci_lower,
     upper = ci_upper,
     null  = 0
   ),
   mitp = summarise_estimator(
     est = coef,
-    real = eff_true,
+    real = tp_eff,
     lower = ci_lower,
     upper = ci_upper,
     null = 0
