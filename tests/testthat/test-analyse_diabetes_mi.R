@@ -51,3 +51,31 @@ test_that("mi diabetes works", {
     )
   })
 })
+test_that("mi hypothetical differs when rescue present", {
+  Design <- diabetes_scenario(print = FALSE) |>
+    diabetes_scenario_set_truevalues()
+
+  dat <- generate_diabetes(Design[7, ])
+
+  res_tp <- analyse_diabetes_mi(strategy = "treatment_policy")(Design[7, ], dat)
+
+  res_hyp <- suppressWarnings(
+    analyse_diabetes_mi(strategy = "hypothetical")(Design[7, ], dat)
+  )
+
+  expect_false(identical(res_tp$coef, res_hyp$coef))
+})
+test_that("mi strategies equal without rescue", {
+  Design <- diabetes_scenario(print = FALSE) |>
+    diabetes_scenario_set_truevalues()
+
+  dat <- generate_diabetes(Design[7, ])
+  dat$rescue_start <- Design$k[7] + 2  # force no rescue
+
+  res_tp <- analyse_diabetes_mi("treatment_policy")(Design[7, ], dat)
+  res_hyp <- suppressWarnings(
+    analyse_diabetes_mi("hypothetical")(Design[7, ], dat)
+  )
+
+  expect_equal(res_tp$coef, res_hyp$coef, tolerance = 1e-6)
+})
