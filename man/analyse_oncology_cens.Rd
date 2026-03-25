@@ -17,6 +17,8 @@ Create Analyse Functions for
 }
 \examples{
 setting <- oncology_scenario()[1, ]
+
 dat <- generate_oncology(setting)
+
 analyse_oncology_cens()(setting, dat)
 }

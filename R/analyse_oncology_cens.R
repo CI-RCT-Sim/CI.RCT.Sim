@@ -7,10 +7,13 @@
 #'
 #' @examples
 #' setting <- oncology_scenario()[1, ]
+#'
 #' dat <- generate_oncology(setting)
+#'
 #' analyse_oncology_cens()(setting, dat)
 analyse_oncology_cens <- function(X) {
   function(condition, dat, fixed_objects = NULL) {
+    N_evt <- sum(dat$ev)
     set_cens <- dat$trt == 0 & dat$switch == 1
     dat$event_time[set_cens] <- dat$prog_time[set_cens]
     dat$ev[set_cens] <- 0
@@ -25,7 +28,9 @@ analyse_oncology_cens <- function(X) {
       SElogHR = SE,
       low = CI[1],
       up = CI[2],
-      p = p
+      p = p,
+      N_pat = nrow(dat),
+      N_evt = N_evt
     )
   }
 }

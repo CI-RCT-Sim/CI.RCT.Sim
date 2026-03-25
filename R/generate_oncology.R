@@ -438,17 +438,9 @@ oncology_scenario <- function(print = interactive()) {
 #' Calculate true summary statistics for scenarios with delayed treatment effect
 #'
 #' @param Design Design data.frame for x
-#' @param cutoff_stats Cutoff time for rmst and average hazard ratios
 #' @param fixed_objects fixed objects not used for now
 #'
-#' @return For true_summary_statistics_x: the design data.frame
-#'   passed as argument with the additional columns:
-#' * `rmst_trt` rmst in the treatment group
-#' * `median_surv_trt` median survival in the treatment group
-#' * `rmst_ctrl` rmst in the control group
-#' * `median_surv_ctrl` median survial in the control group
-#' * `gAHR` geometric average hazard ratio
-#' * `AHR` average hazard ratio
+#' @return For
 #'
 #' @export
 #'
@@ -456,33 +448,19 @@ oncology_scenario <- function(print = interactive()) {
 #'
 #' @examples
 #' oncology_scenario_set_truevalues(oncology_scenario())
-oncology_scenario_set_truevalues <- function(Design, cutoff_stats = 10, fixed_objects = NULL) {
-  # true_summary_statistics_diabetes_rescue_rowwise <- function(condition, cutoff_stats) {
-  #   res <- data.frame(
-  #     eff_true <- condition$delta / 2 * (1 - exp(-condition$lambda * condition$k))
-  #   )
-  #   res
-  # }
-  #
-  # Design <- Design |>
-  #   split(1:nrow(Design)) |>
-  #   mapply(FUN = true_summary_statistics_diabetes_rescue_rowwise, cutoff_stats = cutoff_stats, SIMPLIFY = FALSE)
-  #
-  # Design <- do.call(rbind, Design)
-  # Design$eff_true <- Design$delta / 2 * (1 - exp(-Design$lambda * Design$k))
-  #
-  # # specifying parameters for sample size calculation
-  # alpha <- 0.05
-  # power <- 0.8
-  #
-  # if (!"nfix" %in% colnames(Design)) {
-  #   Design$n <- 2 * round(((qnorm(1 - alpha / 2) + qnorm(power))^2) *
-  #     Design$sd_bl^2 * (1 - Design$rho^2) * 2 /
-  #     (Design$eff_true^2))
-  # } else {
-  #   Design$n <- Design$nfix
-  # }
-  #
-  # Design$eff_true <- ifelse(Design$hyp == 1, Design$eff_true, 0)
+oncology_scenario_set_truevalues <- function(Design, fixed_objects = NULL) {
+  oncology_scenario_set_truevalues_rowwise <- function(condition, cutoff_stats) {
+    if (!"ev_soll" %in% colnames(condition)) {
+      condition$ev_soll <- ceiling(((qnorm(1 - condition$alpha / 2) + qnorm(condition$power))
+      / as.numeric(condition$beta_death[[1]][8]))^2 / condition$p_trt / (1 - condition$p_trt))
+      condition
+    } else {
+      condition
+    }
+  }
+  Design <- Design |>
+    split(1:nrow(Design)) |>
+    mapply(FUN = oncology_scenario_set_truevalues_rowwise, SIMPLIFY = FALSE)
+  Design <- do.call(rbind, Design)
   Design
 }

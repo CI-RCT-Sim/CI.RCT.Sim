@@ -13,11 +13,7 @@ generate_oncology(
 
 oncology_scenario(print = interactive())
 
-oncology_scenario_set_truevalues(
-  Design,
-  cutoff_stats = 10,
-  fixed_objects = NULL
-)
+oncology_scenario_set_truevalues(Design, fixed_objects = NULL)
 }
 \arguments{
 \item{condition}{condition row of Design dataset}
@@ -27,24 +23,13 @@ oncology_scenario_set_truevalues(
 \item{print}{print code to generate parameter set?}
 
 \item{Design}{Design data.frame for x}
-
-\item{cutoff_stats}{Cutoff time for rmst and average hazard ratios}
 }
 \value{
 For generate_oncology: A data set with n rows and the columns .....
 
 For oncology_scenario: a design tibble with default values invisibly
 
-For true_summary_statistics_x: the design data.frame
-passed as argument with the additional columns:
-\itemize{
-\item \code{rmst_trt} rmst in the treatment group
-\item \code{median_surv_trt} median survival in the treatment group
-\item \code{rmst_ctrl} rmst in the control group
-\item \code{median_surv_ctrl} median survial in the control group
-\item \code{gAHR} geometric average hazard ratio
-\item \code{AHR} average hazard ratio
-}
+For
 }
 \description{
 Generate Dataset that simulates an oncology trial
@@ -63,13 +48,13 @@ Condition has to contain the following columns:
 \item power          # power for the logrank test at the end of the trial (i.e. at max_duration)
 \item p_trt          # proportion of patients randomized to the treatment arm
 \item w              # threshold for covariate W to determine the effect of W on the hazard
-\item mu_W           # list of length 1 with two data.frames of dimension k x 2, one for control and one for treatment, with the mean values of W at each visit for control and treatment group
-\item mu_L           # list of length 1 with two data.frames of dimension k x 2, one for control and one for treatment, with the mean values of L at each visit for control and treatment group
-\item Sigma_W_L      # list of length 1 with one data.frame of dimension 2k x 2k with the covariance matrix of W and L at all visits (assuming the same covariance matrix for control and treatment group)
-\item beta_prog      # list of length 1 with one data.frame of dimension 7 x k with the coefficients for the progression hazard at each visit for the variables Int, X, W, W>0, L, trt, switched
-\item beta_switch    # list of length 1 with one data.frame of dimension 3 x k with the coefficients for the switching probability at each visit for the variables Int, X, W
-\item beta_death     # list of length 1 with one data.frame of dimension 7 x k with the coefficients for the death hazard at each visit for the variables Int, X, W, W>0, L, trt, switched
-\item beta_cens      # list of length 1 with one data.frame of dimension 7 x k with the coefficients for the censoring hazard at each visit for the variables Int, X, W, W>0, L, trt, switched
+\item mu_W           # list with list entries containing mean values of W at each visit for control and treatment group in k dimensional vectors
+\item mu_L           # list with list entries containing mean values of L at each visit for control and treatment group in k dimensional vectors
+\item Sigma_W_L      # list with matrix of dimension k x k with the covariance matrix of W and L at all visits (assuming the same covariance matrix for control and treatment group)
+\item beta_prog      # list with vectors of dimension 7 with the coefficients for the progression hazard at each visit for the variables Int, X, W, W>0, L, trt, switched
+\item beta_switch    # list with vectors of dimension 7 with the coefficients for the switching probability at each visit for the variables Int, X, W, W>0, L, trt, switched
+\item beta_cens      # list with vectors of dimension 7 with the coefficients for the censoring hazard at each visit for the variables Int, X, W, W>0, L, trt, switched
+\item beta_death     # list with vectors of dimension 8 with the coefficients for the death hazard at each visit for the variables Int, X, W, W>0, L, trt, switched, logHR_assumed
 }
 
 oncology_scenario generates a default design \code{data.frame}

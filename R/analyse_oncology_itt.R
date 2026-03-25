@@ -25,7 +25,9 @@ analyse_oncology_itt <- function(X) {
       SElogHR = SE,
       low = CI[1],
       up = CI[2],
-      p = p
+      p = p,
+      N_pat = nrow(dat),
+      N_evt = sum(dat$ev)
     )
   }
 }

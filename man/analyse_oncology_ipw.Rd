@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyse_oncology_ipw.R
 \name{analyse_oncology_ipw}
 \alias{analyse_oncology_ipw}
-\title{Create Analyse Functions for}
+\title{Create Analyse Functions for IPW}
 \usage{
 analyse_oncology_ipw(X)
 }
@@ -13,7 +13,7 @@ analyse_oncology_ipw(X)
 an analyse function that can be used in runSimulation
 }
 \description{
-Create Analyse Functions for
+Create Analyse Functions for IPW
 }
 \examples{
 setting <- oncology_scenario()[1, ]
