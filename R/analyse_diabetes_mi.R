@@ -1,4 +1,4 @@
-#' Analysis for hypothetical and treatment policy estimands
+#' Analyse data set with Multiple imputation
 #'
 #' Creates an analysis function for the diabetes rescue simulation.
 #' Depending on the chosen estimand, either a hypothetical strategy
@@ -8,11 +8,14 @@
 #' @param strategy Either `"hypothetical"` or `"treatment_policy"`.
 #' @param m Number of imputations (used for hypothetical only).
 #' @param maxit Maximum number of MICE iterations.
-#' @param ci_level Confidence level.
+#' @param ci_level confidence level for the CI (default 0.95)
 #' @param seed Random seed for imputation.
 #'
-#' @return A function with arguments `(condition, dat, fixed_objects = NULL)`
-#'   returning a list with elements `coef`, `p`, `ci_lower`, `ci_upper`.
+#' @return A function that, when called with `condition` and `dat`, returns a list with:
+#' * `coef` coefficient for `trt`
+#' * `p` p-value for coef
+#' * `ci_lower` lower bound of `ci-level`% confidence interval for coef
+#' * `ci_upper` upper bound of `ci-level`% confidence interval for coef
 #'
 #' @importFrom mice mice make.method make.predictorMatrix complete as.mira pool
 #' @importFrom dplyr filter select bind_rows all_of

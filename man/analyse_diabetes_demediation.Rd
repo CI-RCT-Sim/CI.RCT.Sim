@@ -2,30 +2,32 @@
 % Please edit documentation in R/analyse_diabetes_demediation.R
 \name{analyse_diabetes_demediation}
 \alias{analyse_diabetes_demediation}
-\title{Create Analysis Function for De-mediation}
+\title{Analyse data set with De-mediation}
 \usage{
 analyse_diabetes_demediation(separate = TRUE)
 }
 \arguments{
 \item{separate}{Default is TRUE which means that the imputation will be
 performed separately for the treatment and control groups. If FALSE, the
-imputation will be performed on the combined data set.}
+imputation will be performed on the combined data set, with treatment as a predictor variable.}
 }
 \value{
-an analyse function that can be used in runSimulation
+A function that, when called with \code{condition} and \code{dat}, returns a list with:
+\itemize{
+\item \code{coef}      estimated difference in mean change in HbA1c between treatment groups
+\item \code{se}        standard error for coef
+\item \code{ci_lower}  lower bound of 95\% confidence interval for coef
+\item \code{ci_upper}  upper bound of 95\% confidence interval for coef
+}
 }
 \description{
-Create Analysis Function for De-mediation
+Analyse data set with De-mediation
 }
 \details{
-This function implements the de-mediation approach described in the paper
-by Bartlett et al. (2024) for handling rescue medication in diabetes trials.
-The function first imputes the missing rescue medication data using the
-\code{mice} package, and then performs a de-mediation analysis by fitting a series
-of models to estimate the effect of treatment on the outcome while accounting
-for the potential mediation through rescue medication use.
-The final estimate of the treatment effect is obtained by pooling the results
-from the multiple imputations using Rubin's rules.
+This function implements the de-mediation approach described in the paper by Olarte Parra et al (2025) for handling rescue medication in longitudinal diabetes trials.
+The function first imputes the missing rescue medication data using the \code{mice} package, and then performs a de-mediation analysis by fitting a series
+of models to estimate the effect of treatment on the outcome while accounting for the potential mediation through rescue medication use.
+The final estimate of the treatment effect is obtained by pooling the results from the multiple imputations using Rubin's rules.
 }
 \examples{
 \donttest{

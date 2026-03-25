@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyse_diabetes_ipw.R
 \name{analyse_diabetes_ipw}
 \alias{analyse_diabetes_ipw}
-\title{Analyse Dataset with the Inverse probability weighting}
+\title{Analyse data set with the Inverse probability weighting}
 \usage{
 analyse_diabetes_ipw(strategy = "hypothetical")
 }
@@ -10,17 +10,24 @@ analyse_diabetes_ipw(strategy = "hypothetical")
 \item{strategy}{the estimand targeted by the CI method, default: "hypothetical". Allowed also: "treatment_policy".}
 }
 \value{
-an analyse function that can be used in runSimulation that returns a list with the elements
+A function that, when called with \code{condition} and \code{dat}, returns a list with:
 \itemize{
 \item \code{coef} coefficient for \code{trt}
 \item \code{se} standard error for coef
 \item \code{p} p-value for coef
-\item \code{ci_lower} lower bound of confidence interval for coef
-\item \code{ci_upper} upper bound of confidence interval for coef
+\item \code{ci_lower} lower bound of 95\% confidence interval for coef
+\item \code{ci_upper} upper bound of 95\% confidence interval for coef
 }
 }
 \description{
-Analyse Dataset with the Inverse probability weighting
+Analyse data set with the Inverse probability weighting
+}
+\details{
+This is a function to implement the inverse probability weighting for estimation of the treatment effect in a diabetes trial.
+The function first reshapes the data to a long format, where each row corresponds to a visit for a patient.
+Then, depending on the chosen strategy, it creates an indicator variable for missing outcomes due to treatment discontinuation (treatment policy) or due to both treatment discontinuation and rescue medication use (hypothetical).
+It fits a logistic regression model to estimate the probability of missingness and computes inverse probability weights.
+Finally, it fits a weighted linear regression model to estimate the treatment effect on the change in HbA1c at the final visit, using robust standard errors to account for the weighting.
 }
 \examples{
 Design <- diabetes_scenario() |>

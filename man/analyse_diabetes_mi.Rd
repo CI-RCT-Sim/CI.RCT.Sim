@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyse_diabetes_mi.R
 \name{analyse_diabetes_mi}
 \alias{analyse_diabetes_mi}
-\title{Analysis for hypothetical and treatment policy estimands}
+\title{Analyse data set with Multiple imputation}
 \usage{
 analyse_diabetes_mi(
   strategy = c("hypothetical", "treatment_policy"),
@@ -19,13 +19,18 @@ analyse_diabetes_mi(
 
 \item{maxit}{Maximum number of MICE iterations.}
 
-\item{ci_level}{Confidence level.}
+\item{ci_level}{confidence level for the CI (default 0.95)}
 
 \item{seed}{Random seed for imputation.}
 }
 \value{
-A function with arguments \verb{(condition, dat, fixed_objects = NULL)}
-returning a list with elements \code{coef}, \code{p}, \code{ci_lower}, \code{ci_upper}.
+A function that, when called with \code{condition} and \code{dat}, returns a list with:
+\itemize{
+\item \code{coef} coefficient for \code{trt}
+\item \code{p} p-value for coef
+\item \code{ci_lower} lower bound of \code{ci-level}\% confidence interval for coef
+\item \code{ci_upper} upper bound of \code{ci-level}\% confidence interval for coef
+}
 }
 \description{
 Creates an analysis function for the diabetes rescue simulation.

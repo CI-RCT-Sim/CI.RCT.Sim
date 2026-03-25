@@ -1,6 +1,46 @@
 devtools::load_all()
 
 # -------------------------------------------------------------------
+# Derive true treatment effect under treatment policy
+# -------------------------------------------------------------------
+
+sim_parameters <- diabetes_scenario() |>
+  dplyr::mutate(nfix = 1e6, miss = rep(list(c(-1e5, 0, 0, 0)), 16))
+
+N_sim <- 20
+
+my_analyse <- list(
+  tp_mean = function(condition, dat, fixed_objects = NULL) {
+    new_dat <- dat |>
+      dplyr::group_by(trt) |>
+      dplyr::summarise(
+        chg = base::mean(y12 - y0),
+        .groups = "drop"
+      )
+    if (nrow(new_dat) != 2) stop("Expected exactly 2 treatment groups")
+    list(est = new_dat$chg[2] - new_dat$chg[1])
+  }
+)
+
+my_summarise <- create_summarise_function(
+  tp_mean = summarise_estimator(
+    est = est,
+    real = 0,
+    null = 0
+  )
+)
+
+preliminary_results <- runSimulation(
+  design = sim_parameters,
+  replications = N_sim,
+  generate = generate_diabetes,
+  analyse = my_analyse,
+  summarise = my_summarise,
+  parallel = TRUE
+)
+
+
+# -------------------------------------------------------------------
 # Define parameter values and derived quantities
 # -------------------------------------------------------------------
 

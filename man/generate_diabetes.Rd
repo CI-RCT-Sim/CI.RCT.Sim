@@ -2,11 +2,14 @@
 % Please edit documentation in R/generate_diabetes.R
 \name{generate_diabetes}
 \alias{generate_diabetes}
+\alias{diabetes_scenario}
 \alias{diabetes_scenario_set_truevalues}
 \title{Generate Dataset that simulates a diabetes trial in which rescue medication
 can be introduced}
 \usage{
 generate_diabetes(condition, fixed_objects = NULL)
+
+diabetes_scenario(print = interactive())
 
 diabetes_scenario_set_truevalues(Design)
 }
@@ -15,15 +18,14 @@ diabetes_scenario_set_truevalues(Design)
 
 \item{fixed_objects}{fixed objects of Design dataset}
 
+\item{print}{print code to generate parameter set?}
+
 \item{Design}{Design data.frame for diabetes scenarios, e.g. created with diabetes_scenario()}
 }
 \value{
-For generate_diabetes: A data set with n rows and the columns id, trt
-(1=treatment, 0=control), age, y0, y1, ..., yk
-(the repeated measurements of the outcome), R1, ..., Rk-1 (indicators for
-rescue medication at each visit except baseline and the last visit),
-and rescue_start (the visit at which rescue medication was started,
-NA if no rescue medication was received).
+A data set with n rows and the columns id, trt (1 = treatment, 0 = control), age, y0, y1, ..., yk (the repeated measurements of the outcome), R0, R1, ..., Rk (indicators for rescue medication at each visit), and rescue_start (the visit at which rescue medication was started).
+
+For diabetes_scenario: a design tibble with default values invisibly
 
 For diabetes_scenario_set_truevalues: a design tibble with true values for the treatment effect at final visit and the sample size needed to achieve 80\% power for a two-sided test at alpha = 0.05
 }
@@ -31,37 +33,63 @@ For diabetes_scenario_set_truevalues: a design tibble with true values for the t
 Generate Dataset that simulates a diabetes trial in which rescue medication
 can be introduced
 
+Create an empty assumptions data.frame for generate_diabetes
+
 Calculate true summary statistics for scenarios with delayed treatment effect
 }
 \details{
 Condition has to contain the following columns:
 \itemize{
-\item k
-\item mean_age
-\item sd_age
-\item b_age
-\item mean_bl
-\item sd_bl
-\item rho
-\item delta
-\item lambda
-\item delta_resc
-\item lambda_resc
-\item resc_0
-\item resc_y
-\item resc_age
-\item miss
+\item k: the number of visits post baseline (visit 0 is baseline, visit 1 to k are post-baseline visits)
+\item mean_age: mean age of the patients in the trial
+\item sd_age: standard deviation of age in the trial
+\item b_age: coefficient for the age effect on the outcome
+\item mean_bl: mean HbA1c value at baseline
+\item sd_bl: standard deviation of HbA1c at baseline
+\item rho: correlation between repeated HbA1c measurements
+\item delta: maximal treatment effect
+\item lambda: rate of increasing treatment effect
+\item delta_resc: maximal effect of rescue medication
+\item lambda_resc: rate of increasing effect of rescue medication
+\item resc_0: intercept for the probability of receiving rescue medication
+\item resc_y: coefficient for the effect of the current HbA1c value on the probability of receiving rescue medication
+\item resc_age: coefficient for the effect of age on the probability of receiving rescue medication
+\item setup: determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
+\item miss: a list where each element is a vector of length 4 containing the coefficients for the probability of dropout (intercept, coefficient for the effect of the current HbA1c value, coefficient for the effect of age, coefficient for the effect of rescue medication)
 }
+
+The data generation process is as follows:
+\enumerate{
+\item For each patient, the age is generated from a normal distribution with mean \code{mean_age} and standard deviation \code{sd_age}.
+\item The baseline HbA1c value (y0) is generated from a normal distribution with mean \code{mean_bl} and standard deviation \code{sd_bl}.
+\item The treatment effect at each visit is calculated based on the parameters \verb{delta and }lambda\verb{, and the effect of rescue medication is calculated based on }delta_resc\code{and}lambda_resc`.
+\item The repeated measurements of the outcome (y1, ..., yk) are generated based on the baseline value, the age effect, the treatment effect (if the patient is in the treatment group), and a residual error term that follows a multivariate normal distribution with mean 0 and a covariance matrix determined by \code{sd_bl} and \code{rho}.
+\item The probability of receiving rescue medication at each visit is calculated based on the current HbA1c value, age, and the parameters \code{resc_0}, \code{resc_y}, and \code{resc_age}. Rescue medication is then assigned based on this probability, and if a patient receives rescue medication, their subsequent outcome measurements are adjusted based on the effect of rescue medication.
+\item The visit at which rescue medication is started is recorded in the \code{rescue_start} column. If a patient never receives rescue medication, \code{rescue_start} is set to k + 2.
+\item The probability of dropout at each visit is calculated based on the current HbA1c value, age, rescue medication status, and the parameters in the \code{miss} list. Dropout is then assigned based on this probability, and if a patient drops out, their subsequent outcome measurements and rescue medication status are set to NA.
+}
+
+diabetes_scenario generates a default design \code{data.frame}
+for use with generate_diabetes If print is \code{TRUE} code to produce
+the template is also printed for copying, pasting and editing by the user.
+(This is the default when run in an interactive session.)
 }
 \section{Functions}{
 \itemize{
 \item \code{generate_diabetes()}: simulates a data set with n rows.
 
-\item \code{diabetes_scenario_set_truevalues()}: calculate true summary statistics for ...
+\item \code{diabetes_scenario()}: generate default design tibble
+
+\item \code{diabetes_scenario_set_truevalues()}: calculate true treatment effect and sample size
 
 }}
 \examples{
-Design <- diabetes_scenario()
+# first create a design data.frame with diabetes_scenario()
+# and calculate true values with
+# diabetes_scenario_set_truevalues()
+Design <- diabetes_scenario() |>
+  diabetes_scenario_set_truevalues()
+# second call generate_diabetes() with a condition row
+# of the design data.frame to create the data set
 generate_diabetes(Design[1, ])
-diabetes_scenario_set_truevalues(diabetes_scenario())
 }

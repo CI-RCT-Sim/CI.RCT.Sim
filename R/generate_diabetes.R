@@ -7,29 +7,35 @@
 #' @details
 #' Condition has to contain the following columns:
 #'
-#'   * k
-#'   * mean_age
-#'   * sd_age
-#'   * b_age
-#'   * mean_bl
-#'   * sd_bl
-#'   * rho
-#'   * delta
-#'   * lambda
-#'   * delta_resc
-#'   * lambda_resc
-#'   * resc_0
-#'   * resc_y
-#'   * resc_age
-#'   * miss
+#'   * k: the number of visits post baseline (visit 0 is baseline, visit 1 to k are post-baseline visits)
+#'   * mean_age: mean age of the patients in the trial
+#'   * sd_age: standard deviation of age in the trial
+#'   * b_age: coefficient for the age effect on the outcome
+#'   * mean_bl: mean HbA1c value at baseline
+#'   * sd_bl: standard deviation of HbA1c at baseline
+#'   * rho: correlation between repeated HbA1c measurements
+#'   * delta: maximal treatment effect
+#'   * lambda: rate of increasing treatment effect
+#'   * delta_resc: maximal effect of rescue medication
+#'   * lambda_resc: rate of increasing effect of rescue medication
+#'   * resc_0: intercept for the probability of receiving rescue medication
+#'   * resc_y: coefficient for the effect of the current HbA1c value on the probability of receiving rescue medication
+#'   * resc_age: coefficient for the effect of age on the probability of receiving rescue medication
+#'   * setup: determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
+#'   * miss: a list where each element is a vector of length 4 containing the coefficients for the probability of dropout (intercept, coefficient for the effect of the current HbA1c value, coefficient for the effect of age, coefficient for the effect of rescue medication)
+#'
+#' The data generation process is as follows:
+#' 1. For each patient, the age is generated from a normal distribution with mean `mean_age` and standard deviation `sd_age`.
+#' 2. The baseline HbA1c value (y0) is generated from a normal distribution with mean `mean_bl` and standard deviation `sd_bl`.
+#' 3. The treatment effect at each visit is calculated based on the parameters `delta and `lambda`, and the effect of rescue medication is calculated based on `delta_resc` and `lambda_resc`.
+#' 4. The repeated measurements of the outcome (y1, ..., yk) are generated based on the baseline value, the age effect, the treatment effect (if the patient is in the treatment group), and a residual error term that follows a multivariate normal distribution with mean 0 and a covariance matrix determined by `sd_bl` and `rho`.
+#' 5. The probability of receiving rescue medication at each visit is calculated based on the current HbA1c value, age, and the parameters `resc_0`, `resc_y`, and `resc_age`. Rescue medication is then assigned based on this probability, and if a patient receives rescue medication, their subsequent outcome measurements are adjusted based on the effect of rescue medication.
+#' 6. The visit at which rescue medication is started is recorded in the `rescue_start` column. If a patient never receives rescue medication, `rescue_start` is set to k + 2.
+#' 7. The probability of dropout at each visit is calculated based on the current HbA1c value, age, rescue medication status, and the parameters in the `miss` list. Dropout is then assigned based on this probability, and if a patient drops out, their subsequent outcome measurements and rescue medication status are set to NA.
+#'
 #'
 #' @return
-#' For generate_diabetes: A data set with n rows and the columns id, trt
-#' (1=treatment, 0=control), age, y0, y1, ..., yk
-#' (the repeated measurements of the outcome), R1, ..., Rk-1 (indicators for
-#' rescue medication at each visit except baseline and the last visit),
-#' and rescue_start (the visit at which rescue medication was started,
-#' NA if no rescue medication was received).
+#' A data set with n rows and the columns id, trt (1 = treatment, 0 = control), age, y0, y1, ..., yk (the repeated measurements of the outcome), R0, R1, ..., Rk (indicators for rescue medication at each visit), and rescue_start (the visit at which rescue medication was started).
 #'
 #' @importFrom stats rbinom rnorm runif qnorm qlogis plogis
 #'
@@ -37,7 +43,13 @@
 #' @describeIn generate_diabetes simulates a data set with n rows.
 #'
 #' @examples
-#' Design <- diabetes_scenario()
+#' # first create a design data.frame with diabetes_scenario()
+#' # and calculate true values with
+#' # diabetes_scenario_set_truevalues()
+#' Design <- diabetes_scenario() |>
+#'   diabetes_scenario_set_truevalues()
+#' # second call generate_diabetes() with a condition row
+#' # of the design data.frame to create the data set
 #' generate_diabetes(Design[1, ])
 generate_diabetes <- function(condition, fixed_objects = NULL) {
   # sequence with the visits
@@ -106,9 +118,15 @@ generate_diabetes <- function(condition, fixed_objects = NULL) {
   response_rescue <- runif(n)
   any_rescue <- c()
 
+  # Based on the VISIT at which rescue is given, the rescue medication is
+  # assumed to have an effect on all subsequent visits, implying a shift of one
+  # visit. But, since the Y matrix contains visit 0 to visit k, we have to shift
+  # once more. Starting rescue medication at visit 8, for example, would lead to
+  # an effect on visits 9 to k, which corresponds to the indices 10 to k+1 in
+  # the Y matrix.
   for (i in 1:n) {
     if (k_rescue[i] > 0) {
-      rescue_set <- (rescue_start[i] + 2):(condition$k + 1)
+      rescue_set <- (rescue_start[i] + 2):(condition$k + 1) # equivalent would be rescue_set <- (rescue_start[i] + 1):condition$k + 1
       Y[i, rescue_set] <- mu[i, rescue_set] +
         response_rescue[i] * rescue_effect[rescue_set - rescue_start[i] + 1] +
         resid[i, rescue_set]
@@ -156,11 +174,8 @@ generate_diabetes <- function(condition, fixed_objects = NULL) {
 #'   (This is the default when run in an interactive session.)
 #'
 #' @export
-#' @describeIn diabetes_scenario generate default design tibble
+#' @describeIn generate_diabetes generate default design tibble
 #'
-#' @examples
-#' Design <- diabetes_scenario()[1, ]
-#' Design
 diabetes_scenario <- function(print = interactive()) {
   skel <- "params_scenarios_grid(
   k           = 12,                   # Number of visits post baseline
@@ -206,10 +221,8 @@ diabetes_scenario <- function(print = interactive()) {
 #'
 #' @export
 #'
-#' @describeIn generate_diabetes  calculate true summary statistics for ...
+#' @describeIn generate_diabetes calculate true treatment effect and sample size
 #'
-#' @examples
-#' diabetes_scenario_set_truevalues(diabetes_scenario())
 diabetes_scenario_set_truevalues <- function(Design) {
   Design$eff_true <- Design$delta / 2 * (1 - exp(-Design$lambda * Design$k))
 

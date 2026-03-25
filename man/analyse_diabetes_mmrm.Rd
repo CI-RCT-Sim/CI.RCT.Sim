@@ -15,16 +15,23 @@ analyse_diabetes_mmrm(
 \item{strategy}{strategy to handle rescue medication: either "treatment_policy" (use all observed data) or "hypothetical" (set post-rescue values to missing and ignore them in the analysis)}
 }
 \value{
-an analyse function that returns a list with
+A function that, when called with \code{condition} and \code{dat}, returns a list with:
 \itemize{
-\item \code{p} p-value for treatment effect at final visit
-\item \code{coef} estimated treatment effect at final visit
-\item \code{ci_lower} lower confidence limit
-\item \code{ci_upper} upper confidence limit
+\item \code{coef} coefficient for \code{trt}
+\item \code{p} p-value for coef
+\item \code{ci_lower} lower bound of 95\% confidence interval for coef
+\item \code{ci_upper} upper bound of 95\% confidence interval for coef
 }
 }
 \description{
 Analyse diabetes endpoint using MMRM
+}
+\details{
+This function implements a mixed model for repeated measures (MMRM) to estimate the treatment effect on the change in HbA1c at the final visit in a diabetes trial, accounting for rescue medication use.
+The function first reshapes the data to a long format, where each row corresponds to a visit for a patient.
+Depending on the chosen strategy, it either uses all observed data (treatment policy) or sets post-rescue values to missing (hypothetical).
+The MMRM is then fitted with an unstructured covariance matrix for the repeated measures, adjusting for baseline HbA1c, age, and treatment, nested within visits.
+Finally the treatment effect at the final visit is extracted along with its standard error and confidence interval.
 }
 \examples{
 setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
