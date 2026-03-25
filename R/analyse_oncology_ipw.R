@@ -1,4 +1,4 @@
-#' Create Analyse Functions for
+#' Create Analyse Functions for IPW
 #'
 #' @param X input can be used to pass parameters to the analyse function
 #'
