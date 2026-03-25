@@ -31,8 +31,11 @@ The final estimate of the treatment effect is obtained by pooling the results fr
 }
 \examples{
 \donttest{
-setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
-dat <- generate_diabetes(setting)
-analyse_diabetes_demediation()(setting, dat)
+Design <- diabetes_scenario()[1, ] |>
+  diabetes_scenario_set_truevalues()
+
+dat <- generate_diabetes(Design)
+
+analyse_diabetes_demediation(separate = TRUE)(Design, dat)
 }
 }

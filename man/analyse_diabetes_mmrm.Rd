@@ -34,8 +34,11 @@ The MMRM is then fitted with an unstructured covariance matrix for the repeated 
 Finally the treatment effect at the final visit is extracted along with its standard error and confidence interval.
 }
 \examples{
-setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
-dat <- generate_diabetes(setting)
-analyse_diabetes_mmrm()(setting, dat)
+Design <- diabetes_scenario()[1, ] |>
+  diabetes_scenario_set_truevalues()
+
+dat <- generate_diabetes(Design)
+
+analyse_diabetes_mmrm()(Design, dat)
 
 }

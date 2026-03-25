@@ -56,13 +56,11 @@ No formal p-value is calculated.
 }
 \examples{
 \donttest{
-Design <- diabetes_scenario() |>
+Design <- diabetes_scenario()[1, ] |>
   diabetes_scenario_set_truevalues()
 
-condition <- Design[1, ]
+dat <- generate_diabetes(Design)
 
-dat <- generate_diabetes(condition)
-
-analyse_diabetes_gcomputation()(condition, dat)
+analyse_diabetes_gcomputation()(Design, dat)
 }
 }

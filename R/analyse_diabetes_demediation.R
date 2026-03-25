@@ -25,9 +25,12 @@
 #'
 #' @examples
 #' \donttest{
-#' setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
-#' dat <- generate_diabetes(setting)
-#' analyse_diabetes_demediation()(setting, dat)
+#' Design <- diabetes_scenario()[1, ] |>
+#'   diabetes_scenario_set_truevalues()
+#'
+#' dat <- generate_diabetes(Design)
+#'
+#' analyse_diabetes_demediation(separate = TRUE)(Design, dat)
 #' }
 analyse_diabetes_demediation <- function(separate = TRUE) {
   function(condition, dat, fixed_objects = NULL) {

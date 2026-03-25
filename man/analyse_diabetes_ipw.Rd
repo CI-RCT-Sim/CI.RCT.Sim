@@ -30,14 +30,12 @@ It fits a logistic regression model to estimate the probability of missingness a
 Finally, it fits a weighted linear regression model to estimate the treatment effect on the change in HbA1c at the final visit, using robust standard errors to account for the weighting.
 }
 \examples{
-Design <- diabetes_scenario() |>
+Design <- diabetes_scenario()[1, ] |>
   diabetes_scenario_set_truevalues()
 
-condition <- Design[1, ]
+dat <- generate_diabetes(Design)
 
-dat <- generate_diabetes(condition)
-
-analyse_diabetes_ipw(strategy = "treatment_policy")(condition, dat)
-analyse_diabetes_ipw(strategy = "hypothetical")(condition, dat)
+analyse_diabetes_ipw(strategy = "treatment_policy")(Design, dat)
+analyse_diabetes_ipw(strategy = "hypothetical")(Design, dat)
 
 }

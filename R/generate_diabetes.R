@@ -1,4 +1,4 @@
-#' Generate Dataset that simulates a diabetes trial in which rescue medication
+#' Generate data set that simulates a diabetes trial in which rescue medication
 #' can be introduced
 #'
 #' @param condition condition row of Design dataset
@@ -213,7 +213,7 @@ diabetes_scenario <- function(print = interactive()) {
   )
 }
 
-#' Calculate true summary statistics for scenarios with delayed treatment effect
+#' Calculate true summary statistics for diabetes scenarios
 #'
 #' @param Design Design data.frame for diabetes scenarios, e.g. created with diabetes_scenario()
 #'

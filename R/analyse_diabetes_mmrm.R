@@ -22,9 +22,12 @@
 #' @importFrom stats vcov pnorm pt qt relevel
 #'
 #' @examples
-#' setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
-#' dat <- generate_diabetes(setting)
-#' analyse_diabetes_mmrm()(setting, dat)
+#' Design <- diabetes_scenario()[1, ] |>
+#'   diabetes_scenario_set_truevalues()
+#'
+#' dat <- generate_diabetes(Design)
+#'
+#' analyse_diabetes_mmrm()(Design, dat)
 #'
 analyse_diabetes_mmrm <- function(
   ci_level = 0.95,

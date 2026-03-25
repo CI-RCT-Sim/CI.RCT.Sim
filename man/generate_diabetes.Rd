@@ -4,7 +4,7 @@
 \alias{generate_diabetes}
 \alias{diabetes_scenario}
 \alias{diabetes_scenario_set_truevalues}
-\title{Generate Dataset that simulates a diabetes trial in which rescue medication
+\title{Generate data set that simulates a diabetes trial in which rescue medication
 can be introduced}
 \usage{
 generate_diabetes(condition, fixed_objects = NULL)
@@ -30,12 +30,12 @@ For diabetes_scenario: a design tibble with default values invisibly
 For diabetes_scenario_set_truevalues: a design tibble with true values for the treatment effect at final visit and the sample size needed to achieve 80\% power for a two-sided test at alpha = 0.05
 }
 \description{
-Generate Dataset that simulates a diabetes trial in which rescue medication
+Generate data set that simulates a diabetes trial in which rescue medication
 can be introduced
 
 Create an empty assumptions data.frame for generate_diabetes
 
-Calculate true summary statistics for scenarios with delayed treatment effect
+Calculate true summary statistics for diabetes scenarios
 }
 \details{
 Condition has to contain the following columns:
