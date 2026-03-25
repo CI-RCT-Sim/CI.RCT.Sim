@@ -4,6 +4,7 @@
 #' Depending on the chosen estimand, either a hypothetical strategy
 #' with multiple imputation after rescue initiation is applied,
 #' or a treatment policy strategy using observed data only.
+#'
 #' ## Multiple Imputation (Hypothetical Strategy)
 #'
 #' Multiple imputation is used as a comparator method for the hypothetical
@@ -24,7 +25,7 @@
 #' This ensures consistency with the hypothetical estimand and aligns with the
 #' data-generating mechanism.
 #'
-#' ### Imputation model
+#' ### Imputation model (Protocol-aligned)
 #'
 #' The imputation is performed using the \pkg{mice} package.
 #'
@@ -34,8 +35,8 @@
 #'   - baseline HbA1c (\eqn{y_0}),
 #'   - age at baseline.
 #'
-#' The imputation is performed **separately within each treatment group** to
-#' reflect protocol-driven stratification.
+#' The imputation is performed **separately within each treatment group**,
+#' as specified in the protocol.
 #'
 #' A total of 10 imputations are generated.
 #'
@@ -56,12 +57,18 @@
 #' Estimates from the imputed datasets are pooled using Rubin’s rules via
 #' \code{mice::pool}.
 #'
+#' ### Reproducibility
+#'
+#' Randomness from the multiple imputation procedure is controlled using
+#' \code{withr::with_seed()}, ensuring reproducibility without affecting the
+#' global random number generator state. This avoids unintended interference
+#' with simulation data generation.
 #'
 #' @param strategy Either `"hypothetical"` or `"treatment_policy"`.
 #' @param m Number of imputations (used for hypothetical only).
 #' @param maxit Maximum number of MICE iterations.
 #' @param ci_level Confidence level.
-#' @param seed Random seed for imputation.
+#' @param seed Random seed for imputation (used locally via withr).
 #'
 #' @return A function with arguments `(condition, dat, fixed_objects = NULL)`
 #'   returning a list with elements `coef`, `p`, `ci_lower`, `ci_upper`.
@@ -69,6 +76,7 @@
 #' @importFrom mice mice make.method make.predictorMatrix complete as.mira pool
 #' @importFrom dplyr filter select bind_rows all_of
 #' @importFrom stats lm confint coef
+#' @importFrom withr with_seed
 #' @export
 #'
 #' @examples
@@ -102,21 +110,23 @@
 #'   hypothetical     = res_hyp$coef
 #' )
 analyse_diabetes_mi <- function(
-  strategy = c("hypothetical", "treatment_policy"),
-  m = 10,
-  maxit = 20,
-  ci_level = 0.95,
-  seed = 123
+    strategy = c("hypothetical", "treatment_policy"),
+    m = 10,
+    maxit = 20,
+    ci_level = 0.95,
+    seed = 123
 ) {
   strategy <- match.arg(strategy)
 
   function(condition, dat, fixed_objects = NULL) {
+
     k <- condition$k
 
     ############################################################
     # TREATMENT POLICY ESTIMAND
     ############################################################
     if (strategy == "treatment_policy") {
+
       dat$chg <- dat[[paste0("y", k)]] - dat$y0
 
       fit <- lm(chg ~ trt + age + y0, data = dat)
@@ -134,21 +144,17 @@ analyse_diabetes_mi <- function(
 
     ############################################################
     # HYPOTHETICAL ESTIMAND
-    # Set post-rescue data to missing, then MI
     ############################################################
 
     dat_hyp <- dat
 
-    # Set all post-rescue Y values to NA
+    # Harmonized rescue convention: remove strictly post-rescue values
     for (i in seq_len(nrow(dat_hyp))) {
       rs <- dat_hyp$rescue_start[i]
 
       if (!is.na(rs) && rs < k) {
         miss_visits <- (rs + 1):k
-
-        for (v in miss_visits) {
-          dat_hyp[i, paste0("y", v)] <- NA
-        }
+        dat_hyp[i, paste0("y", miss_visits)] <- NA
       }
     }
 
@@ -181,6 +187,7 @@ analyse_diabetes_mi <- function(
     imp_list <- vector("list", 2)
 
     for (g in 0:1) {
+
       dat_g <- dat_hyp |>
         dplyr::filter(trt == g) |>
         dplyr::select(dplyr::all_of(vars_imp))
@@ -192,14 +199,16 @@ analyse_diabetes_mi <- function(
         )
       }
 
-      imp_list[[g + 1]] <- mice::mice(
-        dat_g,
-        m = m,
-        method = meth,
-        predictorMatrix = pred,
-        maxit = maxit,
-        seed = seed + g,
-        printFlag = FALSE
+      imp_list[[g + 1]] <- withr::with_seed(
+        seed + g,
+        mice::mice(
+          dat_g,
+          m = m,
+          method = meth,
+          predictorMatrix = pred,
+          maxit = maxit,
+          printFlag = FALSE
+        )
       )
     }
 
