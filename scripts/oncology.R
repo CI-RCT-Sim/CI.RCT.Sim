@@ -32,7 +32,8 @@ preliminary_results <- runSimulation(
   analyse = my_analyse,
   summarise = my_summarise,
   fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 10000),
-  seed = 1234
+  seed = 1234#,
+  #parallel=TRUE
 )
 
 
@@ -73,14 +74,28 @@ my_analyse <- list(
 
 my_summarise <- create_summarise_function(
   # bias, SD, coverage etc. for the treatment effect at final visit
-  rpsftm = summarise_estimator(
+  rpsftm_rc = summarise_estimator(
     est = HR,
     real = preliminary_results$truth.mean_est,
     lower = low,
     upper = up,
     null = 1
   ),
-  tse = summarise_estimator(
+    rpsftm = summarise_estimator(
+    est = HR,
+    real = preliminary_results$truth.mean_est,
+    lower = low,
+    upper = up,
+    null = 1
+  ),
+  tse_rc = summarise_estimator(
+    est = HR,
+    real = preliminary_results$truth.mean_est,
+    lower = low,
+    upper = up,
+    null = 1
+  ),
+    tse = summarise_estimator(
     est = HR,
     real = preliminary_results$truth.mean_est,
     lower = low,
