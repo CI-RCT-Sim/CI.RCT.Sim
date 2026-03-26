@@ -14,8 +14,7 @@ Suggests:
     rmarkdown,
     roxygen2,
     testthat (>= 3.0.0),
-    covr,
-    withr
+    covr
 Roxygen: list(markdown = TRUE)
 RoxygenNote: 7.3.3
 URL: https://ci-rct-sim.github.io/CI.RCT.Sim/
@@ -36,5 +35,6 @@ Imports:
     logistf,
     tidyselect,
     lmtest,
-    sandwich
+    sandwich,
+    withr
 VignetteBuilder: knitr

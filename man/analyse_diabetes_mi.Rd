@@ -21,7 +21,7 @@ analyse_diabetes_mi(
 
 \item{ci_level}{confidence level for the CI (default 0.95)}
 
-\item{seed}{Random seed for imputation.}
+\item{seed}{Random seed for imputation (used locally via withr).}
 }
 \value{
 A function that, when called with \code{condition} and \code{dat}, returns a list with:
@@ -38,6 +38,77 @@ Depending on the chosen estimand, either a hypothetical strategy
 with multiple imputation after rescue initiation is applied,
 or a treatment policy strategy using observed data only.
 }
+\details{
+\subsection{Multiple Imputation (Hypothetical Strategy)}{
+
+Multiple imputation is used as a comparator method for the hypothetical
+estimand, targeting the scenario in which rescue medication had not been
+available.
+\subsection{Handling of rescue medication}{
+
+For subjects initiating rescue medication at visit \eqn{s}, all post-rescue
+outcomes are set to missing:
+
+\deqn{
+y_{i,j} = \text{NA} \quad \text{for all } j > s
+}
+
+The outcome at the rescue visit itself (\eqn{j = s}) is retained.
+
+This ensures consistency with the hypothetical estimand and aligns with the
+data-generating mechanism.
+}
+
+\subsection{Imputation model (Protocol-aligned)}{
+
+The imputation is performed using the \pkg{mice} package.
+\itemize{
+\item HbA1c at each visit is imputed if missing.
+\item The imputation model includes:
+\itemize{
+\item all available HbA1c measurements,
+\item baseline HbA1c (\eqn{y_0}),
+\item age at baseline.
+}
+}
+
+The imputation is performed \strong{separately within each treatment group},
+as specified in the protocol.
+
+A total of 10 imputations are generated.
+}
+
+\subsection{Analysis model}{
+
+For each imputed dataset, an ANCOVA model is fitted:
+
+\deqn{
+\Delta y_i = \beta_0 + \beta_1 \cdot \text{trt}_i + \beta_2 \cdot \text{age}_i + \beta_3 \cdot y_{0,i} + \varepsilon_i
+}
+
+where:
+\itemize{
+\item \eqn{\Delta y_i} is the change from baseline in HbA1c
+\item \eqn{y_{0,i}} is baseline HbA1c
+}
+}
+
+\subsection{Pooling}{
+
+Estimates from the imputed datasets are pooled using Rubin’s rules via
+\code{mice::pool}.
+}
+
+\subsection{Reproducibility}{
+
+Randomness from the multiple imputation procedure is controlled using
+\code{withr::with_seed()}, ensuring reproducibility without affecting the
+global random number generator state. This avoids unintended interference
+with simulation data generation.
+}
+
+}
+}
 \examples{
 Design <- diabetes_scenario()[1, ] |>
   diabetes_scenario_set_truevalues()
@@ -47,4 +118,30 @@ dat <- generate_diabetes(Design)
 analyse_diabetes_mi(strategy = "treatment_policy")(Design, dat)
 analyse_diabetes_mi(strategy = "hypothetical")(Design, dat)
 
+dat <- generate_diabetes(Design)
+
+## ----------------------------
+## Treatment policy estimand
+## ----------------------------
+res_tp <- analyse_diabetes_mi(
+  strategy = "treatment_policy"
+)(Design, dat)
+
+res_tp
+
+## ----------------------------
+## Hypothetical estimand
+## (censor after rescue + MI)
+## ----------------------------
+res_hyp <- analyse_diabetes_mi(
+  strategy = "hypothetical"
+)(Design, dat)
+
+res_hyp
+
+## Compare results
+c(
+  treatment_policy = res_tp$coef,
+  hypothetical     = res_hyp$coef
+)
 }
