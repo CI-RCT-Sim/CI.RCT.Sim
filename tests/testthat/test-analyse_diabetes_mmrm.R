@@ -46,7 +46,6 @@ test_that("mmrm diabetes works", {
   expect_no_error({
     res <- my_analyse(Design[12, ], dat)
   })
-
 })
 
 test_that("mmrm hypothetical differs when rescue present", {
@@ -55,8 +54,8 @@ test_that("mmrm hypothetical differs when rescue present", {
 
   dat <- generate_diabetes(Design[7, ])
 
-  res_tp <- analyse_diabetes_mmrm("treatment_policy")(Design[7, ], dat)
-  res_hyp <- analyse_diabetes_mmrm("hypothetical")(Design[7, ], dat)
+  res_tp <- analyse_diabetes_mmrm(strategy = "treatment_policy")(Design[7, ], dat)
+  res_hyp <- analyse_diabetes_mmrm(strategy = "hypothetical")(Design[7, ], dat)
 
   expect_false(identical(res_tp$coef, res_hyp$coef))
 })
@@ -66,10 +65,10 @@ test_that("mmrm strategies equal without rescue", {
     diabetes_scenario_set_truevalues()
 
   dat <- generate_diabetes(Design[7, ])
-  dat$rescue_start <- Design$k[7] + 2  # force no rescue
+  dat$rescue_start <- Design$k[7] + 2 # force no rescue
 
-  res_tp <- analyse_diabetes_mmrm("treatment_policy")(Design[7, ], dat)
-  res_hyp <- analyse_diabetes_mmrm("hypothetical")(Design[7, ], dat)
+  res_tp <- analyse_diabetes_mmrm(strategy = "treatment_policy")(Design[7, ], dat)
+  res_hyp <- analyse_diabetes_mmrm(strategy = "hypothetical")(Design[7, ], dat)
 
   expect_equal(res_tp$coef, res_hyp$coef, tolerance = 1e-8)
 })
@@ -79,10 +78,10 @@ test_that("mmrm strategies equal without rescue", {
     diabetes_scenario_set_truevalues()
 
   dat <- generate_diabetes(Design[7, ])
-  dat$rescue_start <- Design$k[7] + 2  # force no rescue
+  dat$rescue_start <- Design$k[7] + 2 # force no rescue
 
-  res_tp <- analyse_diabetes_mmrm("treatment_policy")(Design[7, ], dat)
-  res_hyp <- analyse_diabetes_mmrm("hypothetical")(Design[7, ], dat)
+  res_tp <- analyse_diabetes_mmrm(strategy = "treatment_policy")(Design[7, ], dat)
+  res_hyp <- analyse_diabetes_mmrm(strategy = "hypothetical")(Design[7, ], dat)
 
   expect_equal(res_tp$coef, res_hyp$coef, tolerance = 1e-8)
 })

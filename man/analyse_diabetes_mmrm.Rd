@@ -113,7 +113,7 @@ Design <- diabetes_scenario()[1, ] |>
 dat <- generate_diabetes(Design)
 
 # Treatment policy estimand
-analyse_diabetes_mmrm(stategy = "treatment_policy")(Design, dat)
+analyse_diabetes_mmrm(strategy = "treatment_policy")(Design, dat)
 
 # Hypothetical estimand (censor after rescue)
 analyse_diabetes_mmrm(strategy = "hypothetical")(Design, dat)

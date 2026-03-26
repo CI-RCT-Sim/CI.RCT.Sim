@@ -95,7 +95,7 @@
 #' dat <- generate_diabetes(Design)
 #'
 #' # Treatment policy estimand
-#' analyse_diabetes_mmrm(stategy = "treatment_policy")(Design, dat)
+#' analyse_diabetes_mmrm(strategy = "treatment_policy")(Design, dat)
 #'
 #' # Hypothetical estimand (censor after rescue)
 #' analyse_diabetes_mmrm(strategy = "hypothetical")(Design, dat)
@@ -248,7 +248,7 @@ analyse_diabetes_mmrm <- function(
     tcrit <- qt(1 - (1 - ci_level) / 2, df)
 
     list(
-      p = 2 * (1 - stats::pt(abs(est / se), df)),
+      p = 2 * (1 - pt(abs(est / se), df)),
       coef = est,
       ci_lower = est - tcrit * se,
       ci_upper = est + tcrit * se,
