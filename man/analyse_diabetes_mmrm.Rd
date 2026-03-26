@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyse_diabetes_mmrm.R
 \name{analyse_diabetes_mmrm}
 \alias{analyse_diabetes_mmrm}
-\title{Analyse diabetes endpoint using MMRM}
+\title{Analyse diabetes endpoint using a Mixed Model for Repeated Measures (MMRM)}
 \usage{
 analyse_diabetes_mmrm(
   ci_level = 0.95,
@@ -10,9 +10,10 @@ analyse_diabetes_mmrm(
 )
 }
 \arguments{
-\item{ci_level}{confidence level for the CI (default 0.95)}
+\item{ci_level}{Confidence level for the confidence interval (default 0.95)}
 
-\item{strategy}{strategy to handle rescue medication: either "treatment_policy" (use all observed data) or "hypothetical" (set post-rescue values to missing and ignore them in the analysis)}
+\item{strategy}{Strategy for handling rescue medication:
+"treatment_policy" or "hypothetical"}
 }
 \value{
 A function that, when called with \code{condition} and \code{dat}, returns a list with:
@@ -21,17 +22,89 @@ A function that, when called with \code{condition} and \code{dat}, returns a lis
 \item \code{p} p-value for coef
 \item \code{ci_lower} lower bound of 95\% confidence interval for coef
 \item \code{ci_upper} upper bound of 95\% confidence interval for coef
+\item \code{converged} boolean indicating whether the model converged
+\item \code{covariance} the covariance structure used
+\item \code{fallback} boolean indicating whether a fallback covariance structure was used
 }
 }
 \description{
-Analyse diabetes endpoint using MMRM
+This function fits a Mixed Model for Repeated Measures (MMRM) to estimate
+the treatment effect at the final visit in a longitudinal clinical trial setting.
 }
 \details{
-This function implements a mixed model for repeated measures (MMRM) to estimate the treatment effect on the change in HbA1c at the final visit in a diabetes trial, accounting for rescue medication use.
-The function first reshapes the data to a long format, where each row corresponds to a visit for a patient.
-Depending on the chosen strategy, it either uses all observed data (treatment policy) or sets post-rescue values to missing (hypothetical).
-The MMRM is then fitted with an unstructured covariance matrix for the repeated measures, adjusting for baseline HbA1c, age, and treatment, nested within visits.
-Finally the treatment effect at the final visit is extracted along with its standard error and confidence interval.
+\subsection{Model specification}{
+
+The following linear model is fitted:
+
+\deqn{
+y_{ij} = \beta_0
++ \beta_1 \cdot \text{trt}_i
++ \gamma_j \cdot \text{visit}_j
++ \delta_j \cdot (\text{trt}i \times \text{visit}j)
++ \alpha_j \cdot y{0,i}
++ \eta_j \cdot \text{age}i
++ \varepsilon{ij}
+}
+
+where:
+\itemize{
+\item \eqn{y{ij}} is the outcome for subject \eqn{i} at visit \eqn{j}
+\item \eqn{\text{trt}_i} is the treatment indicator
+\item \eqn{\text{visit}j} is a categorical visit effect
+\item \eqn{y{0,i}} is the baseline value
+\item \eqn{\text{age}i} is a baseline covariate
+}
+
+The within-subject covariance is modeled using an unstructured covariance matrix:
+
+\deqn{
+\varepsilon_i \sim \mathcal{N}(0, \Sigma)
+}
+
+with \eqn{\Sigma} fully unstructured across visits.
+}
+
+\subsection{Interpretation of treatment effect}{
+
+The visit factor is re-leveled such that the final visit (visit = k) is the
+reference category. As a result, the main effect coefficient for trt
+corresponds directly to the treatment effect at the final visit.
+
+Without this releveling, the treatment effect would correspond to the reference
+visit (typically the first visit), and additional contrasts would be required
+to obtain the effect at the final visit.
+}
+
+\subsection{Handling of intercurrent events (rescue medication)}{
+
+Two strategies are supported:
+\itemize{
+\item "treatment_policy":
+All observed post-baseline data are used regardless of rescue medication.
+\item "hypothetical":
+For subjects who initiate rescue medication during the study
+(i.e. rescue_start <= k), all outcomes from the rescue visit onward are
+set to missing. This results in a monotone missingness pattern, where:
+}
+
+\deqn{
+y{i, j} = \text{NA for all } j \geq \text{rescue_start}_i
+}
+
+Subjects without rescue (i.e. rescue_start > k or NA) remain unchanged.
+
+This approach targets a hypothetical estimand corresponding to outcomes
+that would have been observed had rescue medication not been initiated.
+}
+
+\subsection{Inference}{
+
+Treatment effects are estimated using restricted maximum likelihood (REML),
+and inference is based on Satterthwaite approximations for the degrees of freedom.
+
+Confidence intervals are constructed using a t-distribution with the estimated
+degrees of freedom.
+}
 }
 \examples{
 Design <- diabetes_scenario()[1, ] |>
@@ -39,6 +112,10 @@ Design <- diabetes_scenario()[1, ] |>
 
 dat <- generate_diabetes(Design)
 
-analyse_diabetes_mmrm()(Design, dat)
+# Treatment policy estimand
+analyse_diabetes_mmrm(stategy = "treatment_policy")(Design, dat)
+
+# Hypothetical estimand (censor after rescue)
+analyse_diabetes_mmrm(strategy = "hypothetical")(Design, dat)
 
 }
