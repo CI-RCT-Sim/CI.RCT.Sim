@@ -59,7 +59,6 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
       pred0[, c("id", "trt", "m_start", Rcols)] <- 0
       meth0 <- make.method(dat0)
       meth0[Rcols] <- ""
-      set.seed(123)
       dats <- rbind(
         mice(dat1, m = 5, printFlag = FALSE, predictorMatrix = pred1, method = meth1, ridge = 1e-5, remove.collinear = FALSE),
         mice(dat0, m = 5, printFlag = FALSE, predictorMatrix = pred0, method = meth0, ridge = 1e-5, remove.collinear = FALSE)
@@ -71,7 +70,6 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
       pred[, c("id", "m_start", Rcols)] <- 0
       meth <- make.method(dat)
       meth[Rcols] <- ""
-      set.seed(123)
       dats <- mice(daat, m = 5, printFlag = FALSE, predictorMatrix = pred, method = meth, ridge = 1e-5, remove.collinear = FALSE)
     }
 
