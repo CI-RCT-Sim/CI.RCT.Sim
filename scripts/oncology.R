@@ -4,7 +4,7 @@ devtools::load_all()
 # Derive true treatment effect
 # -------------------------------------------------------------------
 
-pre_sim_parameters <- oncology_scenario(print = FALSE)[1, ]
+pre_sim_parameters <- oncology_scenario(print = FALSE)[5, ]
 
 pre_N_sim <- 10
 
@@ -30,7 +30,7 @@ pre_results <- runSimulation(
   generate = generate_oncology,
   analyse = pre_my_analyse,
   summarise = pre_my_summarise,
-  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 10000),
+  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 100),
   parallel = "future"
 )
 
@@ -61,7 +61,41 @@ my_analyse <- list(
   gformula = analyse_oncology_gformula(),
   ipw = analyse_oncology_ipw(),
   itt = analyse_oncology_itt(),
-  cens = analyse_oncology_cens()
+  cens = analyse_oncology_cens(),
+  describe = function(condition, dat, fixed_objects = NULL) {
+    tabulate_helper <- function(dat, var) {
+      tmp <- list(
+        sum(dat[, var]),
+        sum(dat[dat$trt == 0, var]),
+        sum(dat[dat$trt == 1, var])
+      )
+
+      names(tmp) <- c(var, paste0(var, "_ctrl"), paste0(var, "_trt"))
+      tmp
+    }
+    result <- list(
+      n_pat = nrow(dat),
+      n_ctrl = sum(dat$trt == 0),
+      n_trt = sum(dat$trt == 1),
+      n_switch = sum(dat$switch),
+      max_followup = max(dat$event_time),
+      sufficient_events = sum(dat$ev) >= condition$ev_soll,
+      n_random_cens = sum(dat$random_cens)
+    )
+    result <- c(result, tabulate_helper(dat, "ev"))
+    if (!is.null(attr(dat, "followup"))) {
+      result$study_time <- attr(dat, "followup")
+    } else {
+      result$study_time <- NA_real_
+    }
+    if (hasName(dat, "ice")) {
+      result <- c(result, tabulate_helper(dat, "ice"))
+    }
+    if (hasName(dat, "subgroup")) {
+      result <- c(result, tabulate_helper(dat, "subgroup"))
+    }
+    result
+  }
 )
 
 # -------------------------------------------------------------------
@@ -126,11 +160,7 @@ my_summarise <- create_summarise_function(
     upper = up,
     null = 1
   ),
-  ipw = function(condition, results, fixed_objects = NULL) {
-    data.frame(
-      evts = mean(results$N_evt >= condition$ev_soll)
-    )
-  }
+  describe = summarise_describe()
 )
 
 # -------------------------------------------------------------------
