@@ -72,6 +72,11 @@ analyse_diabetes_ipw <- function(strategy = "hypothetical") {
     }
 
     if (nrow(dat_long[dat_long$visit == k & dat_long$exposure == 1, ]) > 1) { # there need to be more than one missing value due to discontinuation (both estimands) or rescue (in case of hypothetical estimand only)
+    } else if (strategy == "hypothetical") {
+      dat_long$exposure <- ifelse(is.na(dat_long$y) | dat_long$R == 1, 1L, 0L) # indicator for missing outcomes and rescue medication
+    }
+
+    if (nrow(dat_long[dat_long$visit == k & dat_long$exposure == 1, ]) > 1) { # there need to be more than one missing value due to discontinuation (both estimands) or rescue (in case of hypothetical estimand only)
 
       temp <- ipw::ipwtm(
         exposure = exposure, # indicator for missing data at visit j
