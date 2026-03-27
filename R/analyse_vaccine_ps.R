@@ -2,6 +2,7 @@
 #'
 #' @param ci_level the confidence level for the CIs (defaults to 0.95)
 #' @param VE_margin vaccine efficacy margin for the super-superiority test
+#' @param covariates_in_outcomes_model should the covariates to estimate the principal score also be included in the outcomes model
 #'
 #' @returns an analyse function that returns a list with the elements
 #'  * `p` the p-value of the super-superiority test
@@ -26,7 +27,7 @@
 #' dat <- generate_vaccine(Design[3,])
 #' my_analyse <- analyse_vaccine_ps(ci_level=0.95)
 #' my_analyse(Design[3, ], dat)
-analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3){
+analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outcomes_model=TRUE){
   function(condition, dat, fixed_objects = NULL){
 
     dat1 <- dat |>
@@ -48,11 +49,17 @@ analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3){
         )
       )
 
-    # suppressWarnings is used to ignore warnings about non-integer outcomes
-    # this is expected due to using non-integer weights
-    outcome_mod <- suppressWarnings({
-      glm(evt ~ trt + V + W, weights=weight, family=binomial(), data = dat1)
-    })
+    if(covariates_in_outcomes_model){
+      # suppressWarnings is used to ignore warnings about non-integer outcomes
+      # this is expected due to using non-integer weights
+      outcome_mod <- suppressWarnings({
+        glm(evt ~ trt + V + W, weights=weight, family=binomial(), data = dat1)
+      })
+    } else {
+      outcome_mod <- suppressWarnings({
+        glm(evt ~ trt, weights=weight, family=binomial(), data = dat1)
+      })
+    }
 
     emm <- emmeans(outcome_mod, ~ trt)
     # results on the log-odds scale (odds-ratio)

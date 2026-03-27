@@ -4,12 +4,18 @@
 \alias{analyse_vaccine_ps}
 \title{Analyse dataset from vaccine scenario using principal score weighting}
 \usage{
-analyse_vaccine_ps(ci_level = 0.95, VE_margin = 0.3)
+analyse_vaccine_ps(
+  ci_level = 0.95,
+  VE_margin = 0.3,
+  covariates_in_outcomes_model = FALSE
+)
 }
 \arguments{
 \item{ci_level}{the confidence level for the CIs (defaults to 0.95)}
 
 \item{VE_margin}{vaccine efficacy margin for the super-superiority test}
+
+\item{covariates_in_outcomes_model}{should the covariates to estimate the principal score also be included in the outcomes model}
 }
 \value{
 an analyse function that returns a list with the elements

@@ -29,9 +29,10 @@ alpha <- 0.05
 # -------------------------------------------------------------------
 
 my_analyse <- list(
-  iv = analyse_vaccine_ivreg(ci_level = 1-alpha, VE_margin = 0.3),
-  ps = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3),
-  pp = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3)
+  iv       = analyse_vaccine_ivreg(ci_level = 1-alpha, VE_margin = 0.3),
+  ps_cov   = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = TRUE),
+  ps_nocov = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = FALSE),
+  pp       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3)
 )
 
 # -------------------------------------------------------------------
@@ -41,12 +42,14 @@ my_analyse <- list(
 # functions from CI.RCT.Sim / SimDesign
 
 my_summarise <- create_summarise_function(
-  iv = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0, name="iv_est"),
-  ps = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0, name="ps_est"),
-  pp = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0, name="pp_est"),
-  iv = summarise_test(alpha, name="iv_test"),
-  ps = summarise_test(alpha, name="ps_test"),
-  pp = summarise_test(alpha, name="pp_test")
+  iv       = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0, name="est"),
+  ps_cov   = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0, name="est"),
+  ps_nocov = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0, name="est"),
+  pp       = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0, name="est"),
+  iv       = summarise_test(alpha, name="test"),
+  ps_cov   = summarise_test(alpha, name="test"),
+  ps_nocov = summarise_test(alpha, name="test"),
+  pp       = summarise_test(alpha, name="test")
 )
 
 # -------------------------------------------------------------------
