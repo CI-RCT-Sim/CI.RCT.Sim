@@ -7,7 +7,7 @@
 analyse_vaccine_ps(
   ci_level = 0.95,
   VE_margin = 0.3,
-  covariates_in_outcomes_model = FALSE
+  covariates_in_outcomes_model = TRUE
 )
 }
 \arguments{

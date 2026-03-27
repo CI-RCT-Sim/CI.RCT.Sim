@@ -1,6 +1,5 @@
 # devtools::install()
-# renv::deactivate()
-# update.packages(ask=FALSE)
+# renv::restore()
 library(CI.RCT.Sim)
 library(parallel)
 
