@@ -7,6 +7,10 @@ SimNPH::create_summarise_function
 SimNPH::summarise_estimator
 
 #' @export
+#' @importFrom SimNPH summarise_describe
+SimNPH::summarise_describe
+
+#' @export
 #' @importFrom SimNPH summarise_test
 SimNPH::summarise_test
 
