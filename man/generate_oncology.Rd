@@ -8,7 +8,8 @@
 \usage{
 generate_oncology(
   condition,
-  fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL)
+  fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL,
+    allow_random_cens = TRUE)
 )
 
 oncology_scenario(print = interactive())
@@ -44,6 +45,7 @@ Condition has to contain the following columns:
 \item k              # number of post baseline visits
 \item recr_interval  # recruitment interval in years (e.g. 2 means that recruitment takes 2 years)
 \item max_duration   # maximal duration of the trial in years (e.g. 7 means that the last patient recruited is followed for 5 years)
+\item aimed_for_n_per_required_event # This governs the recruitment rate.
 \item alpha          # type I error rate for the logrank test at the end of the trial (i.e. at max_duration)
 \item power          # power for the logrank test at the end of the trial (i.e. at max_duration)
 \item p_trt          # proportion of patients randomized to the treatment arm
