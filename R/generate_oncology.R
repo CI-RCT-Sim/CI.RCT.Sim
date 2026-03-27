@@ -33,7 +33,7 @@
 #' @examples
 #' Design <- oncology_scenario()
 #' generate_oncology(Design[1, ])
-generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL)) {
+generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL,allow_random_cens=TRUE)) {
   if (!(condition$k >= (condition$max_duration + 1))) stop("k must be greater or equal max_duration+1")
 
   names(condition$beta_prog[[1]]) <-
@@ -86,7 +86,7 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
     ev_soll <- fixed_objects$ev_soll
   )
 
-  n_aim <- ceiling(ev_soll) * 2
+  n_aim <- ceiling(ev_soll) * condition$aimed_for_n_per_required_event
   n <- rpois(1, n_aim)
   n0 <- rbinom(1, size = n, prob = condition$p_trt)
   n1 <- n - n0
@@ -150,13 +150,26 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
     random_cens_time <- rep(Inf, n)
   }
 
-  rcens <- random_cens_time < event_time_uncensored
-  # mean(random_cens_time>1)
-  # mean(rcens)
-  event_time_rc <- ifelse(rcens, random_cens_time, event_time_uncensored)
-  event <- as.numeric(!rcens)
+  #rcens <- random_cens_time < event_time_uncensored
+  ## mean(random_cens_time>1)
+  ## mean(rcens)
+  #event_time_rc <- ifelse(rcens, random_cens_time, event_time_uncensored)
+  #event <- as.numeric(!rcens)
+  if(allow_random_cens) {
+    rcens <- random_cens_time < event_time_uncensored
+    #mean(random_cens_time>1)
+    #mean(rcens)
+    event_time_rc <- ifelse(rcens, random_cens_time, event_time_uncensored)
+    event <- as.numeric(!rcens)
+  } else {
+    event_time_rc <- event_time_uncensored
+    event<-rep(1,n)
+  }
+
+
+
   start <- runif(n, 0, condition$recr_interval)
-  cal <- start + event_time_rc # uncensored #calendar times
+  cal <- start + event_time_rc # uncensored with respect to administrative censoring #calendar times
 
 
   colnames(X) <- paste("X", ind, sep = "_")
@@ -187,10 +200,17 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   temp$cum_ev <- cumsum(temp$ev)
   index_end <- sum(temp$cum_ev <= ev_soll)
   cal_end <- temp$cal[index_end]
+  #apply maximum study duration
+  if(cal_end>condition$max_duration) cal_end<-condition$max_duration
+
 
   temp$admin_cens <- temp$cal > cal_end
   temp$ev[temp$admin_cens] <- 0 # as.numeric(temp$cal<=cal_end)
   temp$event_time <- ifelse(temp$admin_cens, cal_end - temp$start, temp$event_time_rc)
+
+  #remove patients who were recruited after cal_end
+  temp<-temp[temp$event_time>0, ]
+
   temp$prog_ev <- as.numeric(temp$prog_time < temp$event_time)
   temp$prog_time[!temp$prog_ev] <- temp$event_time[!temp$prog_ev]
   temp$calendar_start_time <- temp$start
@@ -335,6 +355,8 @@ oncology_scenario <- function(print = interactive()) {
   k             = 10,     # Number of visits post baseline
   recr_interval = 2,      # Recruitment interval in years (e.g. 2 means that recruitment takes 2 years)
   max_duration  = 7,      # Maximal duration of the trial in years (e.g. 7 means that the last patient recruited is followed for 5 years)
+  aimed_for_n_per_required_event = 3, #This governs the recruitment rate. In the protocol, we say it should be 2. But then it happens that
+                          #the aimed for number of events is not reached within the max_duration of 7 years. Longer max_duration is unrealistic, so increase recr. rate
   alpha         = 0.05,   # Type I error rate for the logrank test at the end of the trial (i.e. at max_duration)
   power         = 0.8,    # Power for the logrank test at the end of the trial (i.e. at max_duration)
   p_trt         = 0.5,    # Proportion of patients randomized to the treatment arm
