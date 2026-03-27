@@ -3399,49 +3399,6 @@
       "Maintainer": "Folashade Daniel <fdaniel@microsoft.com>",
       "Repository": "CRAN"
     },
-    "ivreg": {
-      "Package": "ivreg",
-      "Version": "0.6-7",
-      "Source": "Repository",
-      "Title": "Instrumental-Variables Regression by '2SLS', '2SM', or '2SMM', with Diagnostics",
-      "Date": "2026-03-02",
-      "Authors@R": "c(person(given = \"John\", family = \"Fox\", role = \"aut\", email = \"jfox@mcmaster.ca\", comment = c(ORCID = \"0000-0002-1196-8012\")), person(given = \"Christian\", family = \"Kleiber\", role = \"aut\", email = \"Christian.Kleiber@unibas.ch\", comment = c(ORCID = \"0000-0002-6781-4733\")), person(given = \"Achim\", family = \"Zeileis\", role = c(\"aut\", \"cre\"), email = \"Achim.Zeileis@R-project.org\", comment = c(ORCID = \"0000-0003-0918-3766\")), person(given = \"Nikolas\", family = \"Kuschnig\", role = \"ctb\", email = \"nikolas.kuschnig@wu.ac.at\", comment = c(ORCID = \"0000-0002-6642-2543\")), person(given = \"R Core Team\", role = \"ctb\", email = \"R-core@R-project.org\"))",
-      "Description": "Instrumental variable estimation for linear models by two-stage least-squares (2SLS) regression or by robust-regression via M-estimation (2SM) or MM-estimation (2SMM). The main ivreg() model-fitting function is designed to provide a workflow as similar as possible to standard lm() regression. A wide range of methods is provided for fitted ivreg model objects, including extensive functionality for computing and graphing regression diagnostics in addition to other standard model tools.",
-      "License": "GPL (>= 2)",
-      "Depends": [
-        "R (>= 3.6.0)"
-      ],
-      "Imports": [
-        "car (>= 3.0-9)",
-        "Formula",
-        "lmtest",
-        "MASS",
-        "stats"
-      ],
-      "Suggests": [
-        "AER",
-        "effects (>= 4.2.0)",
-        "knitr",
-        "insight",
-        "parallel",
-        "rmarkdown",
-        "sandwich",
-        "testthat",
-        "modelsummary",
-        "gt",
-        "ggplot2"
-      ],
-      "Encoding": "UTF-8",
-      "LazyData": "true",
-      "VignetteBuilder": "knitr",
-      "BugReports": "https://github.com/zeileis/ivreg/issues/",
-      "URL": "https://zeileis.github.io/ivreg/",
-      "RoxygenNote": "7.3.2",
-      "NeedsCompilation": "no",
-      "Author": "John Fox [aut] (ORCID: <https://orcid.org/0000-0002-1196-8012>), Christian Kleiber [aut] (ORCID: <https://orcid.org/0000-0002-6781-4733>), Achim Zeileis [aut, cre] (ORCID: <https://orcid.org/0000-0003-0918-3766>), Nikolas Kuschnig [ctb] (ORCID: <https://orcid.org/0000-0002-6642-2543>), R Core Team [ctb]",
-      "Maintainer": "Achim Zeileis <Achim.Zeileis@R-project.org>",
-      "Repository": "CRAN"
-    },
     "jomo": {
       "Package": "jomo",
       "Version": "2.7-6",
