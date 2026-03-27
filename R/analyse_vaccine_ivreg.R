@@ -73,28 +73,20 @@ analyse_vaccine_ivreg <- function(ci_level=0.95, VE_margin=0.3){
     lm_stage1 <- lm.fit(x=x_stage1, y=y_stage1)
     dat1[, vars_stage2] <- lm_stage1$fitted.values[, vars_stage1]
 
-    stage2 <- lm(formula_stage2, data=dat1)
+    stage2 <- glm(formula_stage2, data=dat1, family=poisson(link="log"))
 
-    # marginalize over other variables
     emm <- emmeans(stage2, ~ stage1_T, at=list(stage1_T=c(0,1)))
-    # results on the linear scale (risk-difference)
-    ci_rd <- emm |>
-      pairs() |>
-      confint(level=ci_level)
     # results on the log scale (risk-ratio)
-    lemm <- regrid(emm, "log")
-    ci_rr <- lemm |>
-      contrast(method="pairwise", type="response") |>
+    res <- emm |>
+      pairs(type="response") |>
       summary(null=log(1-VE_margin), side="<", infer=TRUE, level=ci_level)
 
+    # lower and upper exchanged because VE = 1-RR
     list(
-      p = ci_rr$p.value,
-      VE = 1-ci_rr$ratio,
-      VE_lower = 1-ci_rr$upper.CL,
-      VE_upper = 1-ci_rr$lower.CL,
-      RD = ci_rd$estimate,
-      RD_lower = ci_rd$lower.CL,
-      RD_upper = ci_rd$upper.CL
+      p = res$p.value,
+      VE = 1-res$ratio,
+      VE_lower = 1-res$asymp.UCL,
+      VE_upper = 1-res$asymp.LCL
     )
   }
 }
