@@ -59,6 +59,278 @@ invisible(
 )
 }
 
+
+#' Default parameter values for the full vaccine simulation scenario grid
+#'
+#' @return
+#' A named `list` of default parameter values for use with
+#' [vaccine_scenario_grid()]. Elements may be vectors of length greater than
+#' one and are intended to define the levels of the corresponding simulation
+#' factors in the full scenario grid.
+#'
+#' @details
+#' This function returns the default parameter settings used to generate the
+#' standard simulation design for `generate_vaccine`. In contrast to
+#' [vaccine_scenario_base_defaults()], several entries are vectors and therefore
+#' define a multi-row parameter grid when passed to `params_scenarios_grid()`.
+#'
+#' The returned list is primarily intended as an internal or user-modifiable
+#' source of defaults that can be supplied via the `scenario_defaults` argument
+#' of [vaccine_scenario_grid()].
+#'
+#' @seealso
+#' [vaccine_scenario_base_defaults()], [vaccine_scenario_grid()],
+#' [vaccine_scenario_tweak()]
+#'
+#' @examples
+#' defaults <- vaccine_scenario_defaults()
+#' str(defaults)
+#' defaults$beta_A2
+#'
+#' @export
+vaccine_scenario_defaults <- function() {
+  list(
+    p_V = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk
+    p_W = c(0, 0.1, 0.3), # probability for binary covariate prognostic for ICE and infection risk and modifying treatment effect
+    lambda_post = -log(1 - (1 / c(1000, 500, 2000))) / (30 / 7), # weekly baseline infection hazard after 14 days
+    overall_compliance = c(0.95, 0.5), # used to calibrate gamma0
+    gamma_W = c(-0.8, 0), # compliance modifier predictive covariate
+    gamma_V = c(0.5, 0), # compliance modifier prognostic covariate
+    gamma_A = c(-0.357, 0), # compliance modifier treatment group
+    gamma_AW = c(-0.3, 0), # compliance modifier treatment interaction predictive covariate
+    beta_V = c(log(1.5), 0), # prognostic effect prognostic covariate
+    beta_W = c(log(1.2), 0), # prognostic effect predictive covariate
+    effect_before_d2 = c(TRUE, FALSE), # indicator whether one dose has an effect
+    beta_A2 = log(1 - c(0.7, 0, 0.3, 0.5, 0.9)), # vaccine efficacy with full vaccination
+    beta_AW = c(log(0.8), 0), # effect modifier predictive covariate
+    follow_up = 26, # weeks
+    dose_interval = 2 # weeks
+  )
+}
+
+#' Default parameter values for a single baseline vaccine simulation scenario
+#'
+#' @return
+#' A named `list` of baseline parameter values for use with
+#' [vaccine_scenario_tweak()]. Each element is a scalar and together they define
+#' a single reference scenario.
+#'
+#' @details
+#' This function returns a one-value-per-parameter baseline configuration for
+#' `generate_vaccine`. It is intended for targeted testing and debugging, where a
+#' user starts from a single reference scenario and modifies only selected
+#' parameters.
+#'
+#' In contrast to [vaccine_scenario_defaults()], the returned list does not
+#' define a broad factorial grid unless the user explicitly replaces one or more
+#' scalar values by vectors in [vaccine_scenario_tweak()].
+#'
+#' @seealso
+#' [vaccine_scenario_defaults()], [vaccine_scenario_grid()],
+#' [vaccine_scenario_tweak()]
+#'
+#' @examples
+#' base_defaults <- vaccine_scenario_base_defaults()
+#' str(base_defaults)
+#' base_defaults$overall_compliance
+#'
+#' @export
+vaccine_scenario_base_defaults <- function() {
+  list(
+    p_V = 0,
+    p_W = 0,
+    lambda_post = -log(1 - (1 / 1000)) / (30 / 7),
+    overall_compliance = 0.95,
+    gamma_W = 0,
+    gamma_V = 0,
+    gamma_A = 0,
+    gamma_AW = 0,
+    beta_V = 0,
+    beta_W = 0,
+    effect_before_d2 = FALSE,
+    beta_A2 = log(1 - 0.7),
+    beta_AW = 0,
+    follow_up = 26,
+    dose_interval = 2
+  )
+}
+
+#' Generate a vaccine simulation scenario grid from default settings
+#'
+#' @param print Logical; if `TRUE`, print R code that reproduces the parameter
+#'   grid definition. Defaults to `interactive()`.
+#' @param scenario_defaults A function returning a named `list` of parameter
+#'   values. By default [vaccine_scenario_defaults()] is used. The returned list
+#'   is passed to `params_scenarios_grid()`.
+#'
+#' @return
+#' Invisibly returns a `data.frame` containing the simulation scenario grid for
+#' use with `generate_vaccine`.
+#'
+#' @details
+#' `vaccine_scenario_grid()` constructs a simulation design by evaluating the
+#' named parameter list returned by `scenario_defaults` via
+#' `params_scenarios_grid()`. It then derives the parameter `beta_A1` from
+#' `beta_A2` and `effect_before_d2`.
+#'
+#' If `print = TRUE`, the function also prints code that reproduces the same
+#' parameter grid specification. This is intended to make it easy to copy,
+#' modify, and reuse scenario settings.
+#'
+#' The default settings generate a factorial grid across the vector-valued
+#' elements returned by [vaccine_scenario_defaults()]. A custom defaults function
+#' can be supplied to generate an alternative grid.
+#'
+#' @seealso
+#' [vaccine_scenario_defaults()], [vaccine_scenario_base_defaults()],
+#' [vaccine_scenario_tweak()]
+#'
+#' @examples
+#' Design <- vaccine_scenario_grid()
+#' Design
+#'
+#' # print code reproducing the grid
+#' vaccine_scenario_grid(print = TRUE)
+#'
+#' # generate a grid from alternative defaults
+#' vaccine_scenario_grid(
+#'   print = FALSE,
+#'   scenario_defaults = vaccine_scenario_base_defaults
+#' )
+#'
+#' # use one scenario row in the data generator
+#' # generate_vaccine(Design[1, ])
+#'
+#' @export
+vaccine_scenario_grid <- function(print = interactive(),scenario_defaults = vaccine_scenario_defaults) {
+
+  defaults <- scenario_defaults()
+
+  if (print) {
+    code <- paste0(
+      "params_scenarios_grid(\n",
+      paste(
+        sprintf("  %s = %s", names(defaults),
+                vapply(defaults, function(x) paste(deparse(x), collapse = " "), character(1))
+        ),
+        collapse = ",\n"
+      ),
+      "\n) |>\n",
+      "transform(\n",
+      "  beta_A1 = ifelse(\n",
+      "    effect_before_d2,\n",
+      "    ifelse(\n",
+      "      beta_A2 == 0,\n",
+      "      0,\n",
+      "      log(1 - abs(1 - (exp(beta_A2) + 0.2)))\n",
+      "    ),\n",
+      "    0\n",
+      "  )\n",
+      ")\n"
+    )
+    cat(code)
+  }
+
+  out <- do.call(params_scenarios_grid, defaults)
+
+  out <- transform(
+    out,
+    beta_A1 = ifelse(
+      effect_before_d2,
+      ifelse(
+        beta_A2 == 0,
+        0,
+        log(1 - abs(1 - (exp(beta_A2) + 0.2)))
+      ),
+      0
+    )
+  )
+
+  invisible(out)
+}
+
+#' Modify selected vaccine scenario parameters starting from a base scenario
+#'
+#' @param ... Named parameter overrides. Each name must correspond to an element
+#'   returned by `scenario_defaults`. Supplied values replace the defaults. These
+#'   may be scalars or vectors; vector inputs generate a small parameter grid.
+#' @param scenario_defaults A function returning a named `list` of parameter
+#'   defaults. By default [vaccine_scenario_base_defaults()] is used.
+#'
+#' @return
+#' A `data.frame` containing the resulting scenario design for use with
+#' `generate_vaccine`.
+#'
+#' @details
+#' `vaccine_scenario_tweak()` is intended for targeted testing. It starts from a
+#' baseline scenario returned by `scenario_defaults`, replaces only the
+#' parameters supplied in `...`, and then evaluates the resulting settings with
+#' `params_scenarios_grid()`.
+#'
+#' By default the function starts from the scalar baseline returned by
+#' [vaccine_scenario_base_defaults()], so changing only a few arguments typically
+#' produces a single scenario row. If one or more supplied overrides are vectors,
+#' a corresponding parameter grid is generated.
+#'
+#' The function validates that all supplied argument names are known parameters.
+#' An error is thrown if unknown names are passed.
+#'
+#' As in [vaccine_scenario_grid()], `beta_A1` is derived from `beta_A2` and
+#' `effect_before_d2`.
+#'
+#' @seealso
+#' [vaccine_scenario_base_defaults()], [vaccine_scenario_defaults()],
+#' [vaccine_scenario_grid()]
+#'
+#' @examples
+#' # single modified test scenario
+#' Design <- vaccine_scenario_tweak(
+#'   beta_A2 = log(1 - 0.5),
+#'   overall_compliance = 0.8
+#' )
+#' Design
+#'
+#' # small grid around the baseline scenario
+#' Design_grid <- vaccine_scenario_tweak(
+#'   beta_A2 = log(1 - c(0.3, 0.5, 0.7)),
+#'   effect_before_d2 = c(TRUE, FALSE)
+#' )
+#' Design_grid
+#'
+#' @export
+vaccine_scenario_tweak <- function(...,scenario_defaults = vaccine_scenario_base_defaults) {
+  defaults <- scenario_defaults()
+  updates <- list(...)
+
+  unknown <- setdiff(names(updates), names(defaults))
+  if (length(unknown) > 0) {
+    stop(
+      "Unknown parameter(s): ",
+      paste(unknown, collapse = ", "),
+      call. = FALSE
+    )
+  }
+
+  defaults[names(updates)] <- updates
+
+  out <- do.call(params_scenarios_grid, defaults)
+
+  out <- transform(
+    out,
+    beta_A1 = ifelse(
+      effect_before_d2,
+      ifelse(
+        beta_A2 == 0,
+        0,
+        log(1 - abs(1 - (exp(beta_A2) + 0.2)))
+      ),
+      0
+    )
+  )
+
+  out
+}
+
 #' @param condition Row of parameters dataset
 #' @param fixed_objects other objects passed to simulation runs
 #'
