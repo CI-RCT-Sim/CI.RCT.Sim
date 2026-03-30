@@ -20,7 +20,8 @@ into a data set with t_mace_start, t_mace_stop, event_mace, with discontinuation
 a time varying covariate
 }
 \examples{
-Design <- mace_scenario()
+Design <- mace_scenario() |>
+  mace_scenario_set_sample_size()
 toy_data <- generate_mace(Design[1,])
 buffer <- as.numeric( Design[1,"true_window"])
 toy_data_trunc <- censor_buffer_window(toy_data,buffer)

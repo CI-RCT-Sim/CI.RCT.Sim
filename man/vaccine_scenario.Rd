@@ -166,7 +166,7 @@ As in \code{vaccine_scenario_grid()}, \code{beta_A1} is derived from \code{beta_
 
 \item \code{vaccine_scenario_set_true_eff()}: Calculate relative risk in the principal stratum of always compliers
 
-\item \code{vaccine_scenario_set_samplesize()}: Calculate sample size as if the true effect was correctly guessed
+\item \code{vaccine_scenario_set_samplesize()}: Calculate sample size for assumed VE
 
 }}
 \examples{

@@ -20,7 +20,8 @@ Function that censor MACE events after discontinuation + buffer window
 t_mace = T_disc + buffer is censored at one year
 }
 \examples{
-Design <- mace_scenario()
+Design <- mace_scenario() |>
+  mace_scenario_set_sample_size()
 toy_data <- generate_mace(Design[1,])
 buffer <- as.numeric( Design[1,"true_window"])
 toy_data_trunc <- censor_buffer_window(toy_data,buffer)

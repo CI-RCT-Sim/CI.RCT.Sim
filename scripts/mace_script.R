@@ -4,7 +4,7 @@ devtools::load_all()
 # Define parameter values and derived quantities
 # -------------------------------------------------------------------
 
-sim_parameters <- mace_scenario() |> true_trt_mace()
+sim_parameters <- mace_scenario() |> mace_scenario_set_sample_size() |> true_trt_mace()
 
 # -------------------------------------------------------------------
 # Constants for simulation

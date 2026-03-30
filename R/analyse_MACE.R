@@ -8,7 +8,8 @@
 #' @export
 #'
 #' @examples
-#' Design <- mace_scenario()
+#' Design <- mace_scenario() |>
+#'   mace_scenario_set_sample_size()
 #' toy_data <- generate_mace(Design[1,])
 #' buffer <- as.numeric( Design[1,"true_window"])
 #' toy_data_trunc <- censor_buffer_window(toy_data,buffer)
@@ -36,7 +37,8 @@ censor_buffer_window <- function(data,buffer) {
 #' @export
 #'
 #' @examples
-#' Design <- mace_scenario()
+#' Design <- mace_scenario() |>
+#'   mace_scenario_set_sample_size()
 #' toy_data <- generate_mace(Design[1,])
 #' buffer <- as.numeric( Design[1,"true_window"])
 #' toy_data_trunc <- censor_buffer_window(toy_data,buffer)
@@ -55,7 +57,8 @@ cox_model_nocov <- function(data) {
 #' @export
 #'
 #' @examples
-#' Design <- mace_scenario()
+#' Design <- mace_scenario() |>
+#'   mace_scenario_set_sample_size()
 #' toy_data <- generate_mace(Design[1,])
 #' buffer <- as.numeric( Design[1,"true_window"])
 #' toy_data_trunc <- censor_buffer_window(toy_data,buffer)
@@ -77,7 +80,8 @@ cox_model_cov <- function(data) {
 #' @export
 #'
 #' @examples
-#' Design <- mace_scenario()
+#' Design <- mace_scenario() |>
+#'   mace_scenario_set_sample_size()
 #' toy_data <- generate_mace(Design[1,])
 #' buffer <- as.numeric( Design[1,"true_window"])
 #' toy_data_trunc <- censor_buffer_window(toy_data,buffer)
@@ -109,7 +113,8 @@ data_process_start_stop <- function(data) {
 #' @export
 #'
 #' @examples
-#' Design <- mace_scenario()
+#' Design <- mace_scenario() |>
+#'   mace_scenario_set_sample_size()
 #' toy_data <- generate_mace(Design[1,])
 #' buffer <- as.numeric( Design[1,"true_window"])
 #' toy_data_trunc <- censor_buffer_window(toy_data,buffer)
@@ -156,7 +161,8 @@ cox_model_ipw <- function(data) {
 #' @export
 #'
 #' @examples
-#' Design <- mace_scenario()
+#' Design <- mace_scenario() |>
+#'   mace_scenario_set_sample_size()
 #' toy_data <- generate_mace(Design[1,])
 #' buffer <-as.numeric( Design[1,"true_window"])
 #' toy_data_trunc <- censor_buffer_window(toy_data,buffer)

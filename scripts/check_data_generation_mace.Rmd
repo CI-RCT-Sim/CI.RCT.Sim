@@ -10,8 +10,7 @@ devtools::load_all()
 ```{r}
 Design <- mace_scenario()
 condition <- Design[1, ]
-# to ensure really large sample size
-condition$logHRassumed <- 0.01
+condition$sample_size <- 1e6
 dat <- generate_mace(condition)
 ```
   

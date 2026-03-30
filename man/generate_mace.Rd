@@ -2,25 +2,30 @@
 % Please edit documentation in R/generate_MACE.R
 \name{mace_scenario}
 \alias{mace_scenario}
+\alias{mace_scenario_set_sample_size}
 \alias{generate_mace}
 \alias{true_trt_mace}
 \title{Generate Data for MACE Scenario}
 \usage{
 mace_scenario()
 
+mace_scenario_set_sample_size(Design)
+
 generate_mace(condition, fixed_objects)
 
 true_trt_mace(Design)
 }
 \arguments{
+\item{Design}{Design dataset}
+
 \item{condition}{row of Design dataset}
 
 \item{fixed_objects}{list of parameters that are fixed across simulations}
-
-\item{Design}{Design dataset}
 }
 \value{
 A data.frame with parameter Values for scenarios
+
+for \code{mace_scenario_set_sample_size}: The Design data set with additional column sample_size
 
 a simulated dataset
 
@@ -33,11 +38,14 @@ Generate Data for MACE Scenario
 \itemize{
 \item \code{mace_scenario()}: generate default assumptions \code{tibble}
 
+\item \code{mace_scenario_set_sample_size()}: Calculate sample size for logHRassumed
+
 \item \code{true_trt_mace()}: Calculate true treatment effect for MACE scenario
 
 }}
 \examples{
-Design <- mace_scenario()
+Design <- mace_scenario() |>
+  mace_scenario_set_sample_size()
 dat <- generate_mace(Design[1,])
 head(dat)
 }
