@@ -208,8 +208,8 @@ generate_mace <- function(condition, fixed_objects) {
     )
     logit_withdraw <- beta_wd_0 + X * beta_wd_X + Z * beta_wd_Z + L * beta_wd_L +
       beta_wd_trt * (1 - A)
-    beta_fix_mace <- beta_mace_0 + X * beta_mace_X + Z * beta_mace_Z + L *
-      beta_mace_L
+    beta_fix_mace <- beta_mace_0 + X * beta_mace_X + Z * beta_mace_Z +
+      L * beta_mace_L
 
     ## Defining time-varying treatment effect after discontinuation
     beta_tot_before <- beta_fix_mace + (1 - A) * beta_mace_trt_before
@@ -262,23 +262,23 @@ true_trt_mace <- function(Design) {
       X <- rnorm(2000000,0,1)
       Z <- rnorm(2000000,0,1)
       L <- rnorm(2000000,0,1)
-      
+
       A <- sample(0:1,
                   2000000,
                   prob = c(0.5, 0.5),
                   replace = T)
       ID <- 1:2000000
       # cov_df <- data.frame(X=rep(0,1000000),Z=rep(0,1000000),L=rep(0,1000000),A=sample(0:1,1000000,prob = c(0.5,0.5),replace=T),)
-      
+
       hazard_disc <- exp(beta_disc_0 + (0.5 - A) * beta_disc_trt+X*beta_disc_X+Z*beta_disc_Z+L*beta_disc_L)
       logit_withdraw <- 0
       beta_fix_mace <- beta_mace_0+X*beta_mace_X+Z*beta_mace_Z+L*beta_mace_L
-      
+
       # Defining time-varying treatment effect after discontinuation
       beta_tot_before <- beta_fix_mace + (1 - A) * beta_mace_trt_before
       beta_tot_buffer <- beta_fix_mace + (1 - A) * beta_mace_trt_buffer
       beta_tot_after <- beta_fix_mace
-      
+
       cov_df <- data.frame(
         X = X,
         Z = Z,
@@ -291,7 +291,7 @@ true_trt_mace <- function(Design) {
         beta_tot_after = beta_tot_after,
         ID = ID
       )
-      
+
       dat <- generate_all_tte2(cov_df, condition = condition, no_withdraw =
                                  T)
       dat2 <- censor_buffer_window(dat, true_window)
@@ -301,11 +301,11 @@ true_trt_mace <- function(Design) {
       return(coef(fit)["A"])
     })
   }
-  
+
   true_trt <- Design |>
     split(1:nrow(Design)) |>
     lapply(true_trt_mace_rowwise)
-  
+
   Design$true_trt <- as.numeric(true_trt)
   Design
 }

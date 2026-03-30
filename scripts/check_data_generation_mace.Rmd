@@ -1,0 +1,27 @@
+---
+output: html_document
+date: "2026-03-30"
+---
+
+```{r}
+devtools::load_all()
+```
+  
+```{r}
+Design <- mace_scenario()
+condition <- Design[1, ]
+# to ensure really large sample size
+condition$logHRassumed <- 0.01
+dat <- generate_mace(condition)
+```
+  
+
+Checks:
+  * core scenario: marginal prob. for discontinuation approx 50%  
+    * check with simulation
+    * `r mean(dat$event_disc)`
+  * core scenario: marginal prob. for MACE approx 10%  
+    * check with simulation
+    * `r mean(dat$event_mace)`
+
+
