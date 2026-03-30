@@ -1,5 +1,6 @@
 test_that("analyse vaccine per protocol works", {
   Design <- vaccine_scenario() |>
+    vaccine_scenario_set_beta_A1_relative() |>
     vaccine_scenario_set_gamma_0() |>
     vaccine_scenario_set_true_eff() |>
     vaccine_scenario_set_samplesize()
@@ -53,6 +54,7 @@ test_that("analyse vaccine per protocol works", {
 
 test_that("per protocol analysis does not use unobserved covariates", {
   Design <- vaccine_scenario(print=FALSE) |>
+    vaccine_scenario_set_beta_A1_relative() |>
     vaccine_scenario_set_gamma_0() |>
     vaccine_scenario_set_true_eff() |>
     vaccine_scenario_set_samplesize()

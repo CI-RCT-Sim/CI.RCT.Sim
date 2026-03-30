@@ -28,6 +28,7 @@ Analyse dataset from vaccine scenario using instrumental variable regression
 }
 \examples{
 Design <- vaccine_scenario() |>
+  vaccine_scenario_set_beta_A1_relative() |>
   vaccine_scenario_set_gamma_0() |>
   vaccine_scenario_set_true_eff() |>
   vaccine_scenario_set_samplesize()
