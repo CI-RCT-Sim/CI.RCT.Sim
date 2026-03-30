@@ -28,7 +28,6 @@ Imports:
     purrr,
     mvtnorm,
     miniPCH,
-    estimatr,
     magrittr,
     tidyr,
     ipw,

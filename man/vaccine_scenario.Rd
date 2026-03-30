@@ -171,7 +171,7 @@ As in \code{vaccine_scenario_grid()}, \code{beta_A1} is derived from \code{beta_
 }}
 \examples{
 Design <- vaccine_scenario() |>
-  vaccine_scenario_set_beta_A1() |>
+  vaccine_scenario_set_beta_A1_relative() |>
   vaccine_scenario_set_gamma_0() |>
   vaccine_scenario_set_true_eff() |>
   vaccine_scenario_set_samplesize()
