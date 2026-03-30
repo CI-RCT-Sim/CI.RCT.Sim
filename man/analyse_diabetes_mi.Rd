@@ -110,6 +110,7 @@ with simulation data generation.
 }
 }
 \examples{
+\donttest{
 Design <- diabetes_scenario()[1, ] |>
   diabetes_scenario_set_truevalues()
 
@@ -144,4 +145,5 @@ c(
   treatment_policy = res_tp$coef,
   hypothetical     = res_hyp$coef
 )
+}
 }

@@ -89,6 +89,7 @@
 #' * `fallback` boolean indicating whether a fallback covariance structure was used
 #'
 #' @examples
+#' \donttest{
 #' Design <- diabetes_scenario()[1, ] |>
 #'   diabetes_scenario_set_truevalues()
 #'
@@ -99,7 +100,7 @@
 #'
 #' # Hypothetical estimand (censor after rescue)
 #' analyse_diabetes_mmrm(strategy = "hypothetical")(Design, dat)
-#'
+#' }
 #' @export
 analyse_diabetes_mmrm <- function(
   ci_level = 0.95,

@@ -83,6 +83,7 @@
 #' @export
 #'
 #' @examples
+#' \donttest{
 #' Design <- diabetes_scenario()[1, ] |>
 #'   diabetes_scenario_set_truevalues()
 #'
@@ -117,6 +118,7 @@
 #'   treatment_policy = res_tp$coef,
 #'   hypothetical     = res_hyp$coef
 #' )
+#' }
 analyse_diabetes_mi <- function(
     strategy = c("hypothetical", "treatment_policy"),
     m = 10,
