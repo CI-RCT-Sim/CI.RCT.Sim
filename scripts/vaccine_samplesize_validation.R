@@ -1,5 +1,6 @@
 ## Sample size justification and validation of corresponding algorithms against gsDesign
 library(tidyverse)
+devtools::load_all()
 
 #' Compute sample size requirements for VE trial using Lachin-Foulkes method
 #'
@@ -45,7 +46,8 @@ n_lachin_foulkes(VE = 0.7,
                  beta = 0.2)$n
 
 ## Example code to obtain sample size estimates
-vaccine_samplesizes <- vaccine_scenario() |> vaccine_scenario_set_gamma_0() |> vaccine_scenario_set_samplesize()
+vaccine_samplesizes <- vaccine_scenario() |> vaccine_scenario_set_beta_A1_relative() |> vaccine_scenario_set_gamma_0() |> vaccine_scenario_set_samplesize()
+
 vaccine_samplesizes |>
   rowwise() |>
   mutate(n_check = n_lachin_foulkes(VE = 1-exp(beta_A2),

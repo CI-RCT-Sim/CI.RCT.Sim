@@ -8,7 +8,7 @@ License: BSL-1.0
 Encoding: UTF-8
 Depends:
     SimDesign, 
-    R (>= 4.1.0)
+    R (>= 4.2.0)
 Suggests:
     knitr,
     rmarkdown,
@@ -36,6 +36,7 @@ Imports:
     data.table,
     logistf,
     tidyselect,
+    emmeans,
     lmtest,
     sandwich
 VignetteBuilder: knitr
