@@ -101,8 +101,8 @@ generate_vaccine <- function(condition, fixed_objects = list(include_unobserved=
   # under potential treatment allocation to control
   # time to event hazard
   lambda_a0 <- cbind(
-    exp(condition$beta_V * V + condition$beta_W * W + 0 * theta_early),
-    exp(condition$beta_V * V + condition$beta_W * W + 0 * theta_late)
+    exp(condition$beta_V * V + condition$beta_W * W),
+    exp(condition$beta_V * V + condition$beta_W * W)
   ) %*% lambda_0
   # time to event outcome
   T_a0 <- sapply(1:N, \(i){
