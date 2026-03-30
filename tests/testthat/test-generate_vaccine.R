@@ -40,3 +40,11 @@ test_that("setting sample size works", {
   # larger sample sizes with larger power
   expect_true(all(Design5$n_ctrl > Design1$n_ctrl))
 })
+
+
+test_that("two functions to generate parameters output the same parameters", {
+  x <- vaccine_scenario()
+  y <- vaccine_scenario_grid()
+
+  expect_identical(x, y)
+})
