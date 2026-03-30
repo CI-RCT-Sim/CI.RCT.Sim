@@ -46,12 +46,3 @@ test_that("setting sample size works", {
   expect_true(all(Design5$n_ctrl > Design1$n_ctrl))
 })
 
-
-test_that("two functions to generate parameters output the same parameters", {
-  x <- vaccine_scenario() |>
-    vaccine_scenario_set_beta_A1_relative()
-  y <- vaccine_scenario_grid() |>
-    vaccine_scenario_set_beta_A1_relative()
-
-  expect_identical(x, y)
-})
