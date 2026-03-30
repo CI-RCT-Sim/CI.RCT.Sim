@@ -34,9 +34,10 @@ with multiple imputation after rescue initiation is applied,
 or a treatment policy strategy using observed data only.
 }
 \examples{
+\donttest{
 setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
 dat <- generate_diabetes(setting)
 analyse_diabetes_mi(strategy = "treatment_policy")(setting, dat)
 analyse_diabetes_mi(strategy = "hypothetical")(setting, dat)
-
+}
 }
