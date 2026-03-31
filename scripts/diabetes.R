@@ -156,6 +156,8 @@ results <- runSimulation(
   cl = cl
 )
 
+stopCluster(cl)
+
 # Save results -----------------------------------------------------------
 
 save(results, file = format(Sys.time(), "results_diabetes_%Y-%m-%d_%H%M.Rdata"))

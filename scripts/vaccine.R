@@ -64,6 +64,8 @@ results <- runSimulation(
   cl = cl
 )
 
+stopCluster(cl)
+
 # Save results -----------------------------------------------------------
 
 save(results, file=format(Sys.time(), "results_vaccine_%Y-%m-%d_%H%M.Rdata"))
