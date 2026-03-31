@@ -447,7 +447,7 @@ vaccine_scenario_set_true_eff <- function(Design){
 
 
 
-#' @describeIn vaccine_scenario Calculate sample size as if the true effect was correctly guessed
+#' @describeIn vaccine_scenario Calculate sample size for assumed VE
 #'
 #' @param alpha for sample size calculation: one-sided alpha level
 #' @param CSE for sample size calculation: super-superiority margin on the VE scale
