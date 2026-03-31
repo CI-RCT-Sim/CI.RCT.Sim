@@ -21,7 +21,6 @@ mace_scenario <- function() {
 
     # Withdrawal parameters
     beta_wd_0 = c(log(0.5 / (1 - 0.5))),
-    beta_wd_trt = c(log(2)),
     beta_wd_X = c(log(2)),
     beta_wd_Z = c(log(2)),
     beta_wd_L = c(0),
@@ -100,7 +99,7 @@ mace_scenario_set_sample_size <- function(Design){
   within(Design, {
     # Compute sample size
     e_mace = 4 * (qnorm(1 - 0.05 / 2) + qnorm(1 - 0.2))^2 / (logHRassumed^2)  ### Schoenfeld’s formula
-    sample_size = floor(e_mace / (1 - exp(-exp(beta_mace_0))))  ####### sample size calculation
+    sample_size = ceiling(e_mace / (1 - exp(-exp(beta_mace_0))))  ####### sample size calculation
   })
 }
 
@@ -204,7 +203,7 @@ generate_all_tte2 <- function(cov_df,
 #'   mace_scenario_set_sample_size()
 #' dat <- generate_mace(Design[1,])
 #' head(dat)
-generate_mace <- function(condition, fixed_objects) {
+generate_mace <- function(condition, fixed_objects=c()) {
   with(condition, {
 
     # Simulate covariates
@@ -220,8 +219,8 @@ generate_mace <- function(condition, fixed_objects) {
       beta_disc_0 + (0.5 - A) * beta_disc_trt + X * beta_disc_X + Z * beta_disc_Z +
         L * beta_disc_L
     )
-    logit_withdraw <- beta_wd_0 + X * beta_wd_X + Z * beta_wd_Z + L * beta_wd_L +
-      beta_wd_trt * (1 - A)
+    logit_withdraw <- beta_wd_0 + X * beta_wd_X + Z * beta_wd_Z + L * beta_wd_L
+    
     beta_fix_mace <- beta_mace_0 + X * beta_mace_X + Z * beta_mace_Z +
       L * beta_mace_L
 
@@ -273,15 +272,15 @@ true_trt_mace <- function(Design) {
     with(condition, {
       count_events_mace <- 0
       # X <- Z <- L <- rep(0, 2000000)
-      X <- rnorm(2000000,0,1)
-      Z <- rnorm(2000000,0,1)
-      L <- rnorm(2000000,0,1)
+      X <- rnorm(1000000,0,1)
+      Z <- rnorm(1000000,0,1)
+      L <- rnorm(1000000,0,1)
 
       A <- sample(0:1,
-                  2000000,
+                  1000000,
                   prob = c(0.5, 0.5),
                   replace = T)
-      ID <- 1:2000000
+      ID <- 1:1000000
       # cov_df <- data.frame(X=rep(0,1000000),Z=rep(0,1000000),L=rep(0,1000000),A=sample(0:1,1000000,prob = c(0.5,0.5),replace=T),)
 
       hazard_disc <- exp(beta_disc_0 + (0.5 - A) * beta_disc_trt+X*beta_disc_X+Z*beta_disc_Z+L*beta_disc_L)

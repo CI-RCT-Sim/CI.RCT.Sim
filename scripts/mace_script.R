@@ -10,7 +10,7 @@ sim_parameters <- mace_scenario() |> mace_scenario_set_sample_size() |> true_trt
 # Constants for simulation
 # -------------------------------------------------------------------
 
-N_sim <- 100
+N_sim <- 1000
 
 # -------------------------------------------------------------------
 # List of analysis functions

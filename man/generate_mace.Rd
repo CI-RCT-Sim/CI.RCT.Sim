@@ -11,7 +11,7 @@ mace_scenario()
 
 mace_scenario_set_sample_size(Design)
 
-generate_mace(condition, fixed_objects)
+generate_mace(condition, fixed_objects = c())
 
 true_trt_mace(Design)
 }
