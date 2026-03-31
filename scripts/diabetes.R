@@ -1,22 +1,19 @@
-devtools::load_all()
+# devtools::install()
+# renv::restore()
+library(CI.RCT.Sim)
+library(parallel)
 
-# -------------------------------------------------------------------
-# Define parameter values and derived quantities
-# -------------------------------------------------------------------
+# Define parameter values and derived quantities -------------------------
 
 sim_parameters <- diabetes_scenario() |>
   diabetes_scenario_set_truevalues()
 
-# -------------------------------------------------------------------
-# Constants for simulation
-# -------------------------------------------------------------------
+# Constants for simulation -----------------------------------------------
 
 N_sim <- 1000
 alpha <- 0.05
 
-# -------------------------------------------------------------------
-# List of analysis functions
-# -------------------------------------------------------------------
+# List of analysis functions ---------------------------------------------
 
 my_analyse <- list(
   ## Treatment policy estimands
@@ -31,9 +28,7 @@ my_analyse <- list(
   mihyp = analyse_diabetes_mi(strategy = "hypothetical")
 )
 
-# -------------------------------------------------------------------
-# List of summarisation functions
-# -------------------------------------------------------------------
+# List of summarisation functions ----------------------------------------
 # summarise_estimator and summarise_test are generic summarisation
 # functions from CI.RCT.Sim / SimDesign
 
@@ -45,21 +40,24 @@ my_summarise <- create_summarise_function(
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null = 0
+    null = 0,
+    name="est"
   ),
   mmrmtp = summarise_estimator(
     est   = coef,
     real  = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null  = 0
+    null  = 0,
+    name="est"
   ),
   mitp = summarise_estimator(
     est = coef,
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null = 0
+    null = 0,
+    name="est"
   ),
   ## Hypothetical estimands
   ipwhyp = summarise_estimator(
@@ -67,41 +65,79 @@ my_summarise <- create_summarise_function(
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null = 0
+    null = 0,
+    name="est"
   ),
   dm = summarise_estimator(
     est = coef,
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null = 0
+    null = 0,
+    name="est"
   ),
   gcom = summarise_estimator(
     est = coef,
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null = 0
+    null = 0,
+    name="est"
   ),
   mmrmhyp = summarise_estimator(
     est   = coef,
     real  = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null  = 0
+    null  = 0,
+    name="est"
   ),
   mihyp = summarise_estimator(
     est = coef,
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null = 0
-  )
+    null = 0,
+    name="est"
+  ),
+  # rejection rates
+  ## Treatment policy estimands
+  ipwtp = summarise_estimator(
+    alpha,
+    name="test"
+  ),
+  mmrmtp = summarise_test(
+    alpha,
+    name="test"
+  ),
+  mitp = summarise_test(
+    alpha,
+    name="test"
+  ),
+  ## Hypothetical testimands
+  ipwhyp = summarise_test(
+    alpha,
+    name="test"
+  ),
+  dm = summarise_test(
+    alpha,
+    name="test"
+  ),
+  gcom = summarise_test(
+    alpha,
+    name="test"
+  ),
+  mmrmhyp = summarise_test(
+    alpha,
+    name="test"
+  ),
+  mihyp = summarise_test(
+    alpha,
+    name="test"
+  ),
 )
 
-# -------------------------------------------------------------------
-# Run the simulations
-# -------------------------------------------------------------------
+# Run the simulations ----------------------------------------------------
 
 cl <- makeCluster(detectCores() - 1)
 clusterEvalQ(cl, {
@@ -120,8 +156,6 @@ results <- runSimulation(
   cl = cl
 )
 
-# -------------------------------------------------------------------
-# Inspect results
-# -------------------------------------------------------------------
+# Save results -----------------------------------------------------------
 
-save(results, file = format(Sys.time(), "results_test_%Y-%m-%d_%H%M.Rdata"))
+save(results, file = format(Sys.time(), "results_diabetes_%Y-%m-%d_%H%M.Rdata"))
