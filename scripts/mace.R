@@ -56,6 +56,6 @@ results <- runSimulation(
   cl = cl
 )
 
-# Inspect results --------------------------------------------------------
+# Save results -----------------------------------------------------------
 
 save(results, file = format(Sys.time(), "results_mace_%Y-%m-%d_%H%M.Rdata"))
