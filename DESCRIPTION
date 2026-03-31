@@ -38,5 +38,6 @@ Imports:
     emmeans,
     lmtest,
     sandwich,
-    withr
+    withr,
+    survival
 VignetteBuilder: knitr
