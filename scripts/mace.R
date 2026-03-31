@@ -1,20 +1,19 @@
-devtools::load_all()
+# devtools::install()
+# renv::restore()
+library(CI.RCT.Sim)
+library(parallel)
 
-# -------------------------------------------------------------------
-# Define parameter values and derived quantities
-# -------------------------------------------------------------------
+# Define parameter values and derived quantities -------------------------
 
-sim_parameters <- mace_scenario() |> mace_scenario_set_sample_size() |> true_trt_mace()
+sim_parameters <- mace_scenario() |>
+  mace_scenario_set_sample_size() |>
+  true_trt_mace()
 
-# -------------------------------------------------------------------
-# Constants for simulation
-# -------------------------------------------------------------------
+# Constants for simulation -----------------------------------------------
 
 N_sim <- 100
 
-# -------------------------------------------------------------------
-# List of analysis functions
-# -------------------------------------------------------------------
+# List of analysis functions ---------------------------------------------
 
 my_analyse <- list(
   cox_nocov=analyse_mace_cox_nocov,
@@ -39,32 +38,24 @@ my_summarise <- create_summarise_function(
   ipw_cov  =summarise_test(alpha=0.05, name="test")
 )
 
-# -------------------------------------------------------------------
-# Run the simulations
-# -------------------------------------------------------------------
+# Run the simulations ----------------------------------------------------
+
+cl <- makeCluster(detectCores()-1)
+clusterEvalQ(cl, {
+  library("CI.RCT.Sim")
+})
+clusterExport(cl = cl, varlist = c("alpha"))
 
 results <- runSimulation(
   design = sim_parameters,
   replications = N_sim,
   generate = generate_mace,
   analyse = my_analyse,
-  summarise = my_summarise
+  summarise = my_summarise,
+  parallel = TRUE,
+  cl = cl
 )
 
-# -------------------------------------------------------------------
-# Inspect results
-# -------------------------------------------------------------------
+# Inspect results --------------------------------------------------------
 
-methods <- c("cox_nocov", "cox_cov", "ipw_nocov", "ipw_cov")
-
-# estimators HR scale
-results[, paste(methods, "HR", "bias", sep=".")]
-results[, paste(methods, "HR", "width", sep=".")]
-
-# estimator log-HR scale
-results[, paste(methods, "est", "bias", sep=".")]
-results[, paste(methods, "est", "sd_est", sep=".")]
-
-# test decision from CI and test
-results[, paste(methods, "test", "rejection_0.05", sep=".")]
-1-results[, paste(methods, "HR", "null_cover", sep=".")]
+save(results, file = format(Sys.time(), "results_mace_%Y-%m-%d_%H%M.Rdata"))
