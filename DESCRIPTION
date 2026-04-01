@@ -39,5 +39,6 @@ Imports:
     emmeans,
     lmtest,
     sandwich,
-    survival
+    survival,
+    trtswitch
 VignetteBuilder: knitr

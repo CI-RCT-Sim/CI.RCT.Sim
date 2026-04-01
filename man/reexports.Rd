@@ -5,6 +5,8 @@
 \alias{reexports}
 \alias{create_summarise_function}
 \alias{summarise_estimator}
+\alias{analyse_describe}
+\alias{summarise_describe}
 \alias{summarise_test}
 \alias{upsert_merge}
 \alias{merge_additional_results}
@@ -22,6 +24,6 @@ These objects are imported from other packages. Follow the links
 below to see their documentation.
 
 \describe{
-  \item{SimNPH}{\code{\link[SimNPH:results_pivot_longer]{combined_plot}}, \code{\link[SimNPH]{create_summarise_function}}, \code{\link[SimNPH]{labs_from_labels}}, \code{\link[SimNPH]{merge_additional_results}}, \code{\link[SimNPH]{rename_results_column}}, \code{\link[SimNPH:rename_results_column]{rename_results_column_pattern}}, \code{\link[SimNPH]{results_pivot_longer}}, \code{\link[SimNPH]{summarise_estimator}}, \code{\link[SimNPH]{summarise_test}}, \code{\link[SimNPH:merge_additional_results]{upsert_merge}}, \code{\link[SimNPH:wrap_all_in_trycatch]{wrap_all_in_preserve_seed}}, \code{\link[SimNPH]{wrap_all_in_trycatch}}}
+  \item{SimNPH}{\code{\link[SimNPH]{analyse_describe}}, \code{\link[SimNPH:results_pivot_longer]{combined_plot}}, \code{\link[SimNPH]{create_summarise_function}}, \code{\link[SimNPH]{labs_from_labels}}, \code{\link[SimNPH]{merge_additional_results}}, \code{\link[SimNPH]{rename_results_column}}, \code{\link[SimNPH:rename_results_column]{rename_results_column_pattern}}, \code{\link[SimNPH]{results_pivot_longer}}, \code{\link[SimNPH:analyse_describe]{summarise_describe}}, \code{\link[SimNPH]{summarise_estimator}}, \code{\link[SimNPH]{summarise_test}}, \code{\link[SimNPH:merge_additional_results]{upsert_merge}}, \code{\link[SimNPH:wrap_all_in_trycatch]{wrap_all_in_preserve_seed}}, \code{\link[SimNPH]{wrap_all_in_trycatch}}}
 }}
 
