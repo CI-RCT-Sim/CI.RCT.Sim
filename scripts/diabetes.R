@@ -32,14 +32,22 @@ pre_my_summarise <- create_summarise_function(
   )
 )
 
+cl <- makeCluster(detectCores()-1)
+clusterEvalQ(cl, {
+  library("CI.RCT.Sim")
+})
+
 pre_results <- runSimulation(
   design = pre_sim_parameters,
   replications = pre_N_sim,
   generate = generate_diabetes,
   analyse = pre_my_analyse,
   summarise = pre_my_summarise,
-  parallel = "future"
+  parallel = TRUE,
+  cl = cl
 )
+
+stopCluster(cl)
 
 # Define parameter values and derived quantities -------------------------
 
