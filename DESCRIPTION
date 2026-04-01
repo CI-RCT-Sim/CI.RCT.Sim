@@ -2,7 +2,17 @@ Package: CI.RCT.Sim
 Title: Package to Facilitate a Simulation Study on Causal Inference Methods in RCTs
 Version: 0.0.1
 Authors@R: 
-    c(person("Tobias", "Fellinger", email="tobias.fellinger@ages.at", role=c("aut", "cre"), comment = c(ORCID = "0000-0001-9474-2731")))
+    c(
+    person("Tobias", "Fellinger", email="tobias.fellinger@ages.at", role=c("aut", "cre"), comment = c(ORCID = "0000-0001-9474-2731")),
+    person("Louise", "Jespersen", role=c("aut")),
+    person("Niels", "Hendrickx", role=c("aut")),
+    person("Paula", "Starke", role=c("aut")),
+    person("Susanne", "Urach", role=c("aut")),
+    person("Florian", "Klinglmüller", role=c("aut")),
+    person("Robin", "Ristl", role=c("aut")),
+    person("Maddalena", "Centanni", role=c("aut")),
+    person("Angelika", "Geroldinger", role=c("aut"))
+    )
 Description: This package includes the reusable functions, methods, ... for the simulation study on causal inference methods in randomized controlled trials as part of the EMA-tender research project conducted by the CONFIRMS consortium.
 License: BSL-1.0
 Encoding: UTF-8

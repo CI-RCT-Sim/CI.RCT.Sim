@@ -3,12 +3,10 @@
 library(CI.RCT.Sim)
 library(parallel)
 
-# -------------------------------------------------------------------
-# Define parameter values and derived quantities
-# -------------------------------------------------------------------
+# Define parameter values and derived quantities -------------------------
 
 sim_parameters <- vaccine_scenario() |>
-  vaccine_scenario_set_beta_A1() |>
+  vaccine_scenario_set_beta_A1_relative() |>
   vaccine_scenario_set_gamma_0() |>
   vaccine_scenario_set_true_eff() |>
   vaccine_scenario_set_samplesize() |>
@@ -17,16 +15,12 @@ sim_parameters <- vaccine_scenario() |>
     scenario_nr = seq_along(VE)
   })
 
-# -------------------------------------------------------------------
-# Constants for simulation
-# -------------------------------------------------------------------
+# Constants for simulation -----------------------------------------------
 
 N_sim <- 5000
 alpha <- 0.05
 
-# -------------------------------------------------------------------
-# List of analysis functions
-# -------------------------------------------------------------------
+# List of analysis functions ---------------------------------------------
 
 my_analyse <- list(
   iv       = analyse_vaccine_ivreg(ci_level = 1-alpha, VE_margin = 0.3),
@@ -35,26 +29,22 @@ my_analyse <- list(
   pp       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3)
 )
 
-# -------------------------------------------------------------------
-# List of summarisation functions
-# -------------------------------------------------------------------
+# List of summarisation functions ----------------------------------------
 # summarise_estimator and summarise_test are generic summarisation
 # functions from CI.RCT.Sim / SimDesign
 
 my_summarise <- create_summarise_function(
-  iv       = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0, name="est"),
-  ps_cov   = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0, name="est"),
-  ps_nocov = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0, name="est"),
-  pp       = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0, name="est"),
+  iv       = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  ps_cov   = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  ps_nocov = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  pp       = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
   iv       = summarise_test(alpha, name="test"),
   ps_cov   = summarise_test(alpha, name="test"),
   ps_nocov = summarise_test(alpha, name="test"),
   pp       = summarise_test(alpha, name="test")
 )
 
-# -------------------------------------------------------------------
-# Run the simulations
-# -------------------------------------------------------------------
+# Run the simulations ----------------------------------------------------
 
 cl <- makeCluster(detectCores()-1)
 clusterEvalQ(cl, {
@@ -62,6 +52,11 @@ clusterEvalQ(cl, {
 })
 
 clusterExport(cl = cl, varlist = c("alpha"))
+
+main_sessioninfo <- sessionInfo()
+nodes_sessioninfo <- clusterEvalQ(cl, {
+  sessionInfo()
+})
 
 results <- runSimulation(
   design = sim_parameters,
@@ -74,8 +69,8 @@ results <- runSimulation(
   cl = cl
 )
 
-# -------------------------------------------------------------------
-# Inspect results
-# -------------------------------------------------------------------
+stopCluster(cl)
 
-save(results, file=format(Sys.time(), "results_test_%Y-%m-%d_%H%M.Rdata"))
+# Save results -----------------------------------------------------------
+
+save(results, main_sessioninfo, nodes_sessioninfo, file=format(Sys.time(), paste0("results_vaccine_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")))

@@ -1,8 +1,10 @@
-devtools::load_all()
+# devtools::install()
+# renv::restore()
+library(CI.RCT.Sim)
+library(parallel)
 
-# -------------------------------------------------------------------
-# Derive true treatment effect under treatment policy
-# -------------------------------------------------------------------
+
+# Derive true treatment effect  under treatment policy -------------------
 
 pre_sim_parameters <- diabetes_scenario() |>
   dplyr::mutate(nfix = 1e6, miss = rep(list(c(-1e5, 0, 0, 0)), 16))
@@ -30,33 +32,34 @@ pre_my_summarise <- create_summarise_function(
   )
 )
 
+cl <- makeCluster(detectCores()-1)
+clusterEvalQ(cl, {
+  library("CI.RCT.Sim")
+})
+
 pre_results <- runSimulation(
   design = pre_sim_parameters,
   replications = pre_N_sim,
   generate = generate_diabetes,
   analyse = pre_my_analyse,
   summarise = pre_my_summarise,
-  parallel = "future"
+  parallel = TRUE,
+  cl = cl
 )
 
+stopCluster(cl)
 
-# -------------------------------------------------------------------
-# Define parameter values and derived quantities
-# -------------------------------------------------------------------
+# Define parameter values and derived quantities -------------------------
 
 sim_parameters <- diabetes_scenario() |>
   diabetes_scenario_set_truevalues() |>
   dplyr::mutate(tp_eff = pre_results$tp_mean.mean_est)
 
-# -------------------------------------------------------------------
-# Constants for simulation
-# -------------------------------------------------------------------
+# Constants for simulation -----------------------------------------------
 
 N_sim <- 1000
 
-# -------------------------------------------------------------------
-# List of analysis functions
-# -------------------------------------------------------------------
+# List of analysis functions ---------------------------------------------
 
 my_analyse <- list(
   ## Treatment policy estimands
@@ -71,9 +74,7 @@ my_analyse <- list(
   mihyp = analyse_diabetes_mi(strategy = "hypothetical")
 )
 
-# -------------------------------------------------------------------
-# List of summarisation functions
-# -------------------------------------------------------------------
+# List of summarisation functions ----------------------------------------
 # summarise_estimator and summarise_test are generic summarisation
 # functions from CI.RCT.Sim / SimDesign
 
@@ -85,21 +86,24 @@ my_summarise <- create_summarise_function(
     real = tp_eff,
     lower = ci_lower,
     upper = ci_upper,
-    null = 0
+    null = 0,
+    name="est"
   ),
   mmrmtp = summarise_estimator(
     est   = coef,
     real  = tp_eff,
     lower = ci_lower,
     upper = ci_upper,
-    null  = 0
+    null  = 0,
+    name="est"
   ),
   mitp = summarise_estimator(
     est = coef,
     real = tp_eff,
     lower = ci_lower,
     upper = ci_upper,
-    null = 0
+    null = 0,
+    name="est"
   ),
   ## Hypothetical estimands
   ipwhyp = summarise_estimator(
@@ -107,41 +111,79 @@ my_summarise <- create_summarise_function(
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null = 0
+    null = 0,
+    name="est"
   ),
   dm = summarise_estimator(
     est = coef,
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null = 0
+    null = 0,
+    name="est"
   ),
   gcom = summarise_estimator(
     est = coef,
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null = 0
+    null = 0,
+    name="est"
   ),
   mmrmhyp = summarise_estimator(
     est   = coef,
     real  = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null  = 0
+    null  = 0,
+    name="est"
   ),
   mihyp = summarise_estimator(
     est = coef,
     real = eff_true,
     lower = ci_lower,
     upper = ci_upper,
-    null = 0
-  )
+    null = 0,
+    name="est"
+  ),
+  # rejection rates
+  ## Treatment policy estimands
+  ipwtp = summarise_estimator(
+    alpha,
+    name="test"
+  ),
+  mmrmtp = summarise_test(
+    alpha,
+    name="test"
+  ),
+  mitp = summarise_test(
+    alpha,
+    name="test"
+  ),
+  ## Hypothetical testimands
+  ipwhyp = summarise_test(
+    alpha,
+    name="test"
+  ),
+  dm = summarise_test(
+    alpha,
+    name="test"
+  ),
+  gcom = summarise_test(
+    alpha,
+    name="test"
+  ),
+  mmrmhyp = summarise_test(
+    alpha,
+    name="test"
+  ),
+  mihyp = summarise_test(
+    alpha,
+    name="test"
+  ),
 )
 
-# -------------------------------------------------------------------
-# Run the simulations
-# -------------------------------------------------------------------
+# Run the simulations ----------------------------------------------------
 
 cl <- makeCluster(detectCores() - 1)
 clusterEvalQ(cl, {
@@ -149,6 +191,11 @@ clusterEvalQ(cl, {
 })
 
 clusterExport(cl = cl, varlist = c("alpha"))
+
+main_sessioninfo <- sessionInfo()
+nodes_sessioninfo <- clusterEvalQ(cl, {
+  sessionInfo()
+})
 
 results <- runSimulation(
   design = sim_parameters,
@@ -160,8 +207,8 @@ results <- runSimulation(
   cl = cl
 )
 
-# -------------------------------------------------------------------
-# Inspect results
-# -------------------------------------------------------------------
+stopCluster(cl)
 
-save(results, file = format(Sys.time(), "results_test_%Y-%m-%d_%H%M.Rdata"))
+# Save results -----------------------------------------------------------
+
+save(results, main_sessioninfo, nodes_sessioninfo, file=format(Sys.time(), paste0("results_diabetes_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")))
