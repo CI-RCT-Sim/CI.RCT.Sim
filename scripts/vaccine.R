@@ -17,7 +17,7 @@ sim_parameters <- vaccine_scenario() |>
 
 # Constants for simulation -----------------------------------------------
 
-N_sim <- 5000
+N_sim <- 10000
 alpha <- 0.05
 
 # List of analysis functions ---------------------------------------------

@@ -11,7 +11,8 @@ sim_parameters <- mace_scenario() |>
 
 # Constants for simulation -----------------------------------------------
 
-N_sim <- 100
+N_sim <- 10000
+alpha <- 0.05
 
 # List of analysis functions ---------------------------------------------
 

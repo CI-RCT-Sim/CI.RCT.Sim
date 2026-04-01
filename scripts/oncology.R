@@ -51,7 +51,8 @@ sim_parameters <- oncology_scenario(print = FALSE)[5, ] |>
 
 # Constants for simulation -----------------------------------------------
 
-N_sim <- 1000
+N_sim <- 10000
+alpha <- 0.05
 
 # List of analysis functions ---------------------------------------------
 

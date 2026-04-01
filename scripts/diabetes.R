@@ -57,7 +57,8 @@ sim_parameters <- diabetes_scenario() |>
 
 # Constants for simulation -----------------------------------------------
 
-N_sim <- 1000
+N_sim <- 10000
+alpha <- 0.05
 
 # List of analysis functions ---------------------------------------------
 
