@@ -61,6 +61,8 @@ results <- runSimulation(
   cl = cl
 )
 
+stopCluster(cl)
+
 # Save results -----------------------------------------------------------
 
 save(results, main_sessioninfo, nodes_sessioninfo, file=format(Sys.time(), paste0("results_mace_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")))
