@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyse_diabetes_gcomputation.R
 \name{analyse_diabetes_gcomputation}
 \alias{analyse_diabetes_gcomputation}
-\title{Analyse Dataset with G-estimation (G-computation via gformula_continuous_eof)}
+\title{Analyse data set with G-computation}
 \usage{
 analyse_diabetes_gcomputation()
 }
@@ -16,7 +16,7 @@ A function that, when called with \code{condition} and \code{dat}, returns a lis
 }
 }
 \description{
-Analyse Dataset with G-estimation (G-computation via gformula_continuous_eof)
+Analyse data set with G-computation
 }
 \details{
 This function implements G-computation using \code{gformula_continuous_eof} to estimate the
@@ -56,13 +56,11 @@ No formal p-value is calculated.
 }
 \examples{
 \donttest{
-Design <- diabetes_scenario() |>
+Design <- diabetes_scenario()[1, ] |>
   diabetes_scenario_set_truevalues()
 
-condition <- Design[1, ]
+dat <- generate_diabetes(Design)
 
-dat <- generate_diabetes(condition)
-
-analyse_diabetes_gcomputation()(condition, dat)
+analyse_diabetes_gcomputation()(Design, dat)
 }
 }

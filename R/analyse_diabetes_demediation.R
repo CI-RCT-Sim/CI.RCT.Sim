@@ -1,10 +1,14 @@
-#' Create Analysis Function for De-mediation
+#' Analyse data set with De-mediation
 #'
 #' @param separate Default is TRUE which means that the imputation will be
 #' performed separately for the treatment and control groups. If FALSE, the
-#' imputation will be performed on the combined data set.
+#' imputation will be performed on the combined data set, with treatment as a predictor variable.
 #'
-#' @return an analyse function that can be used in runSimulation
+#' @return A function that, when called with `condition` and `dat`, returns a list with:
+#' * `coef`      estimated difference in mean change in HbA1c between treatment groups
+#' * `se`        standard error for coef
+#' * `ci_lower`  lower bound of 95% confidence interval for coef
+#' * `ci_upper`  upper bound of 95% confidence interval for coef
 #' @export
 #'
 #' @importFrom stats lm glm as.formula binomial coef predict var quantile
@@ -14,20 +18,19 @@
 #' @importFrom tidyselect starts_with
 #'
 #' @details
-#' This function implements the de-mediation approach described in the paper
-#' by Bartlett et al. (2024) for handling rescue medication in diabetes trials.
-#' The function first imputes the missing rescue medication data using the
-#' `mice` package, and then performs a de-mediation analysis by fitting a series
-#' of models to estimate the effect of treatment on the outcome while accounting
-#' for the potential mediation through rescue medication use.
-#' The final estimate of the treatment effect is obtained by pooling the results
-#' from the multiple imputations using Rubin's rules.
+#' This function implements the de-mediation approach described in the paper by Olarte Parra et al (2025) for handling rescue medication in longitudinal diabetes trials.
+#' The function first imputes the missing rescue medication data using the `mice` package, and then performs a de-mediation analysis by fitting a series
+#' of models to estimate the effect of treatment on the outcome while accounting for the potential mediation through rescue medication use.
+#' The final estimate of the treatment effect is obtained by pooling the results from the multiple imputations using Rubin's rules.
 #'
 #' @examples
 #' \donttest{
-#' setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
-#' dat <- generate_diabetes(setting)
-#' analyse_diabetes_demediation()(setting, dat)
+#' Design <- diabetes_scenario()[1, ] |>
+#'   diabetes_scenario_set_truevalues()
+#'
+#' dat <- generate_diabetes(Design)
+#'
+#' analyse_diabetes_demediation(separate = TRUE)(Design, dat)
 #' }
 analyse_diabetes_demediation <- function(separate = TRUE) {
   function(condition, dat, fixed_objects = NULL) {
@@ -103,7 +106,7 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
           next
         }
 
-        # Fit a model to predict the probability of receiving rescue medication at visit 12 - k
+        # Fit a model to predict the probability of receiving rescue medication at visit condition$k - k
         mod <- logistf(
           as.formula(paste0("R", condition$k - k, " ~ trt + age + y0", paste0("+ y", 1:(condition$k - k), collapse = " "))),
           data = dat_comp,
@@ -163,10 +166,10 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
     )
 
     list(
-      ci_lower = ci[1],
-      ci_upper = ci[2],
       coef = end_res$qbar,
-      sd = sqrt(end_res$t)
+      se = sqrt(end_res$t) / nrow(dat),
+      ci_lower = ci[1],
+      ci_upper = ci[2]
     )
   }
 }
