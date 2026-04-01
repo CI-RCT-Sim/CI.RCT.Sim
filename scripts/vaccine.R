@@ -6,7 +6,7 @@ library(parallel)
 # Define parameter values and derived quantities -------------------------
 
 sim_parameters <- vaccine_scenario() |>
-  vaccine_scenario_set_beta_A1() |>
+  vaccine_scenario_set_beta_A1_relative() |>
   vaccine_scenario_set_gamma_0() |>
   vaccine_scenario_set_true_eff() |>
   vaccine_scenario_set_samplesize() |>
@@ -53,6 +53,11 @@ clusterEvalQ(cl, {
 
 clusterExport(cl = cl, varlist = c("alpha"))
 
+main_sessioninfo <- sessionInfo()
+nodes_sessioninfo <- clusterEvalQ(cl, {
+  sessionInfo()
+})
+
 results <- runSimulation(
   design = sim_parameters,
   replications = N_sim,
@@ -68,4 +73,4 @@ stopCluster(cl)
 
 # Save results -----------------------------------------------------------
 
-save(results, file=format(Sys.time(), "results_vaccine_%Y-%m-%d_%H%M.Rdata"))
+save(results, main_sessioninfo, nodes_sessioninfo, file=format(Sys.time(), paste0("results_vaccine_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")))

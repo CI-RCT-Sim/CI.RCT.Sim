@@ -192,6 +192,11 @@ clusterEvalQ(cl, {
 
 clusterExport(cl = cl, varlist = c("alpha"))
 
+main_sessioninfo <- sessionInfo()
+nodes_sessioninfo <- clusterEvalQ(cl, {
+  sessionInfo()
+})
+
 results <- runSimulation(
   design = sim_parameters,
   replications = N_sim,
@@ -206,4 +211,4 @@ stopCluster(cl)
 
 # Save results -----------------------------------------------------------
 
-save(results, file = format(Sys.time(), "results_diabetes_%Y-%m-%d_%H%M.Rdata"))
+save(results, main_sessioninfo, nodes_sessioninfo, file=format(Sys.time(), paste0("results_diabetes_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")))
