@@ -39,5 +39,6 @@ Imports:
     lmtest,
     sandwich,
     withr,
-    survival
+    survival,
+    trtswitch
 VignetteBuilder: knitr

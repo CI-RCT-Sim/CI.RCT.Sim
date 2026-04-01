@@ -107,6 +107,7 @@ degrees of freedom.
 }
 }
 \examples{
+\donttest{
 Design <- diabetes_scenario()[1, ] |>
   diabetes_scenario_set_truevalues()
 
@@ -117,5 +118,5 @@ analyse_diabetes_mmrm(strategy = "treatment_policy")(Design, dat)
 
 # Hypothetical estimand (censor after rescue)
 analyse_diabetes_mmrm(strategy = "hypothetical")(Design, dat)
-
+}
 }
