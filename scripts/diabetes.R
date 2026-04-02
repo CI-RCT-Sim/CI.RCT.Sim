@@ -181,7 +181,7 @@ my_summarise <- create_summarise_function(
   mihyp = summarise_test(
     alpha,
     name="test"
-  ),
+  )
 )
 
 # Run the simulations ----------------------------------------------------
