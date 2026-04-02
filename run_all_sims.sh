@@ -1,4 +1,4 @@
-
+#!/usr/bin/sh
 
 Rscript ./scripts/mace.R
 Rscript ./scripts/vaccine.R
