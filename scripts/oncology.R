@@ -5,7 +5,7 @@ library(parallel)
 
 # Derive true treatment effect -------------------------------------------
 
-pre_sim_parameters <- oncology_scenario(print = FALSE)[5, ]
+pre_sim_parameters <- oncology_scenario(print = FALSE)
 
 pre_N_sim <- 10
 
@@ -45,7 +45,7 @@ stopCluster(cl)
 
 # Define parameter values and derived quantities -------------------------
 
-sim_parameters <- oncology_scenario(print = FALSE)[5, ] |>
+sim_parameters <- oncology_scenario(print = FALSE) |>
   oncology_scenario_set_truevalues() |>
   dplyr::mutate(true_eff = pre_results$truth.mean_est)
 
