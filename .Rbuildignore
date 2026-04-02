@@ -9,3 +9,5 @@
 ^scripts$
 ^doc$
 ^Meta$
+^setup.sh
+^run_all_sims.sh
