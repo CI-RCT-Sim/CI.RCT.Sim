@@ -5,13 +5,13 @@ library(parallel)
 
 # Derive true treatment effect -------------------------------------------
 
-pre_sim_parameters <- oncology_scenario(print = FALSE)[5, ]
+pre_sim_parameters <- oncology_scenario(print = FALSE)
 
 pre_N_sim <- 10
 
 pre_my_analyse <- list(
   truth = function(condition, dat, fixed_objects = NULL) {
-    mod <- coxph(Surv(time = event_time, event = ev) ~ trt + X_0 + W_0, data = dat)
+    mod <- survival::coxph(Surv(time = event_time, event = ev) ~ trt + X_0 + W_0, data = dat)
     HR <- exp(coef(mod)[1])
     list(HR = HR)
   }
@@ -25,7 +25,7 @@ pre_my_summarise <- create_summarise_function(
   )
 )
 
-cl <- makeCluster(detectCores()-1)
+cl <- makeCluster(detectCores(logical=FALSE)-1)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
 })
@@ -45,7 +45,7 @@ stopCluster(cl)
 
 # Define parameter values and derived quantities -------------------------
 
-sim_parameters <- oncology_scenario(print = FALSE)[5, ] |>
+sim_parameters <- oncology_scenario(print = FALSE) |>
   oncology_scenario_set_truevalues() |>
   dplyr::mutate(true_eff = pre_results$truth.mean_est)
 
@@ -61,7 +61,7 @@ my_analyse <- list(
   rpsftm = analyse_oncology_rpsftm(recensor = FALSE),
   tse_rc = analyse_oncology_TSE(recensor = TRUE),
   tse = analyse_oncology_TSE(recensor = FALSE),
-  gformula = analyse_oncology_gformula(),
+  gformula = analyse_oncology_gformula(B=200),
   ipw = analyse_oncology_ipw(),
   itt = analyse_oncology_itt(),
   cens = analyse_oncology_cens(),
@@ -100,6 +100,8 @@ my_analyse <- list(
     result
   }
 )
+
+my_analyse <- wrap_all_in_trycatch(my_analyse)
 
 # List of summarisation functions ----------------------------------------
 # summarise_estimator and summarise_test are generic summarisation
@@ -207,7 +209,7 @@ my_summarise <- create_summarise_function(
 
 # Run the simulations ----------------------------------------------------
 
-cl <- makeCluster(detectCores()-1)
+cl <- makeCluster(detectCores(logical=FALSE)-1)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
 })
