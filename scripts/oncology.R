@@ -61,7 +61,7 @@ my_analyse <- list(
   rpsftm = analyse_oncology_rpsftm(recensor = FALSE),
   tse_rc = analyse_oncology_TSE(recensor = TRUE),
   tse = analyse_oncology_TSE(recensor = FALSE),
-  gformula = analyse_oncology_gformula(),
+  gformula = analyse_oncology_gformula(B=200),
   ipw = analyse_oncology_ipw(),
   itt = analyse_oncology_itt(),
   cens = analyse_oncology_cens(),
