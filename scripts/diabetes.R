@@ -32,7 +32,7 @@ pre_my_summarise <- create_summarise_function(
   )
 )
 
-cl <- makeCluster(detectCores(logical=FALSE)-1)
+cl <- makeCluster(41)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
 })
@@ -188,7 +188,7 @@ my_summarise <- create_summarise_function(
 
 # Run the simulations ----------------------------------------------------
 
-cl <- makeCluster(detectCores(logical=FALSE) - 1)
+cl <- makeCluster(41)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
 })
