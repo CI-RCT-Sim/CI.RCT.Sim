@@ -11,7 +11,7 @@ pre_N_sim <- 10
 
 pre_my_analyse <- list(
   truth = function(condition, dat, fixed_objects = NULL) {
-    mod <- coxph(Surv(time = event_time, event = ev) ~ trt + X_0 + W_0, data = dat)
+    mod <- survival::coxph(Surv(time = event_time, event = ev) ~ trt + X_0 + W_0, data = dat)
     HR <- exp(coef(mod)[1])
     list(HR = HR)
   }
