@@ -29,6 +29,8 @@ my_analyse <- list(
   pp       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3)
 )
 
+my_analyse <- wrap_all_in_trycatch(my_analyse)
+
 # List of summarisation functions ----------------------------------------
 # summarise_estimator and summarise_test are generic summarisation
 # functions from CI.RCT.Sim / SimDesign
@@ -46,7 +48,7 @@ my_summarise <- create_summarise_function(
 
 # Run the simulations ----------------------------------------------------
 
-cl <- makeCluster(detectCores()-1)
+cl <- makeCluster(detectCores(logical=FALSE)-1)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
 })

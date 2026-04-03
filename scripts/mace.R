@@ -23,6 +23,7 @@ my_analyse <- list(
   ipw_cov=analyse_mace_ipw_cov
 )
 
+my_analyse <- wrap_all_in_trycatch(my_analyse)
 
 my_summarise <- create_summarise_function(
   cox_nocov=summarise_estimator(est=coef, real=true_trt, est_sd=se, name="est"),
@@ -41,7 +42,7 @@ my_summarise <- create_summarise_function(
 
 # Run the simulations ----------------------------------------------------
 
-cl <- makeCluster(detectCores()-1)
+cl <- makeCluster(detectCores(logical=FALSE)-1)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
 })

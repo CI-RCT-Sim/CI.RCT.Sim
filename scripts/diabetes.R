@@ -32,7 +32,7 @@ pre_my_summarise <- create_summarise_function(
   )
 )
 
-cl <- makeCluster(detectCores()-1)
+cl <- makeCluster(detectCores(logical=FALSE)-1)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
 })
@@ -74,6 +74,8 @@ my_analyse <- list(
   mmrmhyp = analyse_diabetes_mmrm(strategy = "hypothetical"),
   mihyp = analyse_diabetes_mi(strategy = "hypothetical")
 )
+
+my_analyse <- wrap_all_in_trycatch(my_analyse)
 
 # List of summarisation functions ----------------------------------------
 # summarise_estimator and summarise_test are generic summarisation
@@ -186,7 +188,7 @@ my_summarise <- create_summarise_function(
 
 # Run the simulations ----------------------------------------------------
 
-cl <- makeCluster(detectCores() - 1)
+cl <- makeCluster(detectCores(logical=FALSE) - 1)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
 })
