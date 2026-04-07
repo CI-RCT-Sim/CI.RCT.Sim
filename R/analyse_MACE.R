@@ -93,12 +93,18 @@ data_process_start_stop <- function(data) {
 
   data$t_mace_start <- 0
   data$t_mace_stop <- ifelse(data$event_disc==1,data$t_disc,ifelse(data$event_mace==1,data$t_mace,1))
-
+  data$event_mace <- ifelse(data$event_disc==1,0,data$event_mace)
+  
   data2$t_mace_start <- data2$t_disc
   data2$t_mace_stop <- data2$t_mace
   data2$disc <- 1
-
-  return(rbind(data,data2)|>arrange(ID,t_mace_start))
+  
+  if (mean(data2$t_mace_start==data2$t_mace_stop)==1) {
+    return(data)
+  } else {
+    return(rbind(data,data2)|>arrange(ID,t_mace_start))
+  }
+  
 }
 
 
