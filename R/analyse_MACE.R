@@ -149,7 +149,7 @@ cox_model_ipw <- function(data) {
     }
   }
   data$IPW <- 1/lp
-  (coxph(Surv(t_mace_start,t_mace_stop,event_mace)~A+X+Z,data=data,id=ID,weights=IPW))
+  (coxph(Surv(t_mace_start,t_mace_stop,event_mace)~A+X+Z,data=data,id=ID,weights=IPW,robust=T))
 
 }
 
@@ -197,7 +197,7 @@ cox_model_ipw_nocov <- function(data) {
     }
   }
   data$IPW <- 1/lp
-  (coxph(Surv(t_mace_start,t_mace_stop,event_mace)~A,data=data,id=ID,weights=IPW))
+  (coxph(Surv(t_mace_start,t_mace_stop,event_mace)~A,data=data,id=ID,weights=IPW,robust=T))
 
 }
 
