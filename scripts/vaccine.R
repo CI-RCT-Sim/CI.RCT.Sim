@@ -5,7 +5,15 @@ library(parallel)
 
 # Define parameter values and derived quantities -------------------------
 
-sim_parameters <- vaccine_scenario() |>
+sim_parameters <- vaccine_scenario_defaults() |>
+  within({
+    rm(beta_A2)
+  }) |>
+  do.call(params_scenarios_grid, args=_) |>
+  merge(
+    data.frame(beta_A2 = log(1 - c(0.7, 0, 0.3, 0.5, 0.9))),
+    by=NULL
+  ) |>
   vaccine_scenario_set_beta_A1_relative() |>
   vaccine_scenario_set_gamma_0() |>
   vaccine_scenario_set_true_eff() |>
