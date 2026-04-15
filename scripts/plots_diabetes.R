@@ -49,9 +49,16 @@ results_long <- results |>
   results_pivot_longer()
 
 
+results_long_tp <- results_long |>
+  filter(str_detect(method, "tp"))
+
+results_long_hyp <- results_long |>
+  filter(str_detect(method, "hyp") | str_detect(method, "dm") | str_detect(method, "gcom"))
+
+
 # Plots for Estimators ----------------------------------------------------
 
-results_long |>
+results_long_tp |>
   filter(str_detect(method, "\\.est")) |>
   ggplot(aes(x = scenario_nr, colour = method)) +
   aes(y = bias) +
@@ -59,7 +66,7 @@ results_long |>
   geom_point() +
   geom_hline(yintercept = 0)
 
-results_long |>
+results_long_tp |>
   filter(str_detect(method, "\\.est")) |>
   ggplot(aes(x = scenario_nr, colour = method)) +
   aes(y = coverage) +
@@ -68,7 +75,7 @@ results_long |>
   geom_hline(yintercept = 0.95) +
   scale_y_continuous(limits = c(0, 1))
 
-results_long |>
+results_long_tp |>
   filter(str_detect(method, "\\.est")) |>
   ggplot(aes(x = scenario_nr, colour = method)) +
   aes(y = width) +
@@ -79,7 +86,7 @@ results_long |>
 
 # Plots for Tests ---------------------------------------------------------
 
-results_long |>
+results_long_tp |>
   filter(str_detect(method, "\\.test")) |>
   ggplot(aes(x = scenario_nr, colour = method)) +
   aes(y = rejection_0.05) +
@@ -88,7 +95,56 @@ results_long |>
   geom_hline(yintercept = 0.05) +
   scale_y_continuous(limits = c(0, 1))
 
-results_long |>
+results_long_tp |>
+  filter(str_detect(method, "\\.est")) |>
+  ggplot(aes(x = scenario_nr, colour = method)) +
+  aes(y = 1 - null_lower) +
+  # geom_line() +
+  geom_point() +
+  geom_hline(yintercept = 0.05) +
+  scale_y_continuous(limits = c(0, 1))
+
+
+# Plots for Estimators ----------------------------------------------------
+
+results_long_hyp |>
+  filter(str_detect(method, "\\.est")) |>
+  ggplot(aes(x = scenario_nr, colour = method)) +
+  aes(y = bias) +
+  # geom_line() +
+  geom_point() +
+  geom_hline(yintercept = 0)
+
+results_long_hyp |>
+  filter(str_detect(method, "\\.est")) |>
+  ggplot(aes(x = scenario_nr, colour = method)) +
+  aes(y = coverage) +
+  # geom_line() +
+  geom_point() +
+  geom_hline(yintercept = 0.95) +
+  scale_y_continuous(limits = c(0, 1))
+
+results_long_hyp |>
+  filter(str_detect(method, "\\.est")) |>
+  ggplot(aes(x = scenario_nr, colour = method)) +
+  aes(y = width) +
+  # geom_line() +
+  geom_point() +
+  coord_cartesian(ylim = c(0, 4))
+
+
+# Plots for Tests ---------------------------------------------------------
+
+results_long_hyp |>
+  filter(str_detect(method, "\\.test")) |>
+  ggplot(aes(x = scenario_nr, colour = method)) +
+  aes(y = rejection_0.05) +
+  # geom_line() +
+  geom_point() +
+  geom_hline(yintercept = 0.05) +
+  scale_y_continuous(limits = c(0, 1))
+
+results_long_hyp |>
   filter(str_detect(method, "\\.est")) |>
   ggplot(aes(x = scenario_nr, colour = method)) +
   aes(y = 1 - null_lower) +
