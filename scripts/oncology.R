@@ -25,7 +25,7 @@ pre_my_summarise <- create_summarise_function(
   )
 )
 
-cl <- makeCluster(detectCores(logical=FALSE)-1)
+cl <- makeCluster(detectCores(logical = FALSE) - 1)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
 })
@@ -36,7 +36,7 @@ pre_results <- runSimulation(
   generate = generate_oncology,
   analyse = pre_my_analyse,
   summarise = pre_my_summarise,
-  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 100, allow_random_cens = TRUE),
+  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 10000, allow_random_cens = TRUE),
   parallel = TRUE,
   cl = cl
 )
@@ -61,7 +61,7 @@ my_analyse <- list(
   rpsftm = analyse_oncology_rpsftm(recensor = FALSE),
   tse_rc = analyse_oncology_TSE(recensor = TRUE),
   tse = analyse_oncology_TSE(recensor = FALSE),
-  gformula = analyse_oncology_gformula(B=200),
+  gformula = analyse_oncology_gformula(B = 200),
   ipw = analyse_oncology_ipw(),
   itt = analyse_oncology_itt(),
   cens = analyse_oncology_cens(),
@@ -209,7 +209,7 @@ my_summarise <- create_summarise_function(
 
 # Run the simulations ----------------------------------------------------
 
-cl <- makeCluster(detectCores(logical=FALSE)-1)
+cl <- makeCluster(detectCores(logical = FALSE) - 1)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
 })
@@ -235,4 +235,4 @@ stopCluster(cl)
 
 # Save results -----------------------------------------------------------
 
-save(results, main_sessioninfo, nodes_sessioninfo, file=format(Sys.time(), paste0("results_onco_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")))
+save(results, main_sessioninfo, nodes_sessioninfo, file = format(Sys.time(), paste0("results_onco_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")))
