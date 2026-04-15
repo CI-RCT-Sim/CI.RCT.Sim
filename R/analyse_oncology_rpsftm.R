@@ -44,7 +44,8 @@ analyse_oncology_rpsftm <- function(recensor = TRUE, alpha = 0.05, B = 100) {
       gridsearch = FALSE,
       root_finding = "bisection",
       boot = B > 0,
-      n_boot = B
+      n_boot = B,
+      nthreads = 1
     )
 
     SE <- stats::sd(log(RPS$hr_boots)) # is there a mix between sd and se here?
