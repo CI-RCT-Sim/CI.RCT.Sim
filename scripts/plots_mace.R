@@ -31,27 +31,31 @@ results_long <- results |>
 # Withd : Withdrawal
 ###
 results_long <- results_long |> mutate(scenario_nr = case_when(
-  scenario_nr==1 ~ "Baseline",
-  scenario_nr==2 ~ "Higher MACE BH",
-  scenario_nr==3 ~ "No TE High Sample Size",
-  scenario_nr==4 ~ "Higher TE",
-  scenario_nr==5 ~ "No TE buffer",
-  scenario_nr==6 ~ "Lower TE buffer",
-  scenario_nr==7 ~ "No CE MACE",
-  scenario_nr==8 ~ "Confounding CE MACE",
+  scenario_nr==1 ~ "  Baseline",
+  scenario_nr==2 ~ " MACE - Higher BH",
+  scenario_nr==3 ~ "Null - High Sample Size",
+  scenario_nr==4 ~ " TE - Higher",
+  scenario_nr==5 ~ " TE - No TE buffer",
+  scenario_nr==6 ~ " TE - Lower TE buffer",
+  scenario_nr==7 ~ " MACE - No CE",
+  scenario_nr==8 ~ " MACE - Confounding CE",
   
-  scenario_nr==9 ~ "Lower Disc BH",
-  scenario_nr==10 ~ "No CE Disc",
-  scenario_nr==11 ~ "Confounding CE Disc",
+  scenario_nr==9 ~ " Disc - Lower BH",
+  scenario_nr==10 ~ " Disc - No CE",
+  scenario_nr==11 ~ " Disc - Confounding CE",
   
-  scenario_nr==12 ~ "Higher Withd",
-  scenario_nr==13 ~ "No CE Withd",
-  scenario_nr==14 ~ "Confounding CE Withd",
+  scenario_nr==12 ~ " Withd - Higher BH",
+  scenario_nr==13 ~ " Withd - No CE",
+  scenario_nr==14 ~ " Withd - Confounding CE",
   
-  scenario_nr==15 ~ "Lower assumed window",
-  scenario_nr==16 ~ "Higher Assumed window",
+  scenario_nr==15 ~ " Assumed window - Lower",
+  scenario_nr==16 ~ " Assumed window - Higher",
+  scenario_nr==17 ~"Null - Confounding CE MACE",
+  scenario_nr==18 ~"Null - Confounding CE Disc",
+  scenario_nr==19 ~"Null - Confounding CE Withd",
   
-  scenario_nr==17 ~"No TE Low Sample Size"
+  scenario_nr==20 ~"Null - Low Sample Size"
+  
 ))
 
 # Plots for Estimators ----------------------------------------------------
