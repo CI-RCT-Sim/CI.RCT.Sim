@@ -23,10 +23,8 @@ analyse_oncology_gformula <- function(B = 20, reps = 1) {
     data <- dat[order(dat$id), ]
     n <- dim(data)[1]
 
-    data_gform <- NULL
     IL <- 1 / intervals_per_year
-    i <- 115
-    for (i in 1:dim(data)[1]) {
+    data_gform <- lapply(1:dim(data)[1], \(i){
       temp <- data[i, ]
 
       int_end <- floor(temp$event_time * intervals_per_year)
@@ -54,8 +52,9 @@ analyse_oncology_gformula <- function(B = 20, reps = 1) {
 
       D$trt_actual <- D$trt + D$switch
       D$W_lag <- c(NA, D$W[-length(D$W)])
-      data_gform <- rbind(data_gform, D)
-    }
+      D
+    }) |>
+      do.call(rbind, args=_)
 
     D_all <- D <- data_gform
     ids <- data$id
@@ -66,8 +65,8 @@ analyse_oncology_gformula <- function(B = 20, reps = 1) {
         dat_bs <- data
       } else {
         boot_ind <- sample(ids, n, replace = TRUE)
-        D <- NULL
-        for (a in 1:length(boot_ind)) D <- rbind(D, D_all[D_all$id == boot_ind[a], ])
+        D <- merge(D_all, data.frame(id=boot_ind), by="id", all.y = TRUE) |>
+          sort_by(~id+time)
         dat_bs <- data[boot_ind, ] # data is orderd by id
       }
 
@@ -107,9 +106,7 @@ analyse_oncology_gformula <- function(B = 20, reps = 1) {
       maxtime <- dat_bs$calendar_end_of_study - dat_bs$calendar_start_time
       maxint_i <- round(maxtime * intervals_per_year)
       event_final <- rep(0, n)
-      EV <- NULL
-      TIME <- NULL
-      for (u in 1:reps) {
+      TIME_EV <- lapply(1:reps, \(u){
         for (i in 1:maxint) {
           zeit <- i - 0.5 # i or i-0.5 to make it mid-interval
 
@@ -139,14 +136,14 @@ analyse_oncology_gformula <- function(B = 20, reps = 1) {
             ev_time[admin_cens] <- zeit
           }
         }
+        data.frame(TIME=ev_time, EV=event_final)
+      }) |>
+        do.call(rbind, args=_)
 
-        TIME <- c(TIME, ev_time)
-        EV <- c(EV, event_final)
-      }
       X0 <- rep(X0, reps)
       W0 <- rep(W0, reps)
       trt <- rep(trt, reps)
-      cox <- coxph(Surv(time = TIME, event = EV) ~ trt + X0 + W0)
+      cox <- coxph(Surv(time = TIME_EV$TIME, event = TIME_EV$EV) ~ trt + X0 + W0)
       hr[boot] <- coef(cox)[1]
     }
     SE <- sd(hr[-1])
