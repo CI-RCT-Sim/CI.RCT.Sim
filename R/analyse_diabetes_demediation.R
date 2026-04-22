@@ -59,10 +59,10 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
       pred0[, c("id", "trt", "m_start", Rcols)] <- 0
       meth0 <- make.method(dat0)
       meth0[Rcols] <- ""
-      dats <- rbind(
+      suppressWarnings(dats <- rbind(
         mice(dat1, m = 5, printFlag = FALSE, predictorMatrix = pred1, method = meth1, ridge = 1e-5, remove.collinear = FALSE),
         mice(dat0, m = 5, printFlag = FALSE, predictorMatrix = pred0, method = meth0, ridge = 1e-5, remove.collinear = FALSE)
-      )
+      ))
     } else {
       pred <- make.predictorMatrix(daat)
       pred[Rcols, ] <- 0
@@ -70,7 +70,9 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
       pred[, c("id", "m_start", Rcols)] <- 0
       meth <- make.method(dat)
       meth[Rcols] <- ""
-      dats <- mice(daat, m = 5, printFlag = FALSE, predictorMatrix = pred, method = meth, ridge = 1e-5, remove.collinear = FALSE)
+      suppressWarnings(
+        dats <- mice(daat, m = 5, printFlag = FALSE, predictorMatrix = pred, method = meth, ridge = 1e-5, remove.collinear = FALSE)
+      )
     }
 
     analysis <- function(dataa) {
@@ -101,19 +103,46 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
 
       dat_comp[, paste0("j", condition$k - 1)] <- dat_comp[, paste0("yc", condition$k)]
       for (k in 1:(condition$k - 1)) {
-        if (sum(dat_comp[, paste0("R", condition$k - k)], na.rm = TRUE) == 0) {
+        if (all(is.na(dat_comp[[paste0("R", condition$k-k)]])) ||
+            sum(dat_comp[[paste0("R", condition$k-k)]], na.rm=TRUE)==0) {
           dat_comp[, paste0("j", condition$k - k - 1)] <- dat_comp[, paste0("j", condition$k - k)]
           next
         }
 
+        rvar <- paste0("R", condition$k-k)
+
         # Fit a model to predict the probability of receiving rescue medication at visit condition$k - k
-        mod <- logistf(
-          as.formula(paste0("R", condition$k - k, " ~ trt + age + y0", paste0("+ y", 1:(condition$k - k), collapse = " "))),
-          data = dat_comp,
-          pl = FALSE,
-          control = logistf::logistf.control(maxit = 2000, maxstep = 0.5)
+        mod <- tryCatch(
+          logistf(
+            as.formula(paste0("R", condition$k - k, " ~ trt + age + y0", paste0("+ y", 1:(condition$k - k), collapse = " "))),
+            data = dat_comp,
+            pl = FALSE,
+            control = logistf::logistf.control(maxit = 2000, maxstep = 0.5)
+          ),
+          error=function(e) {
+            tryCatch(
+              glm(as.formula(paste0("R", condition$k - k, " ~ trt + age + y0", paste0("+ y", 1:(condition$k - k), collapse = " "))),
+                  data = dat_comp, family=binomial()),
+              error=function(e) NULL
+            )
+          }
         )
-        dat_comp[, paste0("pred_R", condition$k - k)] <- predict(mod, type = "response")
+
+        if (is.null(mod)) {
+          pred <- rep(
+            mean(dat_comp[[rvar]], na.rm=TRUE),
+            nrow(dat_comp)
+          )
+        } else {
+          pred <- tryCatch(
+            predict(mod, newdata=dat_comp, type="response"),
+            error=function(e)
+              rep(mean(dat_comp[[rvar]], na.rm=TRUE),
+                  nrow(dat_comp))
+          )
+        }
+
+        dat_comp[,paste0("pred_",rvar)] <- pred
 
         # Subset the data
         daats <- dat_comp |>
@@ -147,7 +176,7 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
       final.model <- lm(j0 ~ trt + y0, data = dat_comp)
       c(
         p = summary(final.model)$coefficients["trt", "Pr(>|t|)"],
-        coef = coef(final.model)["trt"],
+        coef = summary(final.model)$coefficients["trt", "Estimate"],
         se = summary(final.model)$coefficients["trt", "Std. Error"]
       )
     }
@@ -156,18 +185,26 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
     for (i in 1:dats$m) {
       dat <- complete(dats, i)
       res <- analysis(dat)
-      effect[i] <- res["coef.trt"]
+      effect[i] <- res["coef"]
       effect.var[i] <- res["se"]^2
     }
     end_res <- pool.scalar(effect, effect.var)
+    crit <- qt(0.975, df = end_res$df)
     ci <- c(
-      end_res$qbar - 1.96 * sqrt(end_res$t),
-      end_res$qbar + 1.96 * sqrt(end_res$t)
+      end_res$qbar - crit*sqrt(end_res$t),
+      end_res$qbar + crit*sqrt(end_res$t)
+    )
+
+    t_stat <- end_res$qbar / sqrt(end_res$t)
+    p_pool <- 2 * pt(
+      -abs(t_stat),
+      df = end_res$df
     )
 
     list(
       coef = end_res$qbar,
-      se = sqrt(end_res$t) / nrow(dat),
+      p_val = p_pool,
+      se = sqrt(end_res$t),
       ci_lower = ci[1],
       ci_upper = ci[2]
     )
