@@ -5,7 +5,7 @@ library(parallel)
 
 # Derive true treatment effect -------------------------------------------
 
-pre_sim_parameters <- oncology_scenario(print = FALSE)
+pre_sim_parameters <- oncology_scenario(print = FALSE)[1:5, ]
 
 pre_N_sim <- 10
 
@@ -39,7 +39,7 @@ pre_results <- runSimulation(
     logHR_assumed = NULL,
     ev_soll = 10000,
     allow_random_cens = TRUE,
-    random_cens_only_control = FALSE
+    random_cens_only_control = TRUE ### XXX CHECK THIS OBS BE AWARE
   ),
   parallel = TRUE,
   cl = cl
@@ -49,7 +49,7 @@ stopCluster(cl)
 
 # Define parameter values and derived quantities -------------------------
 
-sim_parameters <- oncology_scenario(print = FALSE) |>
+sim_parameters <- oncology_scenario(print = FALSE)[1:5,] |>
   oncology_scenario_set_truevalues() |>
   dplyr::mutate(true_eff = pre_results$truth.mean_est)
 
@@ -222,5 +222,5 @@ save(results,
      nodes_sessioninfo,
      file = format(
        Sys.time(),
-       paste0("results_onco_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")
+       paste0("results_oncoextra_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")
      ))
