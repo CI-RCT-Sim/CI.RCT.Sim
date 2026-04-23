@@ -7,8 +7,8 @@
 #' @return an analyse function that can be used in runSimulation
 #' @export
 #'
-#' @importFrom survival tmerge coxph Surv
-#' @importFrom stats confint glm predict
+#' @importFrom survival tmerge coxph Surv survfit
+#' @importFrom stats confint glm predict reshape
 #'
 #' @examples
 #' setting <- oncology_scenario()[1, ]

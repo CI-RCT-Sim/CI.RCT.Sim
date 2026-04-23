@@ -3,6 +3,10 @@
 #' @param recensor logical, whether to recensor the data after adjusting for treatment switching. Default is TRUE.
 #' @param alpha numeric, significance level for confidence intervals. Default is 0.05.
 #' @param B integer, number of bootstrap samples for estimating standard errors. Default is 100.
+#' @param trunc_weights numeric, maximum value for inverse probability weights to avoid extreme weights. Default is 5.
+#' @param show_progress logical, whether to print progress during bootstrapping. Default is FALSE.
+#' @param use_censoring_IPW logical, whether to use inverse probability weighting to adjust for censoring in the final Cox model. Default is FALSE.
+#' @param requ_n_cens numeric, minimum number of censoring events required to use inverse probability weighting for censoring. Default is 5.
 #'
 #' @return an analyse function that can be used in runSimulation
 #' @export
@@ -95,7 +99,7 @@ analyse_oncology_mixed <- function(method = c("RPSFTM", "TSE")[1],
     for (boot in 1:(B + 1)) {
       if (show_progress) {
         print(boot)
-        flush.console()
+        utils::flush.console()
       }
       if (boot == 1) {
         dat_bs <- data
