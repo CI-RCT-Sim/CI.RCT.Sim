@@ -7,7 +7,7 @@
 analyse_diabetes_mi(
   strategy = c("hypothetical", "treatment_policy"),
   m = 10,
-  maxit = 20,
+  maxit = 10,
   ci_level = 0.95,
   seed = 123
 )

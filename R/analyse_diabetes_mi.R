@@ -122,7 +122,7 @@
 analyse_diabetes_mi <- function(
     strategy = c("hypothetical", "treatment_policy"),
     m = 10,
-    maxit = 20,
+    maxit = 10,
     ci_level = 0.95,
     seed = 123
 ) {
@@ -158,7 +158,7 @@ analyse_diabetes_mi <- function(
 
     dat_hyp <- dat
 
-    # Harmonized rescue convention: remove strictly post-rescue values
+    # Remove post-rescue outcomes
     for (i in seq_len(nrow(dat_hyp))) {
       rs <- dat_hyp$rescue_start[i]
 
@@ -172,28 +172,34 @@ analyse_diabetes_mi <- function(
     vars_R <- if (k > 1) paste0("R", 1:(k - 1)) else character(0)
     vars_imp <- c(vars_y, vars_R, "age", "trt")
 
+    ############################################################
+    # Methods
+    ############################################################
     meth <- mice::make.method(dat_hyp[vars_imp])
     meth[vars_y] <- "pmm"
 
-    if (k >= 2) {
-      meth["R1"] <- "logreg"
-    }
-
-    if (k > 2) {
-      for (j in 2:(k - 1)) {
-        meth[paste0("R", j)] <-
-          paste0("~ I(pmax(as.numeric(as.character(R", j - 1, ")), ",
-                 "as.numeric(as.character(R", j, "))))")
-      }
+    if (length(vars_R) > 0) {
+      meth[vars_R] <- "logreg.boot"
     }
 
     meth[c("age", "trt")] <- ""
 
+    ############################################################
+    # Predictor matrix (reduced)
+    ############################################################
     pred <- mice::make.predictorMatrix(dat_hyp[vars_imp])
-    diag(pred) <- 0
-    pred[, "trt"] <- 0
-    pred[, "y0"] <- 1
+    pred[,] <- 0
+    pred[vars_y, c("y0", "age")] <- 1
 
+    if (length(vars_R) > 0) {
+      pred[vars_R, c("y0", "age")] <- 1
+    }
+
+    pred[, "trt"] <- 0
+
+    ############################################################
+    # Imputation per treatment arm
+    ############################################################
     imp_list <- vector("list", 2)
 
     for (g in 0:1) {
@@ -202,33 +208,69 @@ analyse_diabetes_mi <- function(
         dplyr::filter(trt == g) |>
         dplyr::select(dplyr::all_of(vars_imp))
 
+      ##########################################################
+      # ✅ Minimal robust fix: keep ALL R as factors
+      ##########################################################
       if (length(vars_R) > 0) {
-        dat_g[vars_R] <- lapply(
-          dat_g[vars_R],
-          function(x) factor(x, levels = c(0, 1))
-        )
+        dat_g[vars_R] <- lapply(dat_g[vars_R], function(x) {
+          factor(x, levels = c(0, 1))
+        })
       }
 
+      ##########################################################
+      # ✅ Disable imputation for degenerate R variables
+      ##########################################################
+      meth_g <- meth
+
+      if (length(vars_R) > 0) {
+        for (r in vars_R) {
+          vals <- unique(na.omit(dat_g[[r]]))
+          if (length(vals) < 2) {
+            meth_g[r] <- ""   # no variation → skip imputation
+          }
+        }
+      }
+
+      ##########################################################
+      # MICE call
+      ##########################################################
       imp_list[[g + 1]] <- withr::with_seed(
         seed + g,
         mice::mice(
           dat_g,
           m = m,
-          method = meth,
+          method = meth_g,
           predictorMatrix = pred,
           maxit = maxit,
+          ridge = 1e-5,
+          visitSequence = "monotone",
           printFlag = FALSE
         )
       )
     }
 
+    ############################################################
+    # Combine imputations
+    ############################################################
     imp_full <- lapply(seq_len(m), function(i) {
-      dplyr::bind_rows(
+      d <- dplyr::bind_rows(
         mice::complete(imp_list[[1]], i),
         mice::complete(imp_list[[2]], i)
       )
+
+      # enforce consistent factor structure (extra safety)
+      if (length(vars_R) > 0) {
+        d[vars_R] <- lapply(d[vars_R], function(x)
+          factor(x, levels = c(0, 1))
+        )
+      }
+
+      d
     })
 
+    ############################################################
+    # Analysis
+    ############################################################
     fit_models <- lapply(imp_full, function(d) {
       d$chg <- d[[paste0("y", k)]] - d$y0
       lm(chg ~ trt + age + y0, data = d)

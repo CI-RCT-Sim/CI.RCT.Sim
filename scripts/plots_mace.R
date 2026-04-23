@@ -23,6 +23,41 @@ results_long <- results |>
   results_pivot_longer()
 
 
+### List of abbreviations :
+# BH : Baseline Hazard
+# TE : Treatment Effect
+# CE : Covariate Effect
+# Disc : discontinuation
+# Withd : Withdrawal
+###
+results_long <- results_long |> mutate(scenario_nr = case_when(
+  scenario_nr==1 ~ "  Baseline",
+  scenario_nr==2 ~ " MACE - Higher BH",
+  scenario_nr==3 ~ "Null - High Sample Size",
+  scenario_nr==4 ~ " TE - Higher",
+  scenario_nr==5 ~ " TE - No TE buffer",
+  scenario_nr==6 ~ " TE - Lower TE buffer",
+  scenario_nr==7 ~ " MACE - No CE",
+  scenario_nr==8 ~ " MACE - Confounding CE",
+  
+  scenario_nr==9 ~ " Disc - Lower BH",
+  scenario_nr==10 ~ " Disc - No CE",
+  scenario_nr==11 ~ " Disc - Confounding CE",
+  
+  scenario_nr==12 ~ " Withd - Higher BH",
+  scenario_nr==13 ~ " Withd - No CE",
+  scenario_nr==14 ~ " Withd - Confounding CE",
+  
+  scenario_nr==15 ~ " Assumed window - Lower",
+  scenario_nr==16 ~ " Assumed window - Higher",
+  scenario_nr==17 ~"Null - Confounding CE MACE",
+  scenario_nr==18 ~"Null - Confounding CE Disc",
+  scenario_nr==19 ~"Null - Confounding CE Withd",
+  
+  scenario_nr==20 ~"Null - Low Sample Size"
+  
+))
+
 # Plots for Estimators ----------------------------------------------------
 
 results_long |>
@@ -77,3 +112,4 @@ results_long |>
   geom_point() +
   geom_hline(yintercept=0.05) +
   scale_y_continuous(limits=c(0,1))
+
