@@ -16,11 +16,21 @@ analyse_oncology_mixed(
 )
 }
 \arguments{
+\item{method}{character, method to adjust for treatment switching, either "RPSFTM" or "TSE". Default is "RPSFTM".}
+
 \item{recensor}{logical, whether to recensor the data after adjusting for treatment switching. Default is TRUE.}
 
 \item{alpha}{numeric, significance level for confidence intervals. Default is 0.05.}
 
 \item{B}{integer, number of bootstrap samples for estimating standard errors. Default is 100.}
+
+\item{trunc_weights}{numeric, maximum value for inverse probability weights to avoid extreme weights. Default is 5.}
+
+\item{show_progress}{logical, whether to print progress during bootstrapping. Default is FALSE.}
+
+\item{use_censoring_IPW}{logical, whether to use inverse probability weighting to adjust for censoring in the final Cox model. Default is FALSE.}
+
+\item{requ_n_cens}{numeric, minimum number of censoring events required to use inverse probability weighting for censoring. Default is 5.}
 }
 \value{
 an analyse function that can be used in runSimulation
