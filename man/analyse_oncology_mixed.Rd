@@ -16,7 +16,7 @@ analyse_oncology_mixed(
 )
 }
 \arguments{
-\item{method}{character, method to adjust for treatment switching, either "RPSFTM" or "TSE". Default is "RPSFTM".}
+\item{method}{character, method to adjust for the treatment switching, either "RPSFTM" or "TSE". Default is "RPSFTM".}
 
 \item{recensor}{logical, whether to recensor the data after adjusting for treatment switching. Default is TRUE.}
 

@@ -1,6 +1,6 @@
 #' Create Analyse Functions for
 #'
-#' @param method character, method to adjust for treatment switching, either "RPSFTM" or "TSE". Default is "RPSFTM".
+#' @param method character, method to adjust for the treatment switching, either "RPSFTM" or "TSE". Default is "RPSFTM".
 #' @param recensor logical, whether to recensor the data after adjusting for treatment switching. Default is TRUE.
 #' @param alpha numeric, significance level for confidence intervals. Default is 0.05.
 #' @param B integer, number of bootstrap samples for estimating standard errors. Default is 100.
