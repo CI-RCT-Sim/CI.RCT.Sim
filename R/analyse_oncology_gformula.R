@@ -33,7 +33,7 @@ analyse_oncology_gformula <- function(B = 20, reps = 1) {
       D$stop <- (D$time + 1) * IL
 
       #D$ev[temp$event_time > D$start & temp$event_time <= D$stop] <- 1
-      if(temp$ev==1)  D$ev[int_end] <- 1
+      if(temp$ev==1)  D$ev[int_end+1] <- 1
 
       D$prog[temp$prog_time <= D$stop] <- 1
       if (any(D$prog == 1)) {
