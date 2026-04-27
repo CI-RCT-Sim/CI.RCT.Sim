@@ -152,13 +152,13 @@ analyse_diabetes_gcomputation <- function() {
     covtypes <- c("normal", "binary", "binary")
     histories <- c(lagged, lagged)
     histvars <- list("y", "R")
-    basecovs <- c("age")
+    basecovs <- c("age", "hba1c_0")
     covparams <- list(covmodels = c(
-      y ~ trt + R + lag1_y + age, # include trt + R (protocol deviation)
+      y ~ trt + R + (lag1_y + hba1c_0) + age, # include trt + R (protocol deviation)
       trt ~ 1, # intercept only, trt predicted by no covariates
-      R ~ y + age
+      R ~ (y + hba1c_0) + age
     ))
-    ymodel <- y_k ~ trt + R + lag1_y + age # include trt + R (protocol deviation)
+    ymodel <- y_k ~ trt + R + (lag1_y + hba1c_0) + age # include trt + R (protocol deviation)
     intvars <- list(
       c("trt", "R"),
       c("trt", "R")
