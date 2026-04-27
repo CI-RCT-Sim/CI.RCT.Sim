@@ -13,6 +13,7 @@
 #' @importFrom tidyr pivot_longer
 #' @importFrom magrittr `%>%`
 #' @importFrom data.table as.data.table
+#' @importFrom logistf logistf
 #'
 #' @details
 #' This function implements G-computation using `gformula_continuous_eof` to estimate the
@@ -91,6 +92,52 @@ analyse_diabetes_gcomputation <- function() {
     if (setup == 0) {
       dat_long <- dat_long %>% mutate(trt = replace(trt, R == 1, 0))
     }
+
+    # === Firth Correction: Replace glm for binomial models with logistf ===
+    # This ensures robust fitting when quasi-separation occurs in rescue medication models
+    firth_glm <- function(formula, family = gaussian(), data = NULL, ...) {
+      if (inherits(family, "binomial")) {
+        # Check for unsupported arguments
+        unsupported <- c("offset", "weights", "subset", "na.action")
+        if (any(sapply(unsupported, function(x) !is.null(get(x, envir = list(...)))))) {
+          warning("logistf does not support offset, weights, subset, or na.action. Using default.")
+        }
+        # Fit with logistf (Firth's bias-reduced logistic regression)
+        model <- tryCatch({
+          logistf(formula, data = data, family = binomial, ...)
+        }, error = function(e) {
+          stop("Firth correction failed. Consider checking for separation or data issues.")
+        })
+        # Extract and return mimicking glm output
+        list(
+          coefficients = coef(model),
+          se = sqrt(diag(vcov(model))),
+          deviance = model$deviance,
+          df.residual = model$df.residual,
+          fitted.values = plogis(model$linear.predictors),
+          model = model,
+          call = match.call(),
+          terms = terms(formula),
+          na.action = attr(data, "na.action"),
+          xlevels = model$xlevels,
+          y = model$y,
+          x = model$x,
+          linear.predictors = model$linear.predictors,
+          residuals = model$residuals,
+          weights = model$weights,
+          offset = model$offset,
+          prior.weights = model$prior.weights,
+          family = family,
+          contrasts = model$contrasts,
+          fitted.values = plogis(model$linear.predictors),
+          ...
+        )
+      } else {
+        # For non-binomial models, use standard glm
+        return(glm(formula, family = family, data = data, ...))
+      }
+    }
+
     # Run g-computation with bootstrap
     # We simulate HbA1c values under the intervention (no rescue) and then
     # estimate the mean change in HbA1c at the final visit
@@ -131,7 +178,11 @@ analyse_diabetes_gcomputation <- function() {
 
     nsamples <- 200
 
-    g.model <- gformula_continuous_eof(
+    g.model <- local({
+      # Temporarily replace glm with safe_glm
+      assign("glm", firth_glm, envir = .GlobalEnv)
+      # Now call gformula_continuous_eof — it will use Firth for binomial models
+      gformula_continuous_eof(
       obs_data = obs_data,
       id = id,
       time_name = time_name,
@@ -153,6 +204,7 @@ analyse_diabetes_gcomputation <- function() {
       seed = 1,
       ci_method = "percentile"
     )
+    })
 
     # mean of difference in mean change over bootstrap samples
     # summary(g.model)
