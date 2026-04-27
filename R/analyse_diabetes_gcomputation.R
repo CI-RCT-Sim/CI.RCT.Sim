@@ -13,6 +13,7 @@
 #' @importFrom tidyr pivot_longer
 #' @importFrom magrittr `%>%`
 #' @importFrom data.table as.data.table
+#' @importFrom logistf logistf
 #'
 #' @details
 #' This function implements G-computation using `gformula_continuous_eof` to estimate the
@@ -54,9 +55,9 @@
 #' analyse_diabetes_gcomputation()(Design, dat)
 #' }
 analyse_diabetes_gcomputation <- function() {
-  function(condition, dat, fixed_objects = NULL) {
-    k <- condition$k # number of last visit
-    setup <- condition$setup # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
+  function(Design, dat, fixed_objects = NULL) {
+    k <- Design$k # number of last visit
+    setup <- Design$setup # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
 
     # reformat dat to long format with outcome column 'y' for the change in HbA1c at each visit
     dat_long <- pivot_longer(dat,
@@ -91,68 +92,88 @@ analyse_diabetes_gcomputation <- function() {
     if (setup == 0) {
       dat_long <- dat_long %>% mutate(trt = replace(trt, R == 1, 0))
     }
-    # Run g-computation with bootstrap
-    # We simulate HbA1c values under the intervention (no rescue) and then
-    # estimate the mean change in HbA1c at the final visit
 
-    # Parameters for g-formula function
-    id <- "id"
-    obs_data <- as.data.table(dat_long)
-    time_name <- "visit"
-    time_points <- k # number of time-points (because baseline is included and last timepoint excluded)
-    covnames <- c("y", "trt", "R")
-    outcome_name <- "y_k"
-    covtypes <- c("normal", "binary", "binary")
-    histories <- c(lagged, lagged)
-    histvars <- list("y", "R")
-    basecovs <- c("age")
-    covparams <- list(covmodels = c(
-      y ~ trt + R + lag1_y + age, # include trt + R (protocol deviation)
-      trt ~ 1, # intercept only, trt predicted by no covariates
-      R ~ y + age
-    ))
-    ymodel <- y_k ~ trt + R + lag1_y + age # include trt + R (protocol deviation)
-    intvars <- list(
-      c("trt", "R"),
-      c("trt", "R")
-    )
-    interventions <- list(
-      list(
-        c(static, rep(1, time_points)), # treatment
-        c(static, rep(0, time_points))
-      ), # no rescue
-      list(
-        c(static, rep(0, time_points)), # no treatment
-        c(static, rep(0, time_points))
+    # === Firth Correction: Replace glm for binomial models with logistf ===
+    # This ensures robust fitting when quasi-separation occurs in rescue medication models
+    firth_glm <- function(formula, family = gaussian(), data = NULL, ...) {
+      if (inherits(family, "binomial")) {
+        # Check for unsupported arguments
+        unsupported <- c("offset", "weights", "subset", "na.action")
+        if (any(sapply(unsupported, function(x) !is.null(get(x, envir = list(...)))))) {
+          warning("logistf does not support offset, weights, subset, or na.action. Using default.")
+        }
+        # Fit with logistf (Firth's bias-reduced logistic regression)
+        model <- tryCatch({
+          logistf(formula, data = data, family = binomial, ...)
+        }, error = function(e) {
+          stop("Firth correction failed. Consider checking for separation or data issues.")
+        })
+        # Extract and return mimicking glm output
+        list(
+          coefficients = coef(model),
+          se = sqrt(diag(vcov(model))),
+          deviance = model$deviance,
+          df.residual = model$df.residual,
+          fitted.values = plogis(model$linear.predictors),
+          model = model,
+          call = match.call(),
+          terms = terms(formula),
+          na.action = attr(data, "na.action"),
+          xlevels = model$xlevels,
+          y = model$y,
+          x = model$x,
+          linear.predictors = model$linear.predictors,
+          residuals = model$residuals,
+          weights = model$weights,
+          offset = model$offset,
+          prior.weights = model$prior.weights,
+          family = family,
+          contrasts = model$contrasts,
+          fitted.values = plogis(model$linear.predictors),
+          ...
+        )
+      } else {
+        # For non-binomial models, use standard glm
+        return(glm(formula, family = family, data = data, ...))
+      }
+    }
+
+    # === Run g-computation with Firth correction only for logistic models ===
+    # Use local() to isolate the glm override
+    g.model <- local({
+      # Temporarily replace glm with safe_glm
+      assign("glm", firth_glm, envir = .GlobalEnv)
+      # Now call gformula_continuous_eof — it will use Firth for binomial models
+      gformula_continuous_eof(
+        obs_data = as.data.table(dat_long),
+        id = "id",
+        time_name = "visit",
+        covnames = c("y", "trt", "R"),
+        outcome_name = "y_k",
+        covtypes = c("normal", "binary", "binary"),
+        covparams = list(covmodels = c(
+          y ~ trt + R + lag1_y + age,
+          trt ~ 1,
+          R ~ y + age
+        )),
+        ymodel = y_k ~ trt + R + lag1_y + age,
+        intvars = list(c("trt", "R"), c("trt", "R")),
+        interventions = list(
+          list(c(static, rep(1, k)), c(static, rep(0, k))),
+          list(c(static, rep(0, k)), c(static, rep(0, k)))
+        ),
+        int_descript = c("treatment no rescue", "control no rescue"),
+        restrictions = list(c("R", "lag1_R != 1", carry_forward)),
+        ref_int = 2,
+        histvars = list("y", "R"),
+        histories = list(lagged, lagged),
+        basecovs = c("age", "hba1c_0"),
+        nsamples = 200,
+        show_progress = FALSE,
+        #seed = 10,
+        ci_method = "percentile"
       )
-    ) # no rescue
-    int_descript <- c("treatment no rescue", "control no rescue")
-    restrictions <- list(c("R", "lag1_R != 1", carry_forward))
-
-    nsamples <- 200
-
-    g.model <- gformula_continuous_eof(
-      obs_data = obs_data,
-      id = id,
-      time_name = time_name,
-      covnames = covnames,
-      outcome_name = outcome_name,
-      covtypes = covtypes,
-      covparams = covparams,
-      ymodel = ymodel,
-      intvars = intvars,
-      interventions = interventions,
-      int_descript = int_descript,
-      restrictions = restrictions,
-      ref_int = 2,
-      histvars = histvars,
-      histories = histories,
-      basecovs = basecovs,
-      nsamples = nsamples,
-      show_progress = F,
-      seed = 1,
-      ci_method = "percentile"
-    )
+    })
 
     # mean of difference in mean change over bootstrap samples
     # summary(g.model)
