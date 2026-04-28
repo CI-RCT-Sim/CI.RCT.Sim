@@ -144,6 +144,8 @@ my_summarise <- create_summarise_function(
   gformula = summarise_estimator(
     est = HR,
     real = true_eff,
+    lower = low,
+    upper = up,
     null = 1,
     name = "est"
   ),
