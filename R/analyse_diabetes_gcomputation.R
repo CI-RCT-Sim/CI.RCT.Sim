@@ -60,9 +60,9 @@ analyse_diabetes_gcomputation <- function() {
 
     # reformat dat to long format with outcome column 'y' for the change in HbA1c at each visit
     dat_long <- pivot_longer(dat,
-      cols = matches("^[yR]\\d+$"),
-      names_to = c(".value", "visit"),
-      names_pattern = "([yR])(\\d+)"
+                             cols = matches("^[yR]\\d+$"),
+                             names_to = c(".value", "visit"),
+                             names_pattern = "([yR])(\\d+)"
     ) %>%
       mutate(
         hba1c = y,
@@ -100,18 +100,18 @@ analyse_diabetes_gcomputation <- function() {
     obs_data <- as.data.table(dat_long)
     time_name <- "visit"
     time_points <- k # number of time-points (because baseline is included and last timepoint excluded)
-    covnames <- c("y", "trt", "R")
+    covnames <- c("hba1c", "trt", "R")
     outcome_name <- "y_k"
     covtypes <- c("normal", "binary", "binary")
     histories <- c(lagged, lagged)
-    histvars <- list("y", "R")
-    basecovs <- c("age")
+    histvars <- list("hba1c", "R")
+    basecovs <- c("age", "hba1c_0")
     covparams <- list(covmodels = c(
-      y ~ trt + R + lag1_y + age, # include trt + R (protocol deviation)
+      hba1c ~ trt + R + lag1_hba1c + age, # include trt + R (protocol deviation)
       trt ~ 1, # intercept only, trt predicted by no covariates
-      R ~ y + age
+      R ~ lag1_hba1c + age # hba1c + age
     ))
-    ymodel <- y_k ~ trt + R + lag1_y + age # include trt + R (protocol deviation)
+    ymodel <- y_k ~ trt + R + lag1_hba1c + age + hba1c_0# include trt + R (protocol deviation)
     intvars <- list(
       c("trt", "R"),
       c("trt", "R")
@@ -150,22 +150,29 @@ analyse_diabetes_gcomputation <- function() {
       basecovs = basecovs,
       nsamples = nsamples,
       show_progress = F,
-      seed = 1,
-      ci_method = "percentile"
+      seed = sample(1:100000, 1),
+      ci_method = "percentile",
+      boot_diag = T,
+      parallel = T,
+      ncores = 2
     )
-
+    # browser()
+    s <- sum(is.na(g.model$bootests[,1]))
     # mean of difference in mean change over bootstrap samples
     # summary(g.model)
     coef <- g.model$result$`Mean difference`[2] # mean difference between treatments (intervention - control) at visit k
     se <- g.model$result$`MD SE`[2] # se for mean difference
     ci_lower <- g.model[["result"]][["MD lower 95% CI"]][2] # 95% lower CI via percentile method
     ci_upper <- g.model[["result"]][["MD upper 95% CI"]][2] # 95% lower CI via percentile method
+    p <- 2 * (1 - pnorm(abs(coef / se)))
 
     list(
       coef = coef,
       se = se,
+      p = p,
       ci_lower = ci_lower,
-      ci_upper = ci_upper
+      ci_upper = ci_upper,
+      s = s
     )
   }
 }
