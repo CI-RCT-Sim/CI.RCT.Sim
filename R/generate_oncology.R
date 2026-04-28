@@ -211,6 +211,9 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   # remove patients who were recruited after cal_end
   temp <- temp[temp$event_time > 0, ]
 
+  #reset id, to have consecutive ID numbers
+  temp$id<-1:dim(temp)[1]
+
   temp$prog_ev <- as.numeric(temp$prog_time < temp$event_time)
   temp$prog_time[!temp$prog_ev] <- temp$event_time[!temp$prog_ev]
   temp$calendar_start_time <- temp$start
