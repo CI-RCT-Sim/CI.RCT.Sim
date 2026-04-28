@@ -36,7 +36,7 @@ pre_results <- runSimulation(
   generate = generate_oncology,
   analyse = pre_my_analyse,
   summarise = pre_my_summarise,
-  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 10000, allow_random_cens = TRUE),
+  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 10000, allow_random_cens = TRUE, random_cens_only_control = FALSE),
   parallel = TRUE,
   cl = cl
 )
@@ -226,7 +226,7 @@ results <- runSimulation(
   generate = generate_oncology,
   analyse = my_analyse,
   summarise = my_summarise,
-  fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL, allow_random_cens = TRUE),
+  fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL, allow_random_cens = TRUE, random_cens_only_control = FALSE),
   parallel = TRUE,
   cl = cl
 )
