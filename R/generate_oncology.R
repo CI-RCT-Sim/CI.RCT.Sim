@@ -34,7 +34,7 @@
 #' @examples
 #' Design <- oncology_scenario()
 #' generate_oncology(Design[1, ])
-generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL, allow_random_cens = TRUE)) {
+generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL, allow_random_cens = TRUE, random_cens_only_control = FALSE)) {
   if (!(condition$k >= (condition$max_duration + 1))) stop("k must be greater or equal max_duration+1")
 
   names(condition$beta_prog[[1]]) <-
@@ -157,7 +157,7 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   # event_time_rc <- ifelse(rcens, random_cens_time, event_time_uncensored)
   # event <- as.numeric(!rcens)
   if (fixed_objects$allow_random_cens) {
-    rcens <- random_cens_time < event_time_uncensored
+    rcens <- random_cens_time < event_time_uncensored & (trt * fixed_objects$random_cens_only_control) == 0 # NEW  ####
     # mean(random_cens_time>1)
     # mean(rcens)
     event_time_rc <- ifelse(rcens, random_cens_time, event_time_uncensored)
