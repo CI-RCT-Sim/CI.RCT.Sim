@@ -21,17 +21,5 @@ Useful links:
 \author{
 \strong{Maintainer}: Tobias Fellinger \email{tobias.fellinger@ages.at} (\href{https://orcid.org/0000-0001-9474-2731}{ORCID})
 
-Authors:
-\itemize{
-  \item Louise Jespersen
-  \item Niels Hendrickx
-  \item Paula Starke
-  \item Susanne Urach
-  \item Florian Klinglmüller
-  \item Robin Ristl
-  \item Maddalena Centanni
-  \item Angelika Geroldinger
-}
-
 }
 \keyword{internal}

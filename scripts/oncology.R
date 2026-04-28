@@ -1,17 +1,16 @@
-# devtools::install()
-# renv::restore()
-library(CI.RCT.Sim)
-library(parallel)
+devtools::load_all()
 
-# Derive true treatment effect -------------------------------------------
+# -------------------------------------------------------------------
+# Derive true treatment effect
+# -------------------------------------------------------------------
 
-pre_sim_parameters <- oncology_scenario(print = FALSE)
+pre_sim_parameters <- oncology_scenario(print = FALSE)[5, ]
 
 pre_N_sim <- 10
 
 pre_my_analyse <- list(
   truth = function(condition, dat, fixed_objects = NULL) {
-    mod <- survival::coxph(Surv(time = event_time, event = ev) ~ trt + X_0 + W_0, data = dat)
+    mod <- coxph(Surv(time = event_time, event = ev) ~ trt + X_0 + W_0, data = dat)
     HR <- exp(coef(mod)[1])
     list(HR = HR)
   }
@@ -25,43 +24,41 @@ pre_my_summarise <- create_summarise_function(
   )
 )
 
-cl <- makeCluster(detectCores(logical = FALSE) - 1)
-clusterEvalQ(cl, {
-  library("CI.RCT.Sim")
-})
-
 pre_results <- runSimulation(
   design = pre_sim_parameters,
   replications = pre_N_sim,
   generate = generate_oncology,
   analyse = pre_my_analyse,
   summarise = pre_my_summarise,
-  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 10000, allow_random_cens = TRUE),
-  parallel = TRUE,
-  cl = cl
+  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 100, allow_random_cens = TRUE),
+  parallel = "future"
 )
 
-stopCluster(cl)
 
-# Define parameter values and derived quantities -------------------------
+# -------------------------------------------------------------------
+# Define parameter values and derived quantities
+# -------------------------------------------------------------------
 
-sim_parameters <- oncology_scenario(print = FALSE) |>
+sim_parameters <- oncology_scenario(print = FALSE)[5, ] |>
   oncology_scenario_set_truevalues() |>
   dplyr::mutate(true_eff = pre_results$truth.mean_est)
 
-# Constants for simulation -----------------------------------------------
+# -------------------------------------------------------------------
+# Constants for simulation
+# -------------------------------------------------------------------
 
-N_sim <- 10000
-alpha <- 0.05
+N_sim <- 1000
 
-# List of analysis functions ---------------------------------------------
+# -------------------------------------------------------------------
+# List of analysis functions
+# -------------------------------------------------------------------
 
 my_analyse <- list(
   rpsftm_rc = analyse_oncology_rpsftm(recensor = TRUE),
   rpsftm = analyse_oncology_rpsftm(recensor = FALSE),
   tse_rc = analyse_oncology_TSE(recensor = TRUE),
   tse = analyse_oncology_TSE(recensor = FALSE),
-  gformula = analyse_oncology_gformula(B = 200),
+  gformula = analyse_oncology_gformula(),
   ipw = analyse_oncology_ipw(),
   itt = analyse_oncology_itt(),
   cens = analyse_oncology_cens(),
@@ -101,9 +98,9 @@ my_analyse <- list(
   }
 )
 
-my_analyse <- wrap_all_in_trycatch(my_analyse)
-
-# List of summarisation functions ----------------------------------------
+# -------------------------------------------------------------------
+# List of summarisation functions
+# -------------------------------------------------------------------
 # summarise_estimator and summarise_test are generic summarisation
 # functions from CI.RCT.Sim / SimDesign
 
@@ -114,111 +111,61 @@ my_summarise <- create_summarise_function(
     real = true_eff,
     lower = low,
     upper = up,
-    null = 1,
-    name = "est"
+    null = 1
   ),
   rpsftm = summarise_estimator(
     est = HR,
     real = true_eff,
     lower = low,
     upper = up,
-    null = 1,
-    name = "est"
+    null = 1
   ),
   tse_rc = summarise_estimator(
     est = HR,
     real = true_eff,
     lower = low,
     upper = up,
-    null = 1,
-    name = "est"
+    null = 1
   ),
   tse = summarise_estimator(
     est = HR,
     real = true_eff,
     lower = low,
     upper = up,
-    null = 1,
-    name = "est"
+    null = 1
   ),
   gformula = summarise_estimator(
     est = HR,
     real = true_eff,
-    null = 1,
-    name = "est"
+    null = 1
   ),
   ipw = summarise_estimator(
     est = HR,
     real = true_eff,
     lower = low,
     upper = up,
-    null = 1,
-    name = "est"
+    null = 1
   ),
   itt = summarise_estimator(
     est = HR,
     real = true_eff,
     lower = low,
     upper = up,
-    null = 1,
-    name = "est"
+    null = 1
   ),
   cens = summarise_estimator(
     est = HR,
     real = true_eff,
     lower = low,
     upper = up,
-    null = 1,
-    name = "est"
-  ),
-  # rejection rates
-  rpsftm_rc = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  rpsftm = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  tse_rc = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  tse = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  gformula = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  ipw = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  itt = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  cens = summarise_test(
-    alpha,
-    name = "test"
+    null = 1
   ),
   describe = summarise_describe()
 )
 
-# Run the simulations ----------------------------------------------------
-
-cl <- makeCluster(detectCores(logical = FALSE) - 1)
-clusterEvalQ(cl, {
-  library("CI.RCT.Sim")
-})
-clusterExport(cl = cl, varlist = c("alpha"))
-
-main_sessioninfo <- sessionInfo()
-nodes_sessioninfo <- clusterEvalQ(cl, {
-  sessionInfo()
-})
+# -------------------------------------------------------------------
+# Run the simulations
+# -------------------------------------------------------------------
 
 results <- runSimulation(
   design = sim_parameters,
@@ -227,12 +174,11 @@ results <- runSimulation(
   analyse = my_analyse,
   summarise = my_summarise,
   fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL, allow_random_cens = TRUE),
-  parallel = TRUE,
-  cl = cl
+  parallel = "future"
 )
 
-stopCluster(cl)
+# -------------------------------------------------------------------
+# Inspect results
+# -------------------------------------------------------------------
 
-# Save results -----------------------------------------------------------
-
-save(results, main_sessioninfo, nodes_sessioninfo, file = format(Sys.time(), paste0("results_onco_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")))
+save(results, file = format(Sys.time(), "results_test_%Y-%m-%d_%H%M.Rdata"))

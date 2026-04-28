@@ -50,8 +50,7 @@ analyse_oncology_TSE <- function(recensor = TRUE, alpha = 0.05, B = 100) {
       swtrt_control_only = TRUE,
       offset = 0,
       boot = B > 0,
-      n_boot = B,
-      nthreads = 1
+      n_boot = ifelse(B<=0,100,B)
     )
 
     SE <- stats::sd(log(TSE$hr_boots))

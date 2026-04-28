@@ -2,12 +2,12 @@
 % Please edit documentation in R/analyse_diabetes_mi.R
 \name{analyse_diabetes_mi}
 \alias{analyse_diabetes_mi}
-\title{Analyse data set with Multiple imputation}
+\title{Analysis for hypothetical and treatment policy estimands}
 \usage{
 analyse_diabetes_mi(
   strategy = c("hypothetical", "treatment_policy"),
   m = 10,
-  maxit = 10,
+  maxit = 20,
   ci_level = 0.95,
   seed = 123
 )
@@ -19,18 +19,13 @@ analyse_diabetes_mi(
 
 \item{maxit}{Maximum number of MICE iterations.}
 
-\item{ci_level}{confidence level for the CI (default 0.95)}
+\item{ci_level}{Confidence level.}
 
-\item{seed}{Random seed for imputation (used locally via withr).}
+\item{seed}{Random seed for imputation.}
 }
 \value{
-A function that, when called with \code{condition} and \code{dat}, returns a list with:
-\itemize{
-\item \code{coef} coefficient for \code{trt}
-\item \code{p} p-value for coef
-\item \code{ci_lower} lower bound of \code{ci-level}\% confidence interval for coef
-\item \code{ci_upper} upper bound of \code{ci-level}\% confidence interval for coef
-}
+A function with arguments \verb{(condition, dat, fixed_objects = NULL)}
+returning a list with elements \code{coef}, \code{p}, \code{ci_lower}, \code{ci_upper}.
 }
 \description{
 Creates an analysis function for the diabetes rescue simulation.
@@ -38,112 +33,11 @@ Depending on the chosen estimand, either a hypothetical strategy
 with multiple imputation after rescue initiation is applied,
 or a treatment policy strategy using observed data only.
 }
-\details{
-\subsection{Multiple Imputation (Hypothetical Strategy)}{
-
-Multiple imputation is used as a comparator method for the hypothetical
-estimand, targeting the scenario in which rescue medication had not been
-available.
-\subsection{Handling of rescue medication}{
-
-For subjects initiating rescue medication at visit \eqn{s}, all post-rescue
-outcomes are set to missing:
-
-\deqn{
-y_{i,j} = \text{NA} \quad \text{for all } j > s
-}
-
-The outcome at the rescue visit itself (\eqn{j = s}) is retained.
-
-This ensures consistency with the hypothetical estimand and aligns with the
-data-generating mechanism.
-}
-
-\subsection{Imputation model (Protocol-aligned)}{
-
-The imputation is performed using the \pkg{mice} package.
-\itemize{
-\item HbA1c at each visit is imputed if missing.
-\item The imputation model includes:
-\itemize{
-\item all available HbA1c measurements,
-\item baseline HbA1c (\eqn{y_0}),
-\item age at baseline.
-}
-}
-
-The imputation is performed \strong{separately within each treatment group},
-as specified in the protocol.
-
-A total of 10 imputations are generated.
-}
-
-\subsection{Analysis model}{
-
-For each imputed dataset, an ANCOVA model is fitted:
-
-\deqn{
-\Delta y_i = \beta_0 + \beta_1 \cdot \text{trt}_i + \beta_2 \cdot \text{age}_i + \beta_3 \cdot y_{0,i} + \varepsilon_i
-}
-
-where:
-\itemize{
-\item \eqn{\Delta y_i} is the change from baseline in HbA1c
-\item \eqn{y_{0,i}} is baseline HbA1c
-}
-}
-
-\subsection{Pooling}{
-
-Estimates from the imputed datasets are pooled using Rubin’s rules via
-\code{mice::pool}.
-}
-
-\subsection{Reproducibility}{
-
-Randomness from the multiple imputation procedure is controlled using
-\code{withr::with_seed()}, ensuring reproducibility without affecting the
-global random number generator state. This avoids unintended interference
-with simulation data generation.
-}
-
-}
-}
 \examples{
 \donttest{
-Design <- diabetes_scenario()[1, ] |>
-  diabetes_scenario_set_truevalues()
-
-dat <- generate_diabetes(Design)
-
-analyse_diabetes_mi(strategy = "treatment_policy")(Design, dat)
-analyse_diabetes_mi(strategy = "hypothetical")(Design, dat)
-
-dat <- generate_diabetes(Design)
-
-## ----------------------------
-## Treatment policy estimand
-## ----------------------------
-res_tp <- analyse_diabetes_mi(
-  strategy = "treatment_policy"
-)(Design, dat)
-
-res_tp
-
-## ----------------------------
-## Hypothetical estimand
-## (censor after rescue + MI)
-## ----------------------------
-res_hyp <- analyse_diabetes_mi(
-  strategy = "hypothetical"
-)(Design, dat)
-
-res_hyp
-
-## Compare results
-c(
-  treatment_policy = res_tp$coef,
-  hypothetical     = res_hyp$coef
-)
+setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
+dat <- generate_diabetes(setting)
+analyse_diabetes_mi(strategy = "treatment_policy")(setting, dat)
+analyse_diabetes_mi(strategy = "hypothetical")(setting, dat)
 }
 }

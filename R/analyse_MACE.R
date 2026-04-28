@@ -93,18 +93,12 @@ data_process_start_stop <- function(data) {
 
   data$t_mace_start <- 0
   data$t_mace_stop <- ifelse(data$event_disc==1,data$t_disc,ifelse(data$event_mace==1,data$t_mace,1))
-  data$event_mace <- ifelse(data$event_disc==1,0,data$event_mace)
-  
+
   data2$t_mace_start <- data2$t_disc
   data2$t_mace_stop <- data2$t_mace
   data2$disc <- 1
-  
-  if (mean(data2$t_mace_start==data2$t_mace_stop)==1) {
-    return(data)
-  } else {
-    return(rbind(data,data2)|>arrange(ID,t_mace_start))
-  }
-  
+
+  return(rbind(data,data2)|>arrange(ID,t_mace_start))
 }
 
 
@@ -149,7 +143,7 @@ cox_model_ipw <- function(data) {
     }
   }
   data$IPW <- 1/lp
-  (coxph(Surv(t_mace_start,t_mace_stop,event_mace)~A+X+Z,data=data,id=ID,weights=IPW,robust=T))
+  (coxph(Surv(t_mace_start,t_mace_stop,event_mace)~A+X+Z,data=data,id=ID,weights=IPW))
 
 }
 
@@ -197,7 +191,7 @@ cox_model_ipw_nocov <- function(data) {
     }
   }
   data$IPW <- 1/lp
-  (coxph(Surv(t_mace_start,t_mace_stop,event_mace)~A,data=data,id=ID,weights=IPW,robust=T))
+  (coxph(Surv(t_mace_start,t_mace_stop,event_mace)~A,data=data,id=ID,weights=IPW))
 
 }
 

@@ -211,6 +211,9 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   # remove patients who were recruited after cal_end
   temp <- temp[temp$event_time > 0, ]
 
+  #reset id, to have consecutive ID numbers
+  temp$id<-1:dim(temp)[1]
+
   temp$prog_ev <- as.numeric(temp$prog_time < temp$event_time)
   temp$prog_time[!temp$prog_ev] <- temp$event_time[!temp$prog_ev]
   temp$calendar_start_time <- temp$start
@@ -290,7 +293,7 @@ oncology_scenario <- function(print = interactive()) {
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  0,        0, 0),
     c(log(0.9 / 0.1), log(1.5), log(1.5), 0,                                  0,        0, 0),
     c(log(0.5 / 0.5), log(1.5), 0,        0,                                  0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * sqrt(pi / 2) - log(1.5), 0,        0, 0),
+    c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * pi / 2 - log(1.5), 0,        0, 0),
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  log(1.5), 0, 0)),
   beta_cens     = list(
     c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0),
@@ -339,7 +342,7 @@ oncology_scenario <- function(print = interactive()) {
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  0,        0, 0),
     c(log(0.9 / 0.1), log(1.5), log(1.5), 0,                                  0,        0, 0),
     c(log(0.5 / 0.5), log(1.5), 0,        0,                                  0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * sqrt(pi / 2) - log(1.5), 0,        0, 0),
+    c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * pi / 2 - log(1.5), 0,        0, 0),
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  log(1.5), 0, 0)),
   beta_cens     = list(
     c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0),
@@ -387,7 +390,7 @@ oncology_scenario <- function(print = interactive()) {
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  0,        0, 0),
     c(log(0.9 / 0.1), log(1.5), log(1.5), 0,                                  0,        0, 0),
     c(log(0.5 / 0.5), log(1.5), 0,        0,                                  0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * sqrt(pi / 2) - log(1.5), 0,        0, 0),
+    c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * pi / 2 - log(1.5), 0,        0, 0),
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  log(1.5), 0, 0)),
   beta_cens     = list(
     c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0),
@@ -434,7 +437,7 @@ oncology_scenario <- function(print = interactive()) {
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  0,        0, 0),
     c(log(0.9 / 0.1), log(1.5), log(1.5), 0,                                  0,        0, 0),
     c(log(0.5 / 0.5), log(1.5), 0,        0,                                  0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * sqrt(pi / 2) - log(1.5), 0,        0, 0),
+    c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * pi / 2 - log(1.5), 0,        0, 0),
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  log(1.5), 0, 0)),
   beta_cens     = list(
     c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0),

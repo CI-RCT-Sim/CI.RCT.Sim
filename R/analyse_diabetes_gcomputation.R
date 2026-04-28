@@ -1,4 +1,4 @@
-#' Analyse data set with G-computation
+#' Analyse Dataset with G-estimation (G-computation via gformula_continuous_eof)
 #'
 #' @return A function that, when called with `condition` and `dat`, returns a list with:
 #' * `coef`      estimated difference in mean change in HbA1c between treatment groups
@@ -46,12 +46,14 @@
 #'
 #' @examples
 #' \donttest{
-#' Design <- diabetes_scenario()[1, ] |>
+#' Design <- diabetes_scenario() |>
 #'   diabetes_scenario_set_truevalues()
 #'
-#' dat <- generate_diabetes(Design)
+#' condition <- Design[1, ]
 #'
-#' analyse_diabetes_gcomputation()(Design, dat)
+#' dat <- generate_diabetes(condition)
+#'
+#' analyse_diabetes_gcomputation()(condition, dat)
 #' }
 analyse_diabetes_gcomputation <- function() {
   function(condition, dat, fixed_objects = NULL) {
