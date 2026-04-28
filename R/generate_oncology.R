@@ -34,8 +34,16 @@
 #' @examples
 #' Design <- oncology_scenario()
 #' generate_oncology(Design[1, ])
-generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL, allow_random_cens = TRUE)) {
-  if (!(condition$k >= (condition$max_duration + 1))) stop("k must be greater or equal max_duration+1")
+generate_oncology <- function(condition,
+                              fixed_objects = list(
+                                allow_switch = TRUE,
+                                logHR_assumed = NULL,
+                                ev_soll = NULL,
+                                allow_random_cens = TRUE,
+                                random_cens_only_control = FALSE
+                              )) {
+  if (!(condition$k >= (condition$max_duration + 1)))
+    stop("k must be greater or equal max_duration+1")
 
   names(condition$beta_prog[[1]]) <-
     names(condition$beta_switch[[1]]) <-
@@ -43,14 +51,29 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
     c("Int", "X", "W", "Wgrw", "L", "trt", "switched")
 
   names(condition$beta_death[[1]]) <-
-    c("Int", "X", "W", "Wgrw", "L", "trt", "switched", "logHR_assumed")
+    c("Int",
+      "X",
+      "W",
+      "Wgrw",
+      "L",
+      "trt",
+      "switched",
+      "logHR_assumed")
 
   rtime2 <- function(b, k, X, W, Wgrw, L, trt, switchtime) {
     n <- dim(X)[1]
     time <- rep(NA, n)
     u <- -log(runif(n))
     for (i in 1:n) {
-      temp <- data.frame(time = 0:(k - 1), Int = 1, X = X[i, ], W = W[i, ], Wgrw = Wgrw[i, ], L = L[i, ], trt = trt[i])
+      temp <- data.frame(
+        time = 0:(k - 1),
+        Int = 1,
+        X = X[i, ],
+        W = W[i, ],
+        Wgrw = Wgrw[i, ],
+        L = L[i, ],
+        trt = trt[i]
+      )
       if (switchtime[i] < Inf) {
         ind <- sum(temp$time <= switchtime[i])
         newline <- temp[ind, ]
@@ -77,13 +100,17 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
     time
   }
 
-  ifelse(is.null(fixed_objects$logHR_assumed),
+  ifelse(
+    is.null(fixed_objects$logHR_assumed),
     logHR_assumed <- as.numeric(condition$beta_death[[1]]["logHR_assumed"]),
     logHR_assumed <- fixed_objects$logHR_assumed
   )
 
-  ifelse(is.null(fixed_objects$ev_soll),
-    ev_soll <- ceiling(((qnorm(1 - condition$alpha / 2) + qnorm(condition$power)) / logHR_assumed)^2 / condition$p_trt / (1 - condition$p_trt)),
+  ifelse(
+    is.null(fixed_objects$ev_soll),
+    ev_soll <- ceiling(((
+      qnorm(1 - condition$alpha / 2) + qnorm(condition$power)
+    ) / logHR_assumed)^2 / condition$p_trt / (1 - condition$p_trt)),
     ev_soll <- fixed_objects$ev_soll
   )
 
@@ -95,7 +122,11 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   X <- matrix(rep(rnorm(n, 0, 1), condition$k), ncol = condition$k)
 
   W <- rbind(
-    rmvnorm(n0, mean = condition$mu_W[[1]]$ctr, sigma = as.matrix(condition$Sigma_W_L[[1]])),
+    rmvnorm(
+      n0,
+      mean = condition$mu_W[[1]]$ctr,
+      sigma = as.matrix(condition$Sigma_W_L[[1]])
+    ),
     rmvnorm(n1, mean = condition$mu_W[[1]]$trt, sigma = condition$Sigma_W_L[[1]])
   )
   Wgrw <- W > condition$w
@@ -105,7 +136,14 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   )
   switchtime <- rep(Inf, n)
 
-  prog_time <- rtime2(condition$beta_prog[[1]], condition$k, X, W, Wgrw, L, trt, switchtime)
+  prog_time <- rtime2(condition$beta_prog[[1]],
+                      condition$k,
+                      X,
+                      W,
+                      Wgrw,
+                      L,
+                      trt,
+                      switchtime)
 
   # covariate values at progression (secondary baseline)
   index_sec_BL <- floor(prog_time) + 1
@@ -128,9 +166,8 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   if (fixed_objects$allow_switch) {
     switch_prob <-
       ifelse(trt == 0,
-        plogis(h_0 + X_2BL * h_X + W_2BL * h_W + Wgrw_2BL * h_Wgrw + L_2BL * h_L),
-        0
-      )
+             plogis(h_0 + X_2BL * h_X + W_2BL * h_W + Wgrw_2BL * h_Wgrw + L_2BL * h_L),
+             0)
   } else {
     switch_prob <- rep(0, n)
   }
@@ -143,9 +180,23 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   ind <- 0:(condition$k - 1) # used for variable names to indicate visits. Visit 0 is baseline, then visits are performed every year. So ind is the time of the visit in years.
 
   # event_time_uncensored<-rtime(n,TRT,SWITCHED,X,W,L,b0,b_trt,b_sw,b_x,b_W,b_L)
-  event_time_uncensored <- rtime2(condition$beta_death[[1]][1:7], condition$k, X, W, Wgrw, L, trt, switchtime)
+  event_time_uncensored <- rtime2(condition$beta_death[[1]][1:7],
+                                  condition$k,
+                                  X,
+                                  W,
+                                  Wgrw,
+                                  L,
+                                  trt,
+                                  switchtime)
   if (condition$beta_cens[[1]]["Int"] > -Inf) {
-    random_cens_time <- rtime2(condition$beta_cens[[1]], condition$k, X, W, Wgrw, L, trt, switchtime)
+    random_cens_time <- rtime2(condition$beta_cens[[1]],
+                               condition$k,
+                               X,
+                               W,
+                               Wgrw,
+                               L,
+                               trt,
+                               switchtime)
   } else {
     # this is to save time, the rtime2 function would return Inf, too
     random_cens_time <- rep(Inf, n)
@@ -157,7 +208,8 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   # event_time_rc <- ifelse(rcens, random_cens_time, event_time_uncensored)
   # event <- as.numeric(!rcens)
   if (fixed_objects$allow_random_cens) {
-    rcens <- random_cens_time < event_time_uncensored
+    rcens <- random_cens_time < event_time_uncensored &
+      (trt * fixed_objects$random_cens_only_control) == 0
     # mean(random_cens_time>1)
     # mean(rcens)
     event_time_rc <- ifelse(rcens, random_cens_time, event_time_uncensored)
@@ -181,9 +233,13 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
     id = 1:n,
     trt,
     # TRT,
-    X, W, L,
+    X,
+    W,
+    L,
     # PD,switch,SWITCHED,index_sec_BL,TRT_2BL,
-    X_2BL, W_2BL, L_2BL,
+    X_2BL,
+    W_2BL,
+    L_2BL,
     cal,
     event_time_rc,
     start,
@@ -201,7 +257,8 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   index_end <- sum(temp$cum_ev <= ev_soll)
   cal_end <- temp$cal[index_end]
   # apply maximum study duration
-  if (cal_end > condition$max_duration) cal_end <- condition$max_duration
+  if (cal_end > condition$max_duration)
+    cal_end <- condition$max_duration
 
 
   temp$admin_cens <- temp$cal > cal_end
@@ -212,7 +269,7 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   temp <- temp[temp$event_time > 0, ]
 
   #reset id, to have consecutive ID numbers
-  temp$id<-1:dim(temp)[1]
+  temp$id <- 1:dim(temp)[1]
 
   temp$prog_ev <- as.numeric(temp$prog_time < temp$event_time)
   temp$prog_time[!temp$prog_ev] <- temp$event_time[!temp$prog_ev]
@@ -459,11 +516,9 @@ oncology_scenario <- function(print = interactive()) {
     cat(skel)
   }
 
-  invisible(
-    skel |>
-      str2expression() |>
-      eval()
-  )
+  invisible(skel |>
+              str2expression() |>
+              eval())
 }
 
 #' Calculate true summary statistics for scenarios with delayed treatment effect
@@ -482,7 +537,9 @@ oncology_scenario <- function(print = interactive()) {
 oncology_scenario_set_truevalues <- function(Design, fixed_objects = NULL) {
   oncology_scenario_set_truevalues_rowwise <- function(condition, cutoff_stats) {
     if (!"ev_soll" %in% colnames(condition)) {
-      condition$ev_soll <- ceiling(((qnorm(1 - condition$alpha / 2) + qnorm(condition$power))
+      condition$ev_soll <- ceiling(((
+        qnorm(1 - condition$alpha / 2) + qnorm(condition$power)
+      )
       / as.numeric(condition$beta_death[[1]][8]))^2 / condition$p_trt / (1 - condition$p_trt))
       condition
     } else {
