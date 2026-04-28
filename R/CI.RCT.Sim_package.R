@@ -47,6 +47,7 @@ globalVariables(
     "beta_mace_trt_before",
     "event_disc",
     "t_mace_start",
-    "ID"
+    "ID",
+    "time"
   )
 )
