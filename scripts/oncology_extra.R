@@ -36,7 +36,7 @@ pre_results <- runSimulation(
   generate = generate_oncology,
   analyse = pre_my_analyse,
   summarise = pre_my_summarise,
-  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 10000, allow_random_cens = TRUE, random_cens_only_control = FALSE),
+  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 10000, allow_random_cens = TRUE, random_cens_only_control = TRUE),
   parallel = TRUE,
   cl = cl
 )
@@ -57,12 +57,12 @@ alpha <- 0.05
 # List of analysis functions ---------------------------------------------
 
 my_analyse <- list(
-  rpsftm_rc = analyse_oncology_rpsftm(recensor = TRUE),
-  rpsftm = analyse_oncology_rpsftm(recensor = FALSE),
-  tse_rc = analyse_oncology_TSE(recensor = TRUE),
-  tse = analyse_oncology_TSE(recensor = FALSE),
-  gformula = analyse_oncology_gformula(B = 200),
-  ipw = analyse_oncology_ipw(),
+  rpsftm_rc = analyse_oncology_mixed(method = "RPSFTM", recensor = TRUE),
+  rpsftm = analyse_oncology_mixed(method = "RPSFTM", recensor = FALSE),
+  tse_rc = analyse_oncology_mixed(method = "TSE", recensor = TRUE),
+  tse = analyse_oncology_mixed(method = "TSE", recensor = FALSE),
+  # gformula = analyse_oncology_gformula(B = 200),
+  ipw = analyse_oncology_ipw2(),
   itt = analyse_oncology_itt(),
   cens = analyse_oncology_cens(),
   describe = function(condition, dat, fixed_objects = NULL) {
@@ -89,7 +89,7 @@ my_analyse <- list(
     if (!is.null(attr(dat, "followup"))) {
       result$study_time <- attr(dat, "followup")
     } else {
-      result$study_time <- NA_real_
+      result$study_time <- max_followup
     }
     if (hasName(dat, "ice")) {
       result <- c(result, tabulate_helper(dat, "ice"))
@@ -107,105 +107,38 @@ my_analyse <- wrap_all_in_trycatch(my_analyse)
 # summarise_estimator and summarise_test are generic summarisation
 # functions from CI.RCT.Sim / SimDesign
 
+standard.est <- summarise_estimator(
+  est = HR,
+  real = true_eff,
+  lower = low,
+  upper = up,
+  null = 1,
+  name = "est"
+)
+standard.test <- summarise_test(
+  alpha,
+  name = "test"
+)
+
 my_summarise <- create_summarise_function(
   # bias, SD, coverage etc. for the treatment effect at final visit
-  rpsftm_rc = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  rpsftm = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  tse_rc = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  tse = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  gformula = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  ipw = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  itt = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  cens = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
+  rpsftm_rc = standard.est,
+  rpsftm = standard.est,
+  tse_rc = standard.est,
+  tse = standard.est,
+  # gformula = standard.est,
+  ipw = standard.est,
+  itt = standard.est,
+  cens = standard.est,
   # rejection rates
-  rpsftm_rc = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  rpsftm = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  tse_rc = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  tse = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  gformula = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  ipw = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  itt = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  cens = summarise_test(
-    alpha,
-    name = "test"
-  ),
+  rpsftm_rc = standard.test,
+  rpsftm = standard.test,
+  tse_rc = standard.test,
+  tse = standard.test,
+  # gformula = standard.test,
+  ipw = standard.test,
+  itt = standard.test,
+  cens = standard.test,
   describe = summarise_describe()
 )
 
@@ -228,7 +161,7 @@ results <- runSimulation(
   generate = generate_oncology,
   analyse = my_analyse,
   summarise = my_summarise,
-  fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL, allow_random_cens = TRUE, random_cens_only_control = FALSE),
+  fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL, allow_random_cens = TRUE, random_cens_only_control = TRUE),
   parallel = TRUE,
   cl = cl
 )
