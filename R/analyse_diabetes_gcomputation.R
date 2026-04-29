@@ -129,7 +129,7 @@ analyse_diabetes_gcomputation <- function() {
     int_descript <- c("treatment no rescue", "control no rescue")
     restrictions <- list(c("R", "lag1_R != 1", carry_forward))
 
-    nsamples <- 200
+    nsamples <- 50
 
     g.model <- gformula_continuous_eof(
       obs_data = obs_data,
@@ -151,7 +151,7 @@ analyse_diabetes_gcomputation <- function() {
       nsamples = nsamples,
       show_progress = F,
       seed = 1,
-      ci_method = "percentile"
+      ci_method = "normal"
     )
 
     # mean of difference in mean change over bootstrap samples
