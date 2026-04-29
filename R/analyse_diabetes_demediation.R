@@ -203,7 +203,7 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
 
     list(
       coef = end_res$qbar,
-      p_val = p_pool,
+      p = p_pool,
       se = sqrt(end_res$t),
       ci_lower = ci[1],
       ci_upper = ci[2]
