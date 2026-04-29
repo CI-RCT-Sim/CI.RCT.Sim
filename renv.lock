@@ -4090,6 +4090,12 @@
       "Author": "Stef van Buuren [aut, cre], Karin Groothuis-Oudshoorn [aut], Gerko Vink [ctb], Rianne Schouten [ctb], Alexander Robitzsch [ctb], Patrick Rockenschaub [ctb], Lisa Doove [ctb], Shahab Jolani [ctb], Margarita Moreno-Betancur [ctb], Ian White [ctb], Philipp Gaffert [ctb], Florian Meinfelder [ctb], Bernie Gray [ctb], Vincent Arel-Bundock [ctb], Mingyang Cai [ctb], Thom Volker [ctb], Edoardo Costantini [ctb], Caspar van Lissa [ctb], Hanne Oberman [ctb], Stephen Wade [ctb], Florian van Leeuwen [ctb], Frederik Fabricius-Bjerre [ctb]",
       "Repository": "CRAN"
     },
+    "miceFast": {
+      "Package": "miceFast",
+      "Version": "0.9.1",
+      "Source": "Repository",
+      "Repository": "CRAN"
+    },
     "microbenchmark": {
       "Package": "microbenchmark",
       "Version": "1.5.0",

@@ -197,6 +197,12 @@ analyse_diabetes_mi <- function(
 
     pred[, "trt"] <- 0
 
+    # list of variables used for prediction in monotone missingness pattern
+    pred_list <- apply(pred, 1, \(x){colnames(pred)[x==1]}) |>
+      purrr::imap(\(x, name){setdiff(x, name)}) |>
+      purrr::keep(\(x){length(x) > 0})
+
+
     ############################################################
     # Imputation per treatment arm
     ############################################################
@@ -236,16 +242,20 @@ analyse_diabetes_mi <- function(
       ##########################################################
       imp_list[[g + 1]] <- withr::with_seed(
         seed + g,
-        mice::mice(
-          dat_g,
-          m = m,
-          method = meth_g,
-          predictorMatrix = pred,
-          maxit = maxit,
-          ridge = 1e-5,
-          visitSequence = "monotone",
-          printFlag = FALSE
-        )
+        lapply(1:m, \(i){
+          dat_g_tmp <- dat_g
+          purrr::iwalk(pred_list, \(x, y){
+            dat_g_tmp[, y] <<- miceFast::fill_NA(
+              dat_g_tmp,
+              model = "lm_bayes",
+              posit_y = y,
+              posit_x = x,
+              ridge = 1e-5
+            )
+            NULL
+          })
+          dat_g_tmp
+        })
       )
     }
 
@@ -254,8 +264,8 @@ analyse_diabetes_mi <- function(
     ############################################################
     imp_full <- lapply(seq_len(m), function(i) {
       d <- dplyr::bind_rows(
-        mice::complete(imp_list[[1]], i),
-        mice::complete(imp_list[[2]], i)
+        imp_list[[1]][[i]],
+        imp_list[[2]][[i]]
       )
 
       # enforce consistent factor structure (extra safety)
