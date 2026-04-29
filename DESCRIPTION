@@ -50,5 +50,6 @@ Imports:
     sandwich,
     withr,
     survival,
-    trtswitch
+    trtswitch,
+    miceFast
 VignetteBuilder: knitr
