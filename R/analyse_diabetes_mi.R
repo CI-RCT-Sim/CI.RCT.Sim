@@ -133,7 +133,7 @@ analyse_diabetes_mi <- function(
     k <- condition$k
 
     ############################################################
-    # TREATMENT POLICY ESTIMAND
+    # TREATMENT POLICY (unchanged, protocol OK)
     ############################################################
     if (strategy == "treatment_policy") {
 
@@ -141,157 +141,135 @@ analyse_diabetes_mi <- function(
 
       fit <- lm(chg ~ trt + age + y0, data = dat)
 
-      sum_fit <- summary(fit)
       ci <- confint(fit, level = ci_level)["trt", ]
 
       return(list(
         coef     = coef(fit)["trt"],
-        p        = sum_fit$coefficients["trt", "Pr(>|t|)"],
+        p        = summary(fit)$coefficients["trt", "Pr(>|t|)"],
         ci_lower = ci[1],
         ci_upper = ci[2]
       ))
     }
 
     ############################################################
-    # HYPOTHETICAL ESTIMAND
+    # HYPOTHETICAL ESTIMAND (PROTOCOL-COMPLIANT MI)
     ############################################################
 
     dat_hyp <- dat
 
-    # Remove post-rescue outcomes
+    ## 1. Censor post-rescue outcomes
     for (i in seq_len(nrow(dat_hyp))) {
       rs <- dat_hyp$rescue_start[i]
-
       if (!is.na(rs) && rs < k) {
-        miss_visits <- (rs + 1):k
-        dat_hyp[i, paste0("y", miss_visits)] <- NA
+        dat_hyp[i, paste0("y", (rs + 1):k)] <- NA
       }
     }
 
+    ############################################################
+    # VARIABLES
+    ############################################################
     vars_y <- paste0("y", 0:k)
     vars_R <- if (k > 1) paste0("R", 1:(k - 1)) else character(0)
-    vars_imp <- c(vars_y, vars_R, "age", "trt")
+    vars_all <- c(vars_y, vars_R, "age", "trt")
+
+    dat_mi <- dat_hyp[, vars_all]
 
     ############################################################
-    # Methods
+    # Ensure correct types
     ############################################################
-    meth <- mice::make.method(dat_hyp[vars_imp])
-    meth[vars_y] <- "pmm"
-
     if (length(vars_R) > 0) {
-      meth[vars_R] <- "logreg.boot"
+      dat_mi[vars_R] <- lapply(dat_mi[vars_R], function(x)
+        factor(x, levels = c(0, 1))
+      )
     }
 
+    ############################################################
+    # MICE METHOD SPECIFICATION (PROTOCOL-COMPLIANT)
+    ############################################################
+    meth <- mice::make.method(dat_mi)
+
+    ## HbA1c: predictive mean matching
+    meth[vars_y] <- "pmm"
+
+    ## Rescue indicators: logistic regression
+    if (length(vars_R) > 0) {
+      meth[vars_R] <- "logreg"
+    }
+
+    ## No imputation for fully observed covariates
     meth[c("age", "trt")] <- ""
 
     ############################################################
-    # Predictor matrix (reduced)
+    # PASSIVE CONSTRAINT: RESCUE ONCE STARTED STAYS ON
     ############################################################
-    pred <- mice::make.predictorMatrix(dat_hyp[vars_imp])
-    pred[,] <- 0
-    pred[vars_y, c("y0", "age")] <- 1
+    if (length(vars_R) > 1) {
+      for (j in 2:length(vars_R)) {
+        r_prev <- vars_R[j - 1]
+        r_curr <- vars_R[j]
 
-    if (length(vars_R) > 0) {
-      pred[vars_R, c("y0", "age")] <- 1
+        meth[r_curr] <- paste0("~ I(pmax(", r_prev, ", ", r_curr, "))")
+      }
     }
 
+    ############################################################
+    # PREDICTOR MATRIX (protocol-aligned)
+    ############################################################
+    pred <- mice::make.predictorMatrix(dat_mi)
+    pred[,] <- 0
+
+    ## HbA1c depends on:
+    pred[vars_y, c(vars_y, vars_R, "age")] <- 1
+    diag(pred[vars_y, vars_y]) <- 0
+
+    ## Rescue depends on:
+    if (length(vars_R) > 0) {
+      pred[vars_R, c(vars_y, vars_R, "age")] <- 1
+      diag(pred[vars_R, vars_R]) <- 0
+    }
+
+    ## treatment never used in imputation model
     pred[, "trt"] <- 0
 
     ############################################################
-    # Imputation per treatment arm
+    # IMPUTATION (TRUE mice, stable)
     ############################################################
-    imp_list <- vector("list", 2)
-
-    for (g in 0:1) {
-
-      dat_g <- dat_hyp |>
-        dplyr::filter(trt == g) |>
-        dplyr::select(dplyr::all_of(vars_imp))
-
-      ##########################################################
-      # ✅ Minimal robust fix: keep ALL R as factors
-      ##########################################################
-      if (length(vars_R) > 0) {
-        dat_g[vars_R] <- lapply(dat_g[vars_R], function(x) {
-          factor(x, levels = c(0, 1))
-        })
-      }
-
-      ##########################################################
-      # ✅ Disable imputation for degenerate R variables
-      ##########################################################
-      meth_g <- meth
-
-      if (length(vars_R) > 0) {
-        for (r in vars_R) {
-          vals <- unique(na.omit(dat_g[[r]]))
-          if (length(vals) < 2) {
-            meth_g[r] <- ""   # no variation → skip imputation
-          }
-        }
-      }
-
-      ##########################################################
-      # MICE call
-      ##########################################################
-      imp_list[[g + 1]] <- withr::with_seed(
-        seed + g,
-        mice::mice(
-          dat_g,
-          m = m,
-          method = meth_g,
-          predictorMatrix = pred,
-          maxit = maxit,
-          ridge = 1e-5,
-          visitSequence = "monotone",
-          printFlag = FALSE
-        )
+    imp <- withr::with_seed(
+      seed,
+      mice::mice(
+        dat_mi,
+        m = m,
+        maxit = maxit,
+        method = meth,
+        predictorMatrix = pred,
+        printFlag = FALSE,
+        ridge = 1e-6
       )
-    }
+    )
 
     ############################################################
-    # Combine imputations
+    # ANALYSIS (ANCOVA per imputation)
     ############################################################
-    imp_full <- lapply(seq_len(m), function(i) {
-      d <- dplyr::bind_rows(
-        mice::complete(imp_list[[1]], i),
-        mice::complete(imp_list[[2]], i)
-      )
+    fit_models <- lapply(1:m, function(i) {
 
-      # enforce consistent factor structure (extra safety)
-      if (length(vars_R) > 0) {
-        d[vars_R] <- lapply(d[vars_R], function(x)
-          factor(x, levels = c(0, 1))
-        )
-      }
+      d <- mice::complete(imp, i)
 
-      d
-    })
-
-    ############################################################
-    # Analysis
-    ############################################################
-    fit_models <- lapply(imp_full, function(d) {
       d$chg <- d[[paste0("y", k)]] - d$y0
+
       lm(chg ~ trt + age + y0, data = d)
     })
 
     imp_obj <- mice::as.mira(fit_models)
     pooled <- mice::pool(imp_obj)
 
-    sum_pooled <- summary(
-      pooled,
-      conf.int = TRUE,
-      conf.level = ci_level
-    )
+    sum_pooled <- summary(pooled, conf.int = TRUE, conf.level = ci_level)
 
     trt_row <- sum_pooled[sum_pooled$term == "trt", ]
 
     list(
       coef     = trt_row$estimate,
       p        = trt_row$p.value,
-      ci_lower = trt_row[[grep("%", names(trt_row))[1]]],
-      ci_upper = trt_row[[grep("%", names(trt_row))[2]]]
+      ci_lower = trt_row$`2.5 %`,
+      ci_upper = trt_row$`97.5 %`
     )
   }
 }
