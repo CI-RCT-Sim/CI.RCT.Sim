@@ -122,7 +122,7 @@
 analyse_diabetes_mi <- function(
     strategy = c("hypothetical", "treatment_policy"),
     m = 10,
-    maxit = 10,
+    maxit = 20,
     ci_level = 0.95,
     seed = 123
 ) {
@@ -134,8 +134,15 @@ analyse_diabetes_mi <- function(
     k <- condition$k
 
     vars_y <- paste0("y", 0:k)
+    vars_R <- if (k > 1) paste0("R", 1:(k - 1)) else character(0)
 
     dat_hyp <- dat
+
+    ############################################################
+    # OPTIONAL: scaling for numerical stability
+    ############################################################
+    dat_hyp$age <- as.numeric(scale(dat_hyp$age))
+    dat_hyp$y0  <- as.numeric(scale(dat_hyp$y0))
 
     ############################################################
     # HYPOTHETICAL STRATEGY
@@ -153,31 +160,57 @@ analyse_diabetes_mi <- function(
     }
 
     ############################################################
-    # IMPUTE ONLY HbA1c + covariates
+    # VARIABLES
     ############################################################
-    vars_imp <- c(vars_y, "age", "trt")
+    vars_imp <- c(vars_y, vars_R, "age", "trt")
 
+    ############################################################
+    # METHODS
+    ############################################################
     meth <- mice::make.method(dat_hyp[vars_imp])
     meth[vars_y] <- "pmm"
+
+    if (length(vars_R) > 0) {
+      meth[vars_R] <- ""
+    }
+
     meth[c("age", "trt")] <- ""
 
     ############################################################
-    # ✅ CORRECT LONGITUDINAL PREDICTOR STRUCTURE
+    # PREDICTOR MATRIX (ENHANCED LAG STRUCTURE)
     ############################################################
     pred <- mice::make.predictorMatrix(dat_hyp[vars_imp])
     pred[,] <- 0
 
-    # baseline model
-    pred["y1", c("y0", "age")] <- 1
+    # baseline + covariates
+    pred[vars_y, c("y0", "age")] <- 1
 
-    # longitudinal chain
+    # 🔧 STRONGER LAG STRUCTURE
+    if (k >= 1) {
+      pred["y1", c("y0", "age")] <- 1
+    }
+
     if (k > 1) {
       for (j in 2:k) {
-        pred[paste0("y", j), c(paste0("y", j - 1), "y0", "age")] <- 1
+
+        lag1 <- paste0("y", j - 1)
+        lag2 <- if (j > 2) paste0("y", j - 2) else NULL
+
+        preds <- c(lag1, "y0", "age")
+
+        if (!is.null(lag2)) {
+          preds <- c(preds, lag2)
+        }
+
+        pred[paste0("y", j), preds] <- 1
       }
     }
 
-    # treatment not used for within-arm imputation
+    # rescue as predictor (treatment policy consistency)
+    if (length(vars_R) > 0) {
+      pred[vars_y, vars_R] <- 1
+    }
+
     pred[, "trt"] <- 0
 
     ############################################################
@@ -199,7 +232,13 @@ analyse_diabetes_mi <- function(
           method = meth,
           predictorMatrix = pred,
           maxit = maxit,
-          ridge = 1e-5,
+          ridge = 1e-4,
+          visitSequence = sort(vars_y),
+
+          # 🔧 KEY STABILITY FIX
+          donors = 10,
+
+          remove.collinear = FALSE,
           printFlag = FALSE
         )
       )
@@ -219,7 +258,7 @@ analyse_diabetes_mi <- function(
     })
 
     ############################################################
-    # ANALYSIS (ANCOVA)
+    # ANALYSIS (UNCHANGED)
     ############################################################
     fits <- lapply(imp_full, function(d) {
 
