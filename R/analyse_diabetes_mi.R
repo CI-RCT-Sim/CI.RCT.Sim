@@ -84,40 +84,40 @@
 #'
 #' @examples
 #' \donttest{
-#' Design <- diabetes_scenario()[1, ] |>
-#'   diabetes_scenario_set_truevalues()
-#'
-#' dat <- generate_diabetes(Design)
-#'
-#' analyse_diabetes_mi(strategy = "treatment_policy")(Design, dat)
-#' analyse_diabetes_mi(strategy = "hypothetical")(Design, dat)
-#'
-#' dat <- generate_diabetes(Design)
-#'
-#' ## ----------------------------
-#' ## Treatment policy estimand
-#' ## ----------------------------
-#' res_tp <- analyse_diabetes_mi(
-#'   strategy = "treatment_policy"
-#' )(Design, dat)
-#'
-#' res_tp
-#'
-#' ## ----------------------------
-#' ## Hypothetical estimand
-#' ## (censor after rescue + MI)
-#' ## ----------------------------
-#' res_hyp <- analyse_diabetes_mi(
-#'   strategy = "hypothetical"
-#' )(Design, dat)
-#'
-#' res_hyp
-#'
-#' ## Compare results
-#' c(
-#'   treatment_policy = res_tp$coef,
-#'   hypothetical     = res_hyp$coef
-#' )
+# Design <- diabetes_scenario()[1, ] |>
+#   diabetes_scenario_set_truevalues()
+#
+# dat <- generate_diabetes(Design)
+#
+# analyse_diabetes_mi(strategy = "treatment_policy")(Design, dat)
+# analyse_diabetes_mi(strategy = "hypothetical")(Design, dat)
+#
+# dat <- generate_diabetes(Design)
+#
+# ## ----------------------------
+# ## Treatment policy estimand
+# ## ----------------------------
+# res_tp <- analyse_diabetes_mi(
+#   strategy = "treatment_policy"
+# )(Design, dat)
+#
+# res_tp
+#
+# ## ----------------------------
+# ## Hypothetical estimand
+# ## (censor after rescue + MI)
+# ## ----------------------------
+# res_hyp <- analyse_diabetes_mi(
+#   strategy = "hypothetical"
+# )(Design, dat)
+#
+# res_hyp
+#
+# ## Compare results
+# c(
+#   treatment_policy = res_tp$coef,
+#   hypothetical     = res_hyp$coef
+# )
 #' }
 analyse_diabetes_mi <- function(
     strategy = c("hypothetical", "treatment_policy"),
@@ -126,148 +126,118 @@ analyse_diabetes_mi <- function(
     ci_level = 0.95,
     seed = 123
 ) {
+
   strategy <- match.arg(strategy)
 
   function(condition, dat, fixed_objects = NULL) {
 
     k <- condition$k
 
-    ############################################################
-    # TREATMENT POLICY (unchanged)
-    ############################################################
-    if (strategy == "treatment_policy") {
-
-      dat$chg <- dat[[paste0("y", k)]] - dat$y0
-
-      fit <- lm(chg ~ trt + age + y0, data = dat)
-
-      ci <- confint(fit, level = ci_level)["trt", ]
-
-      return(list(
-        coef     = coef(fit)["trt"],
-        p        = summary(fit)$coefficients["trt", "Pr(>|t|)"],
-        ci_lower = ci[1],
-        ci_upper = ci[2]
-      ))
-    }
-
-    ############################################################
-    # HYPOTHETICAL ESTIMAND (MI with logreg.boot)
-    ############################################################
+    vars_y <- paste0("y", 0:k)
 
     dat_hyp <- dat
 
-    ## 1. Censor post-rescue outcomes
-    for (i in seq_len(nrow(dat_hyp))) {
-      rs <- dat_hyp$rescue_start[i]
-      if (!is.na(rs) && rs < k) {
-        dat_hyp[i, paste0("y", (rs + 1):k)] <- NA
+    ############################################################
+    # HYPOTHETICAL STRATEGY
+    ############################################################
+    if (strategy == "hypothetical") {
+
+      for (i in seq_len(nrow(dat_hyp))) {
+
+        rs <- dat_hyp$rescue_start[i]
+
+        if (!is.na(rs) && rs < k) {
+          dat_hyp[i, paste0("y", (rs + 1):k)] <- NA
+        }
       }
     }
 
     ############################################################
-    # VARIABLES
+    # IMPUTE ONLY HbA1c + covariates
     ############################################################
-    vars_y <- paste0("y", 0:k)
-    vars_R <- if (k > 1) paste0("R", 1:(k - 1)) else character(0)
-    vars_all <- c(vars_y, vars_R, "age", "trt")
+    vars_imp <- c(vars_y, "age", "trt")
 
-    dat_mi <- dat_hyp[, vars_all]
-
-    ############################################################
-    # Ensure correct types
-    ############################################################
-    if (length(vars_R) > 0) {
-      dat_mi[vars_R] <- lapply(dat_mi[vars_R], function(x)
-        factor(x, levels = c(0, 1))
-      )
-    }
-
-    ############################################################
-    # MICE METHOD SPECIFICATION
-    ############################################################
-    meth <- mice::make.method(dat_mi)
-
-    ## HbA1c
+    meth <- mice::make.method(dat_hyp[vars_imp])
     meth[vars_y] <- "pmm"
-
-    ## ✅ Rescue indicators now use logreg.boot
-    if (length(vars_R) > 0) {
-      meth[vars_R] <- "logreg.boot"
-    }
-
-    ## No imputation for covariates
     meth[c("age", "trt")] <- ""
 
     ############################################################
-    # PASSIVE CONSTRAINT: once rescue → always rescue
+    # ✅ CORRECT LONGITUDINAL PREDICTOR STRUCTURE
     ############################################################
-    if (length(vars_R) > 1) {
-      for (j in 2:length(vars_R)) {
-        r_prev <- vars_R[j - 1]
-        r_curr <- vars_R[j]
+    pred <- mice::make.predictorMatrix(dat_hyp[vars_imp])
+    pred[,] <- 0
 
-        meth[r_curr] <- paste0("~ I(pmax(", r_prev, ", ", r_curr, "))")
+    # baseline model
+    pred["y1", c("y0", "age")] <- 1
+
+    # longitudinal chain
+    if (k > 1) {
+      for (j in 2:k) {
+        pred[paste0("y", j), c(paste0("y", j - 1), "y0", "age")] <- 1
       }
     }
 
-    ############################################################
-    # PREDICTOR MATRIX
-    ############################################################
-    pred <- mice::make.predictorMatrix(dat_mi)
-    pred[,] <- 0
-
-    ## HbA1c depends on outcomes, rescue, age
-    pred[vars_y, c(vars_y, vars_R, "age")] <- 1
-    diag(pred[vars_y, vars_y]) <- 0
-
-    ## Rescue depends on outcomes, rescue history, age
-    if (length(vars_R) > 0) {
-      pred[vars_R, c(vars_y, vars_R, "age")] <- 1
-      diag(pred[vars_R, vars_R]) <- 0
-    }
-
-    ## Never use treatment in imputation
+    # treatment not used for within-arm imputation
     pred[, "trt"] <- 0
 
     ############################################################
-    # IMPUTATION
+    # IMPUTATION BY TREATMENT ARM
     ############################################################
-    imp <- withr::with_seed(
-      seed,
-      mice::mice(
-        dat_mi,
-        m = m,
-        maxit = maxit,
-        method = meth,
-        predictorMatrix = pred,
-        printFlag = FALSE,
-        ridge = 1e-6
+    imp_list <- vector("list", 2)
+
+    for (g in 0:1) {
+
+      dat_g <- dat_hyp |>
+        dplyr::filter(trt == g) |>
+        dplyr::select(dplyr::all_of(vars_imp))
+
+      imp_list[[g + 1]] <- withr::with_seed(
+        seed + g,
+        mice::mice(
+          dat_g,
+          m = m,
+          method = meth,
+          predictorMatrix = pred,
+          maxit = maxit,
+          ridge = 1e-5,
+          printFlag = FALSE
+        )
       )
-    )
+    }
 
     ############################################################
-    # ANALYSIS
+    # COMBINE IMPUTATIONS
     ############################################################
-    fit_models <- lapply(1:m, function(i) {
+    imp_full <- lapply(seq_len(m), function(i) {
 
-      d <- mice::complete(imp, i)
+      d <- dplyr::bind_rows(
+        mice::complete(imp_list[[1]], i),
+        mice::complete(imp_list[[2]], i)
+      )
+
+      d
+    })
+
+    ############################################################
+    # ANALYSIS (ANCOVA)
+    ############################################################
+    fits <- lapply(imp_full, function(d) {
 
       d$chg <- d[[paste0("y", k)]] - d$y0
 
       lm(chg ~ trt + age + y0, data = d)
     })
 
-    imp_obj <- mice::as.mira(fit_models)
+    imp_obj <- mice::as.mira(fits)
     pooled <- mice::pool(imp_obj)
 
-    sum_pooled <- summary(pooled, conf.int = TRUE, conf.level = ci_level)
+    sm <- summary(pooled, conf.int = TRUE, conf.level = ci_level)
 
-    trt_row <- sum_pooled[sum_pooled$term == "trt", ]
+    trt_row <- sm[sm$term == "trt", ]
 
     list(
-      coef     = trt_row$estimate,
-      p        = trt_row$p.value,
+      coef = trt_row$estimate,
+      p = trt_row$p.value,
       ci_lower = trt_row$`2.5 %`,
       ci_upper = trt_row$`97.5 %`
     )
