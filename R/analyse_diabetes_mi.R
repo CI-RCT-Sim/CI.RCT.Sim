@@ -122,7 +122,7 @@
 analyse_diabetes_mi <- function(
     strategy = c("hypothetical", "treatment_policy"),
     m = 10,
-    maxit = 20,
+    maxit = 10,
     ci_level = 0.95,
     seed = 123
 ) {
@@ -135,24 +135,16 @@ analyse_diabetes_mi <- function(
 
     vars_y <- paste0("y", 0:k)
     vars_R <- if (k > 1) paste0("R", 1:(k - 1)) else character(0)
+    vars_imp <- c(vars_y, vars_R, "age", "trt")
 
     dat_hyp <- dat
 
     ############################################################
-    # OPTIONAL: scaling for numerical stability
-    ############################################################
-    dat_hyp$age <- as.numeric(scale(dat_hyp$age))
-    dat_hyp$y0  <- as.numeric(scale(dat_hyp$y0))
-
-    ############################################################
-    # HYPOTHETICAL STRATEGY
+    # Hypothetical censoring (rescue-based)
     ############################################################
     if (strategy == "hypothetical") {
-
       for (i in seq_len(nrow(dat_hyp))) {
-
         rs <- dat_hyp$rescue_start[i]
-
         if (!is.na(rs) && rs < k) {
           dat_hyp[i, paste0("y", (rs + 1):k)] <- NA
         }
@@ -160,61 +152,47 @@ analyse_diabetes_mi <- function(
     }
 
     ############################################################
-    # VARIABLES
-    ############################################################
-    vars_imp <- c(vars_y, vars_R, "age", "trt")
-
-    ############################################################
-    # METHODS
+    # METHOD SPECIFICATION
     ############################################################
     meth <- mice::make.method(dat_hyp[vars_imp])
+
     meth[vars_y] <- "pmm"
-
-    if (length(vars_R) > 0) {
-      meth[vars_R] <- ""
-    }
-
     meth[c("age", "trt")] <- ""
 
+    if (length(vars_R) > 0) {
+      meth[vars_R] <- "logreg"
+    }
+
     ############################################################
-    # PREDICTOR MATRIX (ENHANCED LAG STRUCTURE)
+    # PREDICTOR MATRIX (STRICT SEPARATION RULE)
     ############################################################
     pred <- mice::make.predictorMatrix(dat_hyp[vars_imp])
     pred[,] <- 0
 
-    # baseline + covariates
+    # baseline structure only
     pred[vars_y, c("y0", "age")] <- 1
 
-    # 🔧 STRONGER LAG STRUCTURE
-    if (k >= 1) {
-      pred["y1", c("y0", "age")] <- 1
+    # treatment policy: allow R
+    if (strategy == "treatment_policy" && length(vars_R) > 0) {
+      pred[vars_y, vars_R] <- 1
     }
 
+    # hypothetical: NO R influence in outcome models
+    if (strategy == "hypothetical" && length(vars_R) > 0) {
+      pred[vars_y, vars_R] <- 0
+    }
+
+    # minimal stable lag structure (only adjacent visits)
     if (k > 1) {
       for (j in 2:k) {
-
-        lag1 <- paste0("y", j - 1)
-        lag2 <- if (j > 2) paste0("y", j - 2) else NULL
-
-        preds <- c(lag1, "y0", "age")
-
-        if (!is.null(lag2)) {
-          preds <- c(preds, lag2)
-        }
-
-        pred[paste0("y", j), preds] <- 1
+        pred[paste0("y", j), paste0("y", j - 1)] <- 1
       }
-    }
-
-    # rescue as predictor (treatment policy consistency)
-    if (length(vars_R) > 0) {
-      pred[vars_y, vars_R] <- 1
     }
 
     pred[, "trt"] <- 0
 
     ############################################################
-    # IMPUTATION BY TREATMENT ARM
+    # IMPUTATION PER TREATMENT ARM
     ############################################################
     imp_list <- vector("list", 2)
 
@@ -224,6 +202,13 @@ analyse_diabetes_mi <- function(
         dplyr::filter(trt == g) |>
         dplyr::select(dplyr::all_of(vars_imp))
 
+      # enforce strict binary encoding for R
+      if (length(vars_R) > 0) {
+        dat_g[vars_R] <- lapply(dat_g[vars_R], function(x)
+          factor(as.integer(x), levels = c(0, 1))
+        )
+      }
+
       imp_list[[g + 1]] <- withr::with_seed(
         seed + g,
         mice::mice(
@@ -232,13 +217,13 @@ analyse_diabetes_mi <- function(
           method = meth,
           predictorMatrix = pred,
           maxit = maxit,
-          ridge = 1e-4,
+
+          # ULTRA-STABLE SETTINGS
+          ridge = 5e-5,
+          donors = 5,
+          pmm.k = 5,
+
           visitSequence = sort(vars_y),
-
-          # 🔧 KEY STABILITY FIX
-          donors = 10,
-
-          remove.collinear = FALSE,
           printFlag = FALSE
         )
       )
@@ -254,16 +239,21 @@ analyse_diabetes_mi <- function(
         mice::complete(imp_list[[2]], i)
       )
 
+      if (length(vars_R) > 0) {
+        d[vars_R] <- lapply(d[vars_R], function(x)
+          factor(as.integer(x), levels = c(0, 1))
+        )
+      }
+
       d
     })
 
     ############################################################
-    # ANALYSIS (UNCHANGED)
+    # ANALYSIS (UNCHANGED ANCOVA)
     ############################################################
     fits <- lapply(imp_full, function(d) {
 
       d$chg <- d[[paste0("y", k)]] - d$y0
-
       lm(chg ~ trt + age + y0, data = d)
     })
 
