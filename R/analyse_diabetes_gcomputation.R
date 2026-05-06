@@ -208,7 +208,6 @@ analyse_diabetes_gcomputation <- function() {
       boot_est[b] <- estimate_gformula(dat_boot)
     }
 
-    s <- sum(is.na(g.model$bootests[,1])) # number of failed bootstrap iterations
     # mean of difference in mean change over bootstrap samples
     se <- stats::sd(boot_est) # se for mean difference
     ci_lower <- as.numeric(stats::quantile(boot_est, probs = 0.025)) # 95% lower CI via percentile method
@@ -221,7 +220,6 @@ analyse_diabetes_gcomputation <- function() {
       p = p,
       ci_lower = ci_lower,
       ci_upper = ci_upper,
-      s = s
     )
   }
 }
