@@ -219,7 +219,7 @@ analyse_diabetes_gcomputation <- function() {
       se = se,
       p = p,
       ci_lower = ci_lower,
-      ci_upper = ci_upper,
+      ci_upper = ci_upper
     )
   }
 }
