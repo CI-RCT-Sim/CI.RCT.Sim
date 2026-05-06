@@ -133,7 +133,7 @@ analyse_diabetes_mi <- function(
     k <- condition$k
 
     ############################################################
-    # TREATMENT POLICY (unchanged, protocol OK)
+    # TREATMENT POLICY (unchanged)
     ############################################################
     if (strategy == "treatment_policy") {
 
@@ -152,7 +152,7 @@ analyse_diabetes_mi <- function(
     }
 
     ############################################################
-    # HYPOTHETICAL ESTIMAND (PROTOCOL-COMPLIANT MI)
+    # HYPOTHETICAL ESTIMAND (MI with logreg.boot)
     ############################################################
 
     dat_hyp <- dat
@@ -184,23 +184,23 @@ analyse_diabetes_mi <- function(
     }
 
     ############################################################
-    # MICE METHOD SPECIFICATION (PROTOCOL-COMPLIANT)
+    # MICE METHOD SPECIFICATION
     ############################################################
     meth <- mice::make.method(dat_mi)
 
-    ## HbA1c: predictive mean matching
+    ## HbA1c
     meth[vars_y] <- "pmm"
 
-    ## Rescue indicators: logistic regression
+    ## ✅ Rescue indicators now use logreg.boot
     if (length(vars_R) > 0) {
-      meth[vars_R] <- "logreg"
+      meth[vars_R] <- "logreg.boot"
     }
 
-    ## No imputation for fully observed covariates
+    ## No imputation for covariates
     meth[c("age", "trt")] <- ""
 
     ############################################################
-    # PASSIVE CONSTRAINT: RESCUE ONCE STARTED STAYS ON
+    # PASSIVE CONSTRAINT: once rescue → always rescue
     ############################################################
     if (length(vars_R) > 1) {
       for (j in 2:length(vars_R)) {
@@ -212,26 +212,26 @@ analyse_diabetes_mi <- function(
     }
 
     ############################################################
-    # PREDICTOR MATRIX (protocol-aligned)
+    # PREDICTOR MATRIX
     ############################################################
     pred <- mice::make.predictorMatrix(dat_mi)
     pred[,] <- 0
 
-    ## HbA1c depends on:
+    ## HbA1c depends on outcomes, rescue, age
     pred[vars_y, c(vars_y, vars_R, "age")] <- 1
     diag(pred[vars_y, vars_y]) <- 0
 
-    ## Rescue depends on:
+    ## Rescue depends on outcomes, rescue history, age
     if (length(vars_R) > 0) {
       pred[vars_R, c(vars_y, vars_R, "age")] <- 1
       diag(pred[vars_R, vars_R]) <- 0
     }
 
-    ## treatment never used in imputation model
+    ## Never use treatment in imputation
     pred[, "trt"] <- 0
 
     ############################################################
-    # IMPUTATION (TRUE mice, stable)
+    # IMPUTATION
     ############################################################
     imp <- withr::with_seed(
       seed,
@@ -247,7 +247,7 @@ analyse_diabetes_mi <- function(
     )
 
     ############################################################
-    # ANALYSIS (ANCOVA per imputation)
+    # ANALYSIS
     ############################################################
     fit_models <- lapply(1:m, function(i) {
 
