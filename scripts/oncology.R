@@ -7,6 +7,11 @@ library(parallel)
 
 pre_sim_parameters <- oncology_scenario(print = FALSE)
 
+# Minor update to incorporate influence of confounding
+pre_sim_parameters[c(9,35,60,84),"beta_death"][[1]]   <- pre_sim_parameters[c(15,41,66,90),"beta_death"][[1]] <- pre_sim_parameters[24,"beta_death"][[1]]
+pre_sim_parameters[c(24,50,75,99),"beta_prog"][[1]]   <- pre_sim_parameters[9,"beta_prog"][[1]]
+pre_sim_parameters[c(24,50,75,99),"beta_switch"][[1]] <- pre_sim_parameters[15,"beta_switch"][[1]]
+
 pre_N_sim <- 10
 
 pre_my_analyse <- list(
@@ -43,11 +48,18 @@ pre_results <- runSimulation(
 
 stopCluster(cl)
 
-# Define parameter values and derived quantities -------------------------
+# Under H0 the true effect is HR = 1
+pre_results$truth.mean_est[50:99] <- 1
 
+# Define parameter values and derived quantities -------------------------
 sim_parameters <- oncology_scenario(print = FALSE) |>
   oncology_scenario_set_truevalues() |>
   dplyr::mutate(true_eff = pre_results$truth.mean_est)
+
+# Minor update to incorporate influence of confounding
+sim_parameters[c(9,35,60,84),"beta_death"][[1]]   <- sim_parameters[c(15,41,66,90),"beta_death"][[1]] <- pre_sim_parameters[24,"beta_death"][[1]]
+sim_parameters[c(24,50,75,99),"beta_prog"][[1]]   <- sim_parameters[9,"beta_prog"][[1]]
+sim_parameters[c(24,50,75,99),"beta_switch"][[1]] <- sim_parameters[15,"beta_switch"][[1]]
 
 # Constants for simulation -----------------------------------------------
 
