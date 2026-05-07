@@ -17,6 +17,7 @@ test_that("gformula oncology works", {
     dat <- generate_oncology(Design[50, ])
   })
   expect_no_error({
+    set.seed(123)
     res <- my_analyse(Design[50, ], dat)
   })
 
