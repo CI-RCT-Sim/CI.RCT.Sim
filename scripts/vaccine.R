@@ -37,20 +37,20 @@ my_analyse <- list(
   ps_nocov = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = FALSE),
   pp       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3),
   # V unobserved
-  iv       = analyse_vaccine_ivreg(ci_level = 1-alpha, VE_margin = 0.3, V_unobserved=TRUE),
-  ps_cov   = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, V_unobserved=TRUE),
-  ps_nocov = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, V_unobserved=TRUE),
-  pp       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3, V_unobserved=TRUE),
+  iv_vunobs       = analyse_vaccine_ivreg(ci_level = 1-alpha, VE_margin = 0.3, V_unobserved=TRUE),
+  ps_cov_vunobs   = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, V_unobserved=TRUE),
+  ps_nocov_vunobs = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, V_unobserved=TRUE),
+  pp_vunobs       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3, V_unobserved=TRUE),
   # W unobserved
-  iv       = analyse_vaccine_ivreg(ci_level = 1-alpha, VE_margin = 0.3, W_unobserved=TRUE),
-  ps_cov   = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, W_unobserved=TRUE),
-  ps_nocov = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, W_unobserved=TRUE),
-  pp       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3, W_unobserved=TRUE),
+  iv_wunobs       = analyse_vaccine_ivreg(ci_level = 1-alpha, VE_margin = 0.3, W_unobserved=TRUE),
+  ps_cov_wunobs   = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, W_unobserved=TRUE),
+  ps_nocov_wunobs = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, W_unobserved=TRUE),
+  pp_wunobs       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3, W_unobserved=TRUE),
   # both V and W unobserved
-  iv       = analyse_vaccine_ivreg(ci_level = 1-alpha, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE),
-  ps_cov   = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, V_unobserved=TRUE, W_unobserved=TRUE),
-  ps_nocov = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, V_unobserved=TRUE, W_unobserved=TRUE),
-  pp       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE),
+  iv_vwunobs       = analyse_vaccine_ivreg(ci_level = 1-alpha, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE),
+  ps_cov_vwunobs   = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, V_unobserved=TRUE, W_unobserved=TRUE),
+  ps_nocov_vwunobs = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, V_unobserved=TRUE, W_unobserved=TRUE),
+  pp_vwunobs       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE),
 )
 
 my_analyse <- wrap_all_in_trycatch(my_analyse)
@@ -60,14 +60,38 @@ my_analyse <- wrap_all_in_trycatch(my_analyse)
 # functions from CI.RCT.Sim / SimDesign
 
 my_summarise <- create_summarise_function(
-  iv       = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-  ps_cov   = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-  ps_nocov = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-  pp       = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-  iv       = summarise_test(alpha, name="test"),
-  ps_cov   = summarise_test(alpha, name="test"),
-  ps_nocov = summarise_test(alpha, name="test"),
-  pp       = summarise_test(alpha, name="test")
+  iv               = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  ps_cov           = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  ps_nocov         = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  pp               = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  iv_vunobs        = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  ps_cov_vunobs    = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  ps_nocov_vunobs  = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  pp_vunobs        = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  iv_wunobs        = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  ps_cov_wunobs    = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  ps_nocov_wunobs  = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  pp_wunobs        = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  iv_vwunobs       = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  ps_cov_vwunobs   = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  ps_nocov_vwunobs = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  pp_vwunobs       = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+  iv               = summarise_test(alpha, name="test"),
+  ps_cov           = summarise_test(alpha, name="test"),
+  ps_nocov         = summarise_test(alpha, name="test"),
+  pp               = summarise_test(alpha, name="test"),
+  iv_vunobs        = summarise_test(alpha, name="test"),
+  ps_cov_vunobs    = summarise_test(alpha, name="test"),
+  ps_nocov_vunobs  = summarise_test(alpha, name="test"),
+  pp_vunobs        = summarise_test(alpha, name="test"),
+  iv_wunobs        = summarise_test(alpha, name="test"),
+  ps_cov_wunobs    = summarise_test(alpha, name="test"),
+  ps_nocov_wunobs  = summarise_test(alpha, name="test"),
+  pp_wunobs        = summarise_test(alpha, name="test"),
+  iv_vwunobs       = summarise_test(alpha, name="test"),
+  ps_cov_vwunobs   = summarise_test(alpha, name="test"),
+  ps_nocov_vwunobs = summarise_test(alpha, name="test"),
+  pp_vwunobs       = summarise_test(alpha, name="test")
 )
 
 # Run the simulations ----------------------------------------------------
