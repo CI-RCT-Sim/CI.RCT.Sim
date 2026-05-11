@@ -3,6 +3,8 @@
 #' @param ci_level the confidence level for the CIs (defaults to 0.95)
 #' @param VE_margin vaccine efficacy margin for the super-superiority test
 #' @param covariates_in_outcomes_model should the covariates to estimate the principal score also be included in the outcomes model
+#' @param V_unobserved consider covariate V unobserved (don't use it in analysis)
+#' @param W_unobserved consider covariate W unobserved (don't use it in analysis)
 #'
 #' @returns an analyse function that returns a list with the elements
 #'  * `p` the p-value of the super-superiority test
@@ -28,15 +30,24 @@
 #' dat <- generate_vaccine(Design[3,])
 #' my_analyse <- analyse_vaccine_ps(ci_level=0.95)
 #' my_analyse(Design[3, ], dat)
-analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outcomes_model=TRUE){
+analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outcomes_model=TRUE, V_unobserved=FALSE, W_unobserved=FALSE){
   function(condition, dat, fixed_objects = NULL){
+
+    formula_ps <- C ~ 1
+    if(!V_unobserved){
+      formula_ps <- update.formula(formula_ps, .~.+V)
+    }
+
+    if(!W_unobserved){
+      formula_ps <- update.formula(formula_ps, .~.+W)
+    }
 
     dat1 <- dat |>
       within({
         C <- factor(C, levels=c("0", "1"))
         trt <- factor(trt, levels=c("1", "0"))
       })
-    mod_ps <- glm(C~V+W, subset = (trt==1), data=dat1, family=binomial())
+    mod_ps <- glm(formula_ps, subset = (trt==1), data=dat1, family=binomial())
     odds <- predict(mod_ps, newdata = dat1, type="link") |>
       exp()
 
@@ -50,17 +61,18 @@ analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outco
         )
       )
 
-    if(covariates_in_outcomes_model){
-      # suppressWarnings is used to ignore warnings about non-integer outcomes
-      # this is expected due to using non-integer weights
-      outcome_mod <- suppressWarnings({
-        glm(evt ~ trt + V + W, weights=weight, family=binomial(), data = dat1)
-      })
-    } else {
-      outcome_mod <- suppressWarnings({
-        glm(evt ~ trt, weights=weight, family=binomial(), data = dat1)
-      })
+    formula_outcome <- evt ~ trt
+    if(covariates_in_outcomes_model & (!V_unobserved)){
+      formula_outcome <- update.formula(formula_outcome, .~.+V)
     }
+
+    if(covariates_in_outcomes_model & (!W_unobserved)){
+      formula_outcome <- update.formula(formula_outcome, .~.+W)
+    }
+
+    outcome_mod <- suppressWarnings({
+        glm(formula_outcome, weights=weight, family=binomial(), data = dat1)
+      })
 
     emm <- emmeans(outcome_mod, ~ trt)
     # results on the log-odds scale (odds-ratio)

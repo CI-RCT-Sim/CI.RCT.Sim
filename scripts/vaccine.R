@@ -31,10 +31,26 @@ alpha <- 0.05
 # List of analysis functions ---------------------------------------------
 
 my_analyse <- list(
+  # both V and W observed
   iv       = analyse_vaccine_ivreg(ci_level = 1-alpha, VE_margin = 0.3),
   ps_cov   = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = TRUE),
   ps_nocov = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = FALSE),
-  pp       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3)
+  pp       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3),
+  # V unobserved
+  iv       = analyse_vaccine_ivreg(ci_level = 1-alpha, VE_margin = 0.3, V_unobserved=TRUE),
+  ps_cov   = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, V_unobserved=TRUE),
+  ps_nocov = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, V_unobserved=TRUE),
+  pp       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3, V_unobserved=TRUE),
+  # W unobserved
+  iv       = analyse_vaccine_ivreg(ci_level = 1-alpha, VE_margin = 0.3, W_unobserved=TRUE),
+  ps_cov   = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, W_unobserved=TRUE),
+  ps_nocov = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, W_unobserved=TRUE),
+  pp       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3, W_unobserved=TRUE),
+  # both V and W unobserved
+  iv       = analyse_vaccine_ivreg(ci_level = 1-alpha, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE),
+  ps_cov   = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, V_unobserved=TRUE, W_unobserved=TRUE),
+  ps_nocov = analyse_vaccine_ps(ci_level = 1-alpha, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, V_unobserved=TRUE, W_unobserved=TRUE),
+  pp       = analyse_vaccine_pp(ci_level = 1-alpha, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE),
 )
 
 my_analyse <- wrap_all_in_trycatch(my_analyse)

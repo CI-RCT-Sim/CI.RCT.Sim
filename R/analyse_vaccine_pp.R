@@ -5,6 +5,8 @@
 #'
 #' @param ci_level the confidence level for the CIs (defaults to 0.95)
 #' @param VE_margin vaccine efficacy margin for the super-superiority test
+#' @param V_unobserved consider covariate V unobserved (don't use it in analysis)
+#' @param W_unobserved consider covariate W unobserved (don't use it in analysis)
 #'
 #' @returns an analyse function that returns a list with the elements
 #'  * `p` the p-value of the super-superiority test
@@ -28,7 +30,7 @@
 #' dat <- generate_vaccine(Design[1,])
 #' my_analyse <- analyse_vaccine_pp(ci_level=0.95)
 #' my_analyse(Design[1, ], dat)
-analyse_vaccine_pp <- function(ci_level=0.95, VE_margin=0.3){
+analyse_vaccine_pp <- function(ci_level=0.95, VE_margin=0.3, V_unobserved=FALSE, W_unobserved=FALSE){
   function(condition, dat, fixed_objects = NULL){
 
     dat1 <- dat |>
@@ -36,10 +38,19 @@ analyse_vaccine_pp <- function(ci_level=0.95, VE_margin=0.3){
         trt <- factor(trt, levels = c("1", "0"))
       })
 
+    formula_outcome <- evt ~ trt
+    if(!V_unobserved){
+      formula_outcome <- update.formula(formula_outcome, .~.+V)
+    }
+
+    if(!W_unobserved){
+      formula_outcome <- update.formula(formula_outcome, .~.+W)
+    }
+
     # filter compliant participants and calculate risk-ratio
     mod_ve <- dat1 |>
       subset(C==1) |>
-      glm(evt ~ trt + V + W, data = _, family=poisson(link="log"))
+      glm(formula_outcome, data = _, family=poisson(link="log"))
 
     emm <- emmeans(mod_ve, ~ trt)
     # results on the log scale (risk-ratio)
