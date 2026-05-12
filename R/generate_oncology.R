@@ -289,9 +289,9 @@ oncology_scenario <- function(print = interactive()) {
     c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        log(0.5),  0),
     c(log(log(2) / 1),   log(0.5), log(0.5), 0, 0,        log(0.5),  0),
     c(log(log(2) / 0.5), log(0.5), 0,        0, 0,        log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0.75), 0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), 0,         0)),
+    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        log(0.75), 0),
+    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        0,         0),
+    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0,5),  0)),
   beta_switch   = list(
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  0,        0, 0),
     c(log(0.9 / 0.1), log(1.5), log(1.5), 0,                                  0,        0, 0),
