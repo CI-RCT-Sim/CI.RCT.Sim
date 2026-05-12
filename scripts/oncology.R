@@ -49,7 +49,7 @@ pre_results <- runSimulation(
 stopCluster(cl)
 
 # Under H0 the true effect is HR = 1
-pre_results$truth.mean_est[50:99] <- 1
+pre_results[which(sapply(pre_results$beta_death, `[[`, 6) == 0),]$truth.mean_est <- 1
 
 # Define parameter values and derived quantities -------------------------
 sim_parameters <- oncology_scenario(print = FALSE) |>
