@@ -51,7 +51,8 @@ analyse_oncology_TSE <- function(recensor = TRUE, alpha = 0.05, B = 100) {
       offset = 0,
       boot = B > 0,
       n_boot = B,
-      nthreads = 1
+      nthreads = 1,
+      seed = sample(1:10000,1)
     )
 
     SE <- stats::sd(log(TSE$hr_boots))
