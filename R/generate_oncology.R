@@ -34,13 +34,16 @@
 #' @examples
 #' Design <- oncology_scenario()
 #' generate_oncology(Design[1, ])
-generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL, allow_random_cens = TRUE, random_cens_only_control = FALSE)) {
+generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL, allow_random_cens = TRUE)) {
   if (!(condition$k >= (condition$max_duration + 1))) stop("k must be greater or equal max_duration+1")
 
   names(condition$beta_prog[[1]]) <-
     names(condition$beta_switch[[1]]) <-
-    names(condition$beta_cens[[1]]) <-
     c("Int", "X", "W", "Wgrw", "L", "trt", "switched")
+
+
+  names(condition$beta_cens[[1]]) <-
+    c("Int", "X", "W", "Wgrw", "L", "trt", "switched", "control_only_random_cens")
 
   names(condition$beta_death[[1]]) <-
     c("Int", "X", "W", "Wgrw", "L", "trt", "switched", "logHR_assumed")
@@ -145,7 +148,7 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   # event_time_uncensored<-rtime(n,TRT,SWITCHED,X,W,L,b0,b_trt,b_sw,b_x,b_W,b_L)
   event_time_uncensored <- rtime2(condition$beta_death[[1]][1:7], condition$k, X, W, Wgrw, L, trt, switchtime)
   if (condition$beta_cens[[1]]["Int"] > -Inf) {
-    random_cens_time <- rtime2(condition$beta_cens[[1]], condition$k, X, W, Wgrw, L, trt, switchtime)
+    random_cens_time <- rtime2(condition$beta_cens[[1]][1:7], condition$k, X, W, Wgrw, L, trt, switchtime)
   } else {
     # this is to save time, the rtime2 function would return Inf, too
     random_cens_time <- rep(Inf, n)
@@ -157,7 +160,7 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
   # event_time_rc <- ifelse(rcens, random_cens_time, event_time_uncensored)
   # event <- as.numeric(!rcens)
   if (fixed_objects$allow_random_cens) {
-    rcens <- random_cens_time < event_time_uncensored & (trt * fixed_objects$random_cens_only_control) == 0 # NEW  ####
+    rcens <- random_cens_time < event_time_uncensored & (trt * condition$beta_cens[[1]]["control_only_random_cens"]) == 0
     # mean(random_cens_time>1)
     # mean(rcens)
     event_time_rc <- ifelse(rcens, random_cens_time, event_time_uncensored)
@@ -273,11 +276,11 @@ oncology_scenario <- function(print = interactive()) {
   w             = 0,      # Threshold for covariate W to determine the effect of W on the hazard
   mu_W          = list(
     list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0, 10), ctr = c(1, 0.5, 0, rep(-1, 10 - 3))),
+    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
     list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
   mu_L          = list(
     list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0, 10), ctr = c(1, 0.5, 0, rep(-1, 10 - 3))),
+    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
     list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
   Sigma_W_L     = list(
     matrix(0.5, nrow=10, ncol=10) + diag(0.5, 10),
@@ -296,11 +299,13 @@ oncology_scenario <- function(print = interactive()) {
     c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * sqrt(pi / 2) - log(1.5), 0,        0, 0),
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  log(1.5), 0, 0)),
   beta_cens     = list(
-    c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0),
-    c(-Inf,                 0,        0,        0, 0,        0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), 0,        0, 0,        0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, 0,        0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, log(0.5), 0, 0)),
+    c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0, 0),
+    c(-Inf,                 0,        0,        0, 0,        0, 0, 0),
+    c(log(-log(1 - 0.025)), log(0.5), 0,        0, 0,        0, 0, 0),
+    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, 0,        0, 0, 0),
+    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, log(0.5), 0, 0, 0),
+    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 0),
+    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 1)),
   beta_death = list(
     ### H1 ###
     # high effect
@@ -322,11 +327,11 @@ oncology_scenario <- function(print = interactive()) {
   w             = 0,      # Threshold for covariate W to determine the effect of W on the hazard
   mu_W          = list(
     list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0, 10), ctr = c(1, 0.5, 0, rep(-1, 10 - 3))),
+    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
     list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
   mu_L          = list(
     list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0, 10), ctr = c(1, 0.5, 0, rep(-1, 10 - 3))),
+    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
     list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
   Sigma_W_L     = list(
     matrix(0.5, nrow=10, ncol=10) + diag(0.5, 10),
@@ -345,11 +350,13 @@ oncology_scenario <- function(print = interactive()) {
     c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * sqrt(pi / 2) - log(1.5), 0,        0, 0),
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  log(1.5), 0, 0)),
   beta_cens     = list(
-    c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0),
-    c(-Inf,                 0,        0,        0, 0,        0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), 0,        0, 0,        0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, 0,        0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, log(0.5), 0, 0)),
+    c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0, 0),
+    c(-Inf,                 0,        0,        0, 0,        0, 0, 0),
+    c(log(-log(1 - 0.025)), log(0.5), 0,        0, 0,        0, 0, 0),
+    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, 0,        0, 0, 0),
+    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, log(0.5), 0, 0, 0),
+    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 0),
+    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 1)),
   beta_death = list(
     ### H1 ###
     # low effect
@@ -370,11 +377,11 @@ oncology_scenario <- function(print = interactive()) {
   w             = 0,      # Threshold for covariate W to determine the effect of W on the hazard
   mu_W          = list(
     list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0, 10), ctr = c(1, 0.5, 0, rep(-1, 10 - 3))),
+    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
     list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
   mu_L          = list(
     list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0, 10), ctr = c(1, 0.5, 0, rep(-1, 10 - 3))),
+    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
     list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
   Sigma_W_L     = list(
     matrix(0.5, nrow=10, ncol=10) + diag(0.5, 10),
@@ -393,11 +400,13 @@ oncology_scenario <- function(print = interactive()) {
     c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * sqrt(pi / 2) - log(1.5), 0,        0, 0),
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  log(1.5), 0, 0)),
   beta_cens     = list(
-    c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0),
-    c(-Inf,                 0,        0,        0, 0,        0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), 0,        0, 0,        0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, 0,        0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, log(0.5), 0, 0)),
+    c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0, 0),
+    c(-Inf,                 0,        0,        0, 0,        0, 0, 0),
+    c(log(-log(1 - 0.025)), log(0.5), 0,        0, 0,        0, 0, 0),
+    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, 0,        0, 0, 0),
+    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, log(0.5), 0, 0, 0),
+    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 0),
+    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 1)),
   beta_death = list(
     ### H0 ###
     # high effect
@@ -417,11 +426,11 @@ oncology_scenario <- function(print = interactive()) {
   w             = 0,      # Threshold for covariate W to determine the effect of W on the hazard
   mu_W          = list(
     list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0, 10), ctr = c(1, 0.5, 0, rep(-1, 10 - 3))),
+    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
     list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
   mu_L          = list(
     list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0, 10), ctr = c(1, 0.5, 0, rep(-1, 10 - 3))),
+    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
     list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
   Sigma_W_L     = list(
     matrix(0.5, nrow=10, ncol=10) + diag(0.5, 10),
@@ -440,11 +449,13 @@ oncology_scenario <- function(print = interactive()) {
     c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * sqrt(pi / 2) - log(1.5), 0,        0, 0),
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  log(1.5), 0, 0)),
   beta_cens     = list(
-    c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0),
-    c(-Inf,                 0,        0,        0, 0,        0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), 0,        0, 0,        0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, 0,        0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, log(0.5), 0, 0)),
+    c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0, 0),
+    c(-Inf,                 0,        0,        0, 0,        0, 0, 0),
+    c(log(-log(1 - 0.025)), log(0.5), 0,        0, 0,        0, 0, 0),
+    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, 0,        0, 0, 0),
+    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, log(0.5), 0, 0, 0),
+    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 0),
+    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 1)),
   beta_death = list(
     ### H0 ###
     # low effect
