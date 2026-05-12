@@ -39,7 +39,7 @@
 #
 # The fitted models are:
 #   hba1c ~ trt + R + lag1_hba1c + age
-#   y_k   ~ trt + R + hba1c + age + hba1c_0
+#   y_k   ~ trt + R + lag1_hba1c + age + hba1c_0
 #
 # Counterfactual trajectories are then simulated separately for each treatment arm,
 # starting from the observed baseline covariate distribution and imposing R = 0
@@ -138,7 +138,7 @@ analyse_diabetes_gcomputation <- function() {
 
       # fit outcome model (change in hba1c)
       fit_ymodel <- stats::lm(
-        y_k ~ trt + R + hba1c + age + hba1c_0,
+        y_k ~ trt + R + hba1c + age + hba1c_0, # hba1c instead of hba1c_lag is used here, because y_k is the value at timepoint k (saved in line ), so hba1c is the value at time k-1
         data = dat_outcome
       )
 
@@ -149,12 +149,12 @@ analyse_diabetes_gcomputation <- function() {
       simulate_mean <- function(trt_value) {
         sim_dat <- baseline_dat %>%
           mutate(
-            trt = trt_value,
+            trt = trt_value, #treatment intervention
             hba1c = hba1c_0,
-            R = 0
+            R = 0 #rescue intervention
           )
         # iterate over each timepoint after baseline until k-1
-        # put in values under intervention of no rescue instead of original observed data
+        # put in values under interventions instead of original observed data
         if (k > 1) {
           for (v in 1:(k - 1)) {
             newdat_hba1c <- data.frame(
