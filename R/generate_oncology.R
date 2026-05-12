@@ -286,12 +286,13 @@ oncology_scenario <- function(print = interactive()) {
     matrix(0.5, nrow=10, ncol=10) + diag(0.5, 10),
     toeplitz(c(1,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1))),
   beta_prog     = list(
+  	#    Int,             X,          W,    W>0, L,       trt ,      switched
     c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        log(0.5),  0),
     c(log(log(2) / 1),   log(0.5), log(0.5), 0, 0,        log(0.5),  0),
     c(log(log(2) / 0.5), log(0.5), 0,        0, 0,        log(0.5),  0),
     c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        log(0.75), 0),
     c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        0,         0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0,5),  0)),
+    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0.5),  0)),
   beta_switch   = list(
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  0,        0, 0),
     c(log(0.9 / 0.1), log(1.5), log(1.5), 0,                                  0,        0, 0),
@@ -337,12 +338,13 @@ oncology_scenario <- function(print = interactive()) {
     matrix(0.5, nrow=10, ncol=10) + diag(0.5, 10),
     toeplitz(c(1,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1))),
   beta_prog     = list(
+    #    Int,             X,          W,    W>0, L,       trt ,      switched
     c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        log(0.5),  0),
     c(log(log(2) / 1),   log(0.5), log(0.5), 0, 0,        log(0.5),  0),
     c(log(log(2) / 0.5), log(0.5), 0,        0, 0,        log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0.75), 0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), 0,         0)),
+    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        log(0.75), 0),
+    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        0,         0),
+    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0.5),  0)),
   beta_switch   = list(
     c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  0,        0, 0),
     c(log(0.9 / 0.1), log(1.5), log(1.5), 0,                                  0,        0, 0),
@@ -387,6 +389,7 @@ oncology_scenario <- function(print = interactive()) {
     matrix(0.5, nrow=10, ncol=10) + diag(0.5, 10),
     toeplitz(c(1,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1))),
   beta_prog     = list(
+     #    Int,             X,          W,    W>0, L,       trt ,      switched
     c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        log(0.5),  0),
     c(log(log(2) / 1),   log(0.5), log(0.5), 0, 0,        log(0.5),  0),
     c(log(log(2) / 0.5), log(0.5), 0,        0, 0,        log(0.5),  0),
