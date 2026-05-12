@@ -46,3 +46,26 @@ test_that("setting sample size works", {
   expect_true(all(Design5$n_ctrl > Design1$n_ctrl))
 })
 
+test_that("setting gamma0 works", {
+  Design1 <- vaccine_scenario() |>
+    vaccine_scenario_set_gamma_0()
+
+  expect_gt(min(Design1$gamma_0), 0)
+  expect_lt(max(Design1$gamma_0), Inf)
+
+  Design2 <- vaccine_scenario() |>
+    within({
+      overall_compliance <- 0
+    }) |>
+    vaccine_scenario_set_gamma_0()
+
+  expect_all_equal(Design2$gamma_0, -Inf)
+
+  Design3 <- vaccine_scenario() |>
+    within({
+      overall_compliance <- 1
+    }) |>
+    vaccine_scenario_set_gamma_0()
+
+  expect_all_equal(Design3$gamma_0, Inf)
+})
