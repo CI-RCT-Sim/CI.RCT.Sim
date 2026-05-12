@@ -13,7 +13,7 @@ test_that("itt oncology works", {
   })
 
   # Generate data with no missingness, and no treatment effect, to check equivalence with linear regression
-  withr::with_seed(129, {
+  withr::with_seed(121, {
     dat <- generate_oncology(Design[50, ])
   })
   expect_no_error({
