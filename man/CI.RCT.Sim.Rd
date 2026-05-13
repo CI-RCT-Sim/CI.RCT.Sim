@@ -21,5 +21,10 @@ Useful links:
 \author{
 \strong{Maintainer}: Tobias Fellinger \email{tobias.fellinger@ages.at} (\href{https://orcid.org/0000-0001-9474-2731}{ORCID})
 
+Authors:
+\itemize{
+  \item Tobias Fellinger \email{tobias.fellinger@ages.at} (\href{https://orcid.org/0000-0001-9474-2731}{ORCID})
+}
+
 }
 \keyword{internal}

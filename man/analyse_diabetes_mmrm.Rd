@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyse_diabetes_mmrm.R
 \name{analyse_diabetes_mmrm}
 \alias{analyse_diabetes_mmrm}
-\title{Analyse diabetes endpoint using MMRM}
+\title{Analyse diabetes endpoint using a Mixed Model for Repeated Measures (MMRM)}
 \usage{
 analyse_diabetes_mmrm(
   ci_level = 0.95,
@@ -10,25 +10,135 @@ analyse_diabetes_mmrm(
 )
 }
 \arguments{
-\item{ci_level}{confidence level for the CI (default 0.95)}
+\item{ci_level}{Confidence level for the two-sided confidence interval (default 0.95)}
 
-\item{strategy}{strategy to handle rescue medication: either "treatment_policy" (use all observed data) or "hypothetical" (set post-rescue values to missing and ignore them in the analysis)}
+\item{strategy}{Strategy for handling rescue medication:
+\itemize{
+\item \code{"treatment_policy"}
+\item \code{"hypothetical"}
+}}
 }
 \value{
-an analyse function that returns a list with
+A function that, when called with \code{condition} and \code{dat}, returns a list with:
 \itemize{
-\item \code{p} p-value for treatment effect at final visit
 \item \code{coef} estimated treatment effect at final visit
-\item \code{ci_lower} lower confidence limit
-\item \code{ci_upper} upper confidence limit
+\item \code{p} one-sided p-value for \eqn{\beta_{trt} < 0}
+\item \code{ci_lower} lower bound of the two-sided confidence interval
+\item \code{ci_upper} upper bound of the two-sided confidence interval
+\item \code{converged} logical indicating whether the model converged
+\item \code{covariance} covariance structure used (\code{us}, \code{cs}, or \code{diag})
+\item \code{fallback} logical indicating whether fallback covariance was used
 }
 }
 \description{
-Analyse diabetes endpoint using MMRM
+This function fits a Mixed Model for Repeated Measures (MMRM) to estimate
+the treatment effect at the final visit in a longitudinal clinical trial setting.
+}
+\details{
+\subsection{Model specification}{
+
+The following linear mixed model is fitted:
+
+\deqn{
+y_{ij} =
+\beta_0
++ \beta_1 \cdot \text{trt}_i
++ \sum_{j} \gamma_j \cdot \mathbb{1}(\text{visit}_j)
++ \sum_{j} \delta_j \cdot \left(\text{trt}_i \times \mathbb{1}(\text{visit}_j)\right)
++ \sum_{j} \alpha_j \cdot y_{0,i} \cdot \mathbb{1}(\text{visit}_j)
++ \sum_{j} \eta_j \cdot \text{age}_i \cdot \mathbb{1}(\text{visit}_j)
++ \varepsilon_{ij}
+}
+
+where:
+\itemize{
+\item \eqn{y_{ij}} is the outcome for subject \eqn{i} at visit \eqn{j}
+\item \eqn{\text{trt}_i} is the treatment indicator
+\item \eqn{\text{visit}_j} is a categorical visit factor
+\item \eqn{y_{0,i}} is baseline value
+\item \eqn{\text{age}_i} is a baseline covariate
+}
+
+The within-subject covariance is modeled using an unstructured covariance:
+
+\deqn{
+\varepsilon_i \sim \mathcal{N}(0, \Sigma)
+}
+
+where \eqn{\Sigma} is an unstructured covariance matrix across visits.
+}
+
+\subsection{Estimand and interpretation}{
+
+The visit factor is re-leveled such that the final visit (visit = k)
+is the reference category. Therefore, the main treatment coefficient
+corresponds directly to the treatment effect at the final visit.
+}
+
+\subsection{Handling of intercurrent events (rescue medication)}{
+
+Two strategies are supported:
+\subsection{Treatment policy}{
+
+All observed post-baseline data are used regardless of rescue medication.
+}
+
+\subsection{Hypothetical strategy}{
+
+For subjects who initiate rescue medication at visit \eqn{s}, all outcomes
+strictly after rescue are set to missing:
+
+\deqn{
+y_{i,j} = \mathrm{NA} \quad \text{for all } j > s
+}
+
+Subjects without rescue (or with rescue after the final visit)
+remain unchanged.
+
+This targets a hypothetical estimand corresponding to outcomes that
+would have been observed had rescue medication not been initiated.
+}
+
+}
+
+\subsection{Inference}{
+
+Treatment effects are estimated using restricted maximum likelihood (REML).
+
+Degrees of freedom are computed using Satterthwaite approximation.
+\subsection{Hypothesis testing}{
+
+A one-sided test is used for the treatment effect:
+
+\deqn{
+H_0: \beta_{trt} \ge 0
+\quad \text{vs} \quad
+H_A: \beta_{trt} < 0
+}
+
+since a reduction in HbA1c (negative change) is considered beneficial.
+
+Two-sided confidence intervals are retained and reported.
+}
+
+}
+
+\subsection{Covariance structures}{
+
+The model attempts the following covariance structures in order:
+unstructured (\code{us}), compound symmetry (\code{cs}), and diagonal (\code{diag}),
+falling back if convergence fails.
+}
 }
 \examples{
-setting <- diabetes_scenario()[1, ] |> diabetes_scenario_set_truevalues()
-dat <- generate_diabetes(setting)
-analyse_diabetes_mmrm()(setting, dat)
+\donttest{
+Design <- diabetes_scenario()[1, ] |>
+  diabetes_scenario_set_truevalues()
+
+dat <- generate_diabetes(Design)
+
+analyse_diabetes_mmrm(strategy = "treatment_policy")(Design, dat)
+analyse_diabetes_mmrm(strategy = "hypothetical")(Design, dat)
+}
 
 }
