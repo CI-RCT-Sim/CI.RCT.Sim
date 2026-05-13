@@ -1,18 +1,19 @@
 # devtools::install()
 # renv::restore()
+devtools::load_all()
+rm(list=ls())
 library(CI.RCT.Sim)
 library(parallel)
+library(survival)
 
 # Derive true treatment effect -------------------------------------------
 
-pre_sim_parameters <- oncology_scenario(print = FALSE)
+sim_parameters <- oncology_scenario() |>
+  oncology_scenario_set_truevalues()
 
-# Minor update to incorporate influence of confounding
-pre_sim_parameters[c(9,35,60,84),"beta_death"][[1]]   <- pre_sim_parameters[c(15,41,66,90),"beta_death"][[1]] <- pre_sim_parameters[24,"beta_death"][[1]]
-pre_sim_parameters[c(24,50,75,99),"beta_prog"][[1]]   <- pre_sim_parameters[9,"beta_prog"][[1]]
-pre_sim_parameters[c(24,50,75,99),"beta_switch"][[1]] <- pre_sim_parameters[15,"beta_switch"][[1]]
+#pre_sim_parameters <- oncology_scenario()
 
-pre_N_sim <- 10
+pre_N_sim <- 2
 
 pre_my_analyse <- list(
   truth = function(condition, dat, fixed_objects = NULL) {
@@ -23,47 +24,58 @@ pre_my_analyse <- list(
 )
 
 pre_my_summarise <- create_summarise_function(
-  truth = summarise_estimator(
+  truth = summarise_estimator( #test if this can be an object defined before
     est = HR,
-    real = exp(beta_death[[1]][6]),
+    real = exp(beta_death[[1]][6]), #actually not required, but we need a placeholder here
     null = 1
   )
+)
+
+summy<-summarise_estimator( #test if this can be an object defined before
+  est = HR,
+  real = exp(beta_death[[1]][6]), #actually not required, but we need a placeholder here
+  null = 1
+)
+pre_my_summarise <- create_summarise_function(
+  truth = summy
 )
 
 cl <- makeCluster(detectCores(logical = FALSE) - 1)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
+  library("survival")
 })
 
+#SimClean()
+
 pre_results <- runSimulation(
-  design = pre_sim_parameters,
+  design = sim_parameters,
   replications = pre_N_sim,
   generate = generate_oncology,
   analyse = pre_my_analyse,
   summarise = pre_my_summarise,
-  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 10000, allow_random_cens = TRUE),
+  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 100, allow_random_cens = TRUE),
   parallel = TRUE,
   cl = cl
 )
-
+as.data.frame(pre_results)
 stopCluster(cl)
 
 # Under H0 the true effect is HR = 1
 pre_results[which(sapply(pre_results$beta_death, `[[`, 6) == 0),]$truth.mean_est <- 1
 
 # Define parameter values and derived quantities -------------------------
-sim_parameters <- oncology_scenario(print = FALSE) |>
-  oncology_scenario_set_truevalues() |>
-  dplyr::mutate(true_eff = pre_results$truth.mean_est)
 
-# Minor update to incorporate influence of confounding
-sim_parameters[c(9,35,60,84),"beta_death"][[1]]   <- sim_parameters[c(15,41,66,90),"beta_death"][[1]] <- pre_sim_parameters[24,"beta_death"][[1]]
-sim_parameters[c(24,50,75,99),"beta_prog"][[1]]   <- sim_parameters[9,"beta_prog"][[1]]
-sim_parameters[c(24,50,75,99),"beta_switch"][[1]] <- sim_parameters[15,"beta_switch"][[1]]
+sim_parameters <- oncology_scenario() |>
+  oncology_scenario_set_truevalues() |>
+  dplyr::mutate(true_eff = pre_results$truth.mean_est) #redundant, pool in first step
+
+sim_parameters <- sim_parameters |>
+  dplyr::mutate(true_eff = pre_results$truth.mean_est) #redundant, pool in first step
 
 # Constants for simulation -----------------------------------------------
 
-N_sim <- 10000
+N_sim <- 10
 alpha <- 0.05
 
 # List of analysis functions ---------------------------------------------
@@ -73,7 +85,7 @@ my_analyse <- list(
   rpsftm = analyse_oncology_rpsftm(recensor = FALSE),
   tse_rc = analyse_oncology_TSE(recensor = TRUE),
   tse = analyse_oncology_TSE(recensor = FALSE),
-  gformula = analyse_oncology_gformula(B = 200),
+  gformula = analyse_oncology_gformula(B = 20),
   ipw = analyse_oncology_ipw(),
   itt = analyse_oncology_itt(),
   cens = analyse_oncology_cens(),
@@ -119,105 +131,39 @@ my_analyse <- wrap_all_in_trycatch(my_analyse)
 # summarise_estimator and summarise_test are generic summarisation
 # functions from CI.RCT.Sim / SimDesign
 
+
+summy<-summarise_estimator(
+  est = HR,
+  real = true_eff,
+  lower = low,
+  upper = up,
+  null = 1,
+  name = "est"
+)
+
+sumtest<-summarise_test(
+  alpha/2,
+  name = "test"
+)
 my_summarise <- create_summarise_function(
   # bias, SD, coverage etc. for the treatment effect at final visit
-  rpsftm_rc = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  rpsftm = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  tse_rc = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  tse = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  gformula = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  ipw = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  itt = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
-  cens = summarise_estimator(
-    est = HR,
-    real = true_eff,
-    lower = low,
-    upper = up,
-    null = 1,
-    name = "est"
-  ),
+  rpsftm_rc = summy,
+  rpsftm = summy,
+  tse_rc = summy,
+  tse = summy,
+  gformula = summy,
+  ipw = summy,
+  itt = summy,
+  cens = summy,
   # rejection rates
-  rpsftm_rc = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  rpsftm = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  tse_rc = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  tse = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  gformula = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  ipw = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  itt = summarise_test(
-    alpha,
-    name = "test"
-  ),
-  cens = summarise_test(
-    alpha,
-    name = "test"
-  ),
+  rpsftm_rc = sumtest,
+  rpsftm = sumtest,
+  tse_rc = sumtest,
+  tse = sumtest,
+  gformula = sumtest,
+  ipw = sumtest,
+  itt = sumtest,
+  cens = sumtest,
   describe = summarise_describe()
 )
 
@@ -235,7 +181,7 @@ nodes_sessioninfo <- clusterEvalQ(cl, {
 })
 
 results <- runSimulation(
-  design = sim_parameters,
+  design = sim_parameters[1:3,],
   replications = N_sim,
   generate = generate_oncology,
   analyse = my_analyse,
@@ -248,5 +194,5 @@ results <- runSimulation(
 stopCluster(cl)
 
 # Save results -----------------------------------------------------------
-
-save(results, main_sessioninfo, nodes_sessioninfo, file = format(Sys.time(), paste0("results_onco_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")))
+path="data/"
+save(results, main_sessioninfo, nodes_sessioninfo, file = paste(path,format(Sys.time(), paste0("results_onco_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep=""))

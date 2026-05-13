@@ -263,221 +263,212 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
 #' @examples
 #' Design <- oncology_scenario()[1, ]
 #' Design
-oncology_scenario <- function(print = interactive()) {
-  skel <- "rbind(params_scenarios_grid(
-  k             = 10,     # Number of visits post baseline
-  recr_interval = 2,      # Recruitment interval in years (e.g. 2 means that recruitment takes 2 years)
-  max_duration  = 7,      # Maximal duration of the trial in years (e.g. 7 means that the last patient recruited is followed for 5 years)
-  aimed_for_n_per_required_event = 3, #This governs the recruitment rate. In the protocol, we say it should be 2. But then it happens that
-                          #the aimed for number of events is not reached within the max_duration of 7 years. Longer max_duration is unrealistic, so increase recr. rate
-  alpha         = 0.05,   # Type I error rate for the logrank test at the end of the trial (i.e. at max_duration)
-  power         = 0.8,    # Power for the logrank test at the end of the trial (i.e. at max_duration)
-  p_trt         = 0.5,    # Proportion of patients randomized to the treatment arm
-  w             = 0,      # Threshold for covariate W to determine the effect of W on the hazard
-  mu_W          = list(
-    list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
-    list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
-  mu_L          = list(
-    list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
-    list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
-  Sigma_W_L     = list(
-    matrix(0.5, nrow=10, ncol=10) + diag(0.5, 10),
-    toeplitz(c(1,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1))),
-  beta_prog     = list(
-  	#    Int,             X,          W,    W>0, L,       trt ,      switched
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        log(0.5),  0),
-    c(log(log(2) / 1),   log(0.5), log(0.5), 0, 0,        log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), 0,        0, 0,        log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        log(0.75), 0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        0,         0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0.5),  0)),
-  beta_switch   = list(
-    c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  0,        0, 0),
-    c(log(0.9 / 0.1), log(1.5), log(1.5), 0,                                  0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), 0,        0,                                  0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * sqrt(pi / 2) - log(1.5), 0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  log(1.5), 0, 0)),
-  beta_cens     = list(
-    c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0, 0),
-    c(-Inf,                 0,        0,        0, 0,        0, 0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), 0,        0, 0,        0, 0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, 0,        0, 0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, log(0.5), 0, 0, 0),
-    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 0),
-    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 1)),
-  beta_death = list(
-    ### H1 ###
-    # high effect
-    c(log(log(2) / 4), log(0.5), log(0.5), 0, 0,        log(0.5), log(0.5),  log(0.5)),
-    c(log(log(2) / 2), log(0.5), log(0.5), 0, 0,        log(0.5), log(0.5),  log(0.5)),
-    c(log(log(2) / 4), log(0.5), 0,        0, 0,        log(0.5), log(0.5),  log(0.5)),
-    c(log(log(2) / 4), log(0.5), log(0.5), 0, log(0.5), log(0.5), log(0.5),  log(0.5)),
-    c(log(log(2) / 4), log(0.5), log(0.5), 0, 0,        log(0.5), 0,         log(0.5)),
-    c(log(log(2) / 4), log(0.5), log(0.5), 0, 0,        log(0.5), log(0.75), log(0.5)))),
-  params_scenarios_grid(
-  k             = 10,     # Number of visits post baseline
-  recr_interval = 2,      # Recruitment interval in years (e.g. 2 means that recruitment takes 2 years)
-  max_duration  = 7,      # Maximal duration of the trial in years (e.g. 7 means that the last patient recruited is followed for 5 years)
-  aimed_for_n_per_required_event = 3, #This governs the recruitment rate. In the protocol, we say it should be 2. But then it happens that
-                          #the aimed for number of events is not reached within the max_duration of 7 years. Longer max_duration is unrealistic, so increase recr. rate
-  alpha         = 0.05,   # Type I error rate for the logrank test at the end of the trial (i.e. at max_duration)
-  power         = 0.8,    # Power for the logrank test at the end of the trial (i.e. at max_duration)
-  p_trt         = 0.5,    # Proportion of patients randomized to the treatment arm
-  w             = 0,      # Threshold for covariate W to determine the effect of W on the hazard
-  mu_W          = list(
-    list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
-    list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
-  mu_L          = list(
-    list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
-    list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
-  Sigma_W_L     = list(
-    matrix(0.5, nrow=10, ncol=10) + diag(0.5, 10),
-    toeplitz(c(1,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1))),
-  beta_prog     = list(
-    #    Int,             X,          W,    W>0, L,       trt ,      switched
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        log(0.5),  0),
-    c(log(log(2) / 1),   log(0.5), log(0.5), 0, 0,        log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), 0,        0, 0,        log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        log(0.75), 0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        0,         0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0.5),  0)),
-  beta_switch   = list(
-    c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  0,        0, 0),
-    c(log(0.9 / 0.1), log(1.5), log(1.5), 0,                                  0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), 0,        0,                                  0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * sqrt(pi / 2) - log(1.5), 0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  log(1.5), 0, 0)),
-  beta_cens     = list(
-    c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0, 0),
-    c(-Inf,                 0,        0,        0, 0,        0, 0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), 0,        0, 0,        0, 0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, 0,        0, 0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, log(0.5), 0, 0, 0),
-    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 0),
-    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 1)),
-  beta_death = list(
-    ### H1 ###
-    # low effect
-    c(log(log(2) / 4), log(0.5), log(0.5), 0, 0,        log(0.75), log(0.75), log(0.75)),
-    c(log(log(2) / 2), log(0.5), log(0.5), 0, 0,        log(0.75), log(0.75), log(0.75)),
-    c(log(log(2) / 4), log(0.5), 0,        0, 0,        log(0.75), log(0.75), log(0.75)),
-    c(log(log(2) / 4), log(0.5), log(0.5), 0, log(0.5), log(0.75), log(0.75), log(0.75)),
-    c(log(log(2) / 4), log(0.5), log(0.5), 0, 0,        log(0.75), 0,         log(0.75)))),
-  params_scenarios_grid(
-  k             = 10,     # Number of visits post baseline
-  recr_interval = 2,      # Recruitment interval in years (e.g. 2 means that recruitment takes 2 years)
-  max_duration  = 7,      # Maximal duration of the trial in years (e.g. 7 means that the last patient recruited is followed for 5 years)
-  aimed_for_n_per_required_event = 3, #This governs the recruitment rate. In the protocol, we say it should be 2. But then it happens that
-                          #the aimed for number of events is not reached within the max_duration of 7 years. Longer max_duration is unrealistic, so increase recr. rate
-  alpha         = 0.05,   # Type I error rate for the logrank test at the end of the trial (i.e. at max_duration)
-  power         = 0.8,    # Power for the logrank test at the end of the trial (i.e. at max_duration)
-  p_trt         = 0.5,    # Proportion of patients randomized to the treatment arm
-  w             = 0,      # Threshold for covariate W to determine the effect of W on the hazard
-  mu_W          = list(
-    list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
-    list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
-  mu_L          = list(
-    list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
-    list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
-  Sigma_W_L     = list(
-    matrix(0.5, nrow=10, ncol=10) + diag(0.5, 10),
-    toeplitz(c(1,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1))),
-  beta_prog     = list(
-     #    Int,             X,          W,    W>0, L,       trt ,      switched
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        log(0.5),  0),
-    c(log(log(2) / 1),   log(0.5), log(0.5), 0, 0,        log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), 0,        0, 0,        log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0.75), 0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), 0,         0)),
-  beta_switch   = list(
-    c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  0,        0, 0),
-    c(log(0.9 / 0.1), log(1.5), log(1.5), 0,                                  0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), 0,        0,                                  0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * sqrt(pi / 2) - log(1.5), 0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  log(1.5), 0, 0)),
-  beta_cens     = list(
-    c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0, 0),
-    c(-Inf,                 0,        0,        0, 0,        0, 0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), 0,        0, 0,        0, 0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, 0,        0, 0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, log(0.5), 0, 0, 0),
-    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 0),
-    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 1)),
-  beta_death = list(
-    ### H0 ###
-    # high effect
-    c(log(log(2) / 4), log(0.5), log(0.5), 0, 0,        0, 0, log(0.5)),
-    c(log(log(2) / 2), log(0.5), log(0.5), 0, 0,        0, 0, log(0.5)),
-    c(log(log(2) / 4), log(0.5), 0,        0, 0,        0, 0, log(0.5)),
-    c(log(log(2) / 4), log(0.5), log(0.5), 0, log(0.5), 0, 0, log(0.5)))),
-  params_scenarios_grid(
-  k             = 10,     # Number of visits post baseline
-  recr_interval = 2,      # Recruitment interval in years (e.g. 2 means that recruitment takes 2 years)
-  max_duration  = 7,      # Maximal duration of the trial in years (e.g. 7 means that the last patient recruited is followed for 5 years)
-  aimed_for_n_per_required_event = 3, #This governs the recruitment rate. In the protocol, we say it should be 2. But then it happens that
-                          #the aimed for number of events is not reached within the max_duration of 7 years. Longer max_duration is unrealistic, so increase recr. rate
-  alpha         = 0.05,   # Type I error rate for the logrank test at the end of the trial (i.e. at max_duration)
-  power         = 0.8,    # Power for the logrank test at the end of the trial (i.e. at max_duration)
-  p_trt         = 0.5,    # Proportion of patients randomized to the treatment arm
-  w             = 0,      # Threshold for covariate W to determine the effect of W on the hazard
-  mu_W          = list(
-    list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
-    list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
-  mu_L          = list(
-    list(trt = rep(0, 10), ctr = rep(0,10)),
-    list(trt = rep(0.5, 10), ctr = c(0.5, 0, -0.5, -1, rep(-1.5, 10 - 4))),
-    list(trt = c(1, 0.5, 0, rep(-1, 10 - 3)), ctr = c(1, 0.5, 0, rep(-1, 10 - 3)))),
-  Sigma_W_L     = list(
-    matrix(0.5, nrow=10, ncol=10) + diag(0.5, 10),
-    toeplitz(c(1,0.9,0.8,0.7,0.6,0.5,0.4,0.3,0.2,0.1))),
-  beta_prog     = list(
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, 0,        log(0.5),  0),
-    c(log(log(2) / 1),   log(0.5), log(0.5), 0, 0,        log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), 0,        0, 0,        log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0.5),  0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), log(0.75), 0),
-    c(log(log(2) / 0.5), log(0.5), log(0.5), 0, log(0.5), 0,         0)),
-  beta_switch   = list(
-    c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  0,        0, 0),
-    c(log(0.9 / 0.1), log(1.5), log(1.5), 0,                                  0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), 0,        0,                                  0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), log(1.5), log(0.9 / 0.1) * sqrt(pi / 2) - log(1.5), 0,        0, 0),
-    c(log(0.5 / 0.5), log(1.5), log(1.5), 0,                                  log(1.5), 0, 0)),
-  beta_cens     = list(
-    c(log(-log(1 - 0.025)), 0,        0,        0, 0,        0, 0, 0),
-    c(-Inf,                 0,        0,        0, 0,        0, 0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), 0,        0, 0,        0, 0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, 0,        0, 0, 0),
-    c(log(-log(1 - 0.025)), log(0.5), log(0.5), 0, log(0.5), 0, 0, 0),
-    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 0),
-    c(log(-log(1 - 0.1))  , log(0.5), log(0.5), 0, 0       , 0, 0, 1)),
-  beta_death = list(
-    ### H0 ###
-    # low effect
-    c(log(log(2) / 4), log(0.5), log(0.5), 0, 0,        0, 0, log(0.75)),
-    c(log(log(2) / 2), log(0.5), log(0.5), 0, 0,        0, 0, log(0.75)),
-    c(log(log(2) / 4), log(0.5), 0,        0, 0,        0, 0, log(0.75)),
-    c(log(log(2) / 4), log(0.5), log(0.5), 0, log(0.5), 0, 0, log(0.75)))))
-"
+oncology_scenario <- function() {
 
+  params_scenarios_grid <- function(...){
+    params_args <- list(...)
+    params_ref <- purrr::map(params_args, \(x){
+      x[1]
+    }) |>
+      tibble::as_tibble()
 
-  if (print) {
-    cat(skel)
+    params_other <- purrr::imap(params_args, \(x, i){
+      if(inherits(x, "list")){
+        purrr::map(x[-1], \(y){
+          tmp <- params_ref
+          tmp[,i] <- list(list(y))
+          tmp
+        }) |>
+          purrr::list_rbind()
+      } else {
+        purrr::map(x[-1], \(y){
+          tmp <- params_ref
+          tmp[,i] <- y
+          tmp
+        }) |>
+          purrr::list_rbind()
+      }
+    }) |>
+      purrr::list_rbind()
+
+    rbind(params_ref, params_other)
   }
 
-  invisible(
-    skel |>
-      str2expression() |>
-      eval()
+
+
+
+  AR_1_fun<-function(rho,k) {
+    i<-rep(1:k,k)
+    j<-rep(1:k,each=k)
+    d<-abs(i-j)
+    corr<-rho^d
+    matrix(corr,k,k)
+  }
+  #AR_1_fun(0.9,10)
+
+  exch_fun<-function(rho,k) {
+    M<-matrix(rho,k,k)
+    diag(M)<-1
+    M
+  }
+
+  toeplitz_fun<-function(decr=0.1,k) {
+    korr_vek<-seq(from=1, by=-decr, length.out=k)
+    korr_vek[korr_vek<0]<-0
+    i<-rep(1:k,k)
+    j<-rep(1:k,each=k)
+    d<-abs(i-j)+1
+    corr<- korr_vek[d]
+    matrix(corr,k,k)
+  }
+  #toeplitz_fun(0.1,10)
+
+
+  k<-10
+
+  label_fun<-function(x,labels) {
+    for(i in 1:length(x)) names(x[[i]])<-labels
+    x
+  }
+
+  mu_W<-list(
+    list(trt=rep(0,k),ctr=rep(0,k)),
+    list(trt=rep(0.5,k),ctr=c(0.5,0,-0.5,rep(-1,k-3))),
+    list(trt=c(1,0.5,0,rep(-1,k-3)),ctr=c(1,0.5,0,rep(-1,k-3)))
   )
+  mu_L<-mu_W
+  Sigma_W_L<-list(exch_fun(0.5,k),toeplitz_fun(0.1,k))
+
+  beta_lab<-c("Int","X","W","Wgrw","L","trt","switched")
+  beta_lab2<-c("Int","X","W","Wgrw","L","trt","switched","logHR_assumed")
+  beta_lab3<-c("Int","X","W","Wgrw","L","trt","switched","switching_in_control_only")
+
+
+  beta_prog<-list(
+    #    Int,             X,          W,    W>0, L,       trt ,      switched
+    c( log( log(2)/0.5), log(0.5), log(0.5),  0, 0,        log(0.5),  0 ),
+    c( log( log(2)/1)  , log(0.5), log(0.5),  0, 0,        log(0.5),  0 ),
+    c( log( log(2)/0.5), log(0.5), 0       ,  0, 0,        log(0.5),  0 ),
+    c( log( log(2)/0.5), log(0.5), log(0.5),  0, 0,        log(0.75), 0 ),
+    c( log( log(2)/0.5), log(0.5), log(0.5),  0, 0,        0,         0 ),
+    c( log( log(2)/0.5), log(0.5), log(0.5),  0, log(0.5), log(0.5),  0 )
+  ) |> label_fun(beta_lab)
+
+  beta_switch<-list(
+    #   Int,          X,       W,      W>0,                      L   ,trt,  ,switched
+    c(log(0.5/0.5),log(1.5),log(1.5),0                         ,0       ,0,0),
+    c(log(0.9/0.1),log(1.5),log(1.5),0                         ,0       ,0,0),
+    c(log(0.5/0.5),log(1.5),0       ,0                         ,0       ,0,0),
+    c(log(0.5/0.5),log(1.5),log(1.5),log(0.9/0.1)*sqrt(pi/2)-log(1.5),0       ,0,0),
+    c(log(0.5/0.5),log(1.5),log(1.5),0                         ,log(1.5),0,0)
+  ) |> label_fun(beta_lab)
+
+  HR_h<-0.5 #HR assumed high effect
+
+  beta_death_high_effect<-list(
+    #     Int,          X,          W,    W>0,  L,          trt,        switched,   HR_assumed
+    c( log( log(2)/4), log(0.5), log(0.5),  0, 0       ,  log(0.5) ,    log(0.5) , log(HR_h) ),
+    c( log( log(2)/2), log(0.5), log(0.5),  0, 0       ,  log(0.5) ,    log(0.5) , log(HR_h) ),
+    c( log( log(2)/4), log(0.5), 0       ,  0, 0       ,  log(0.5) ,    log(0.5) , log(HR_h) ),
+    c( log( log(2)/4), log(0.5), log(0.5),  0, log(0.5),  log(0.5) ,    log(0.5) , log(HR_h) ),
+    c( log( log(2)/4), log(0.5), log(0.5),  0, 0       ,  log(0.5) ,    log(0.75), log(HR_h) ),
+    c( log( log(2)/4), log(0.5), log(0.5),  0, 0       ,  log(0.5) ,    0        , log(HR_h) )
+  ) |> label_fun(beta_lab2)
+
+
+  HR_l<-0.75 #HR assumed low effect
+  beta_death_low_effect<-list(
+    #     Int,          X,          W,    W>0,  L,          trt,        switched   ,   HR_assumed
+    c( log( log(2)/4), log(0.5), log(0.5),  0, 0       ,  log(0.75) ,    log(0.75) , log(HR_l)  ),
+    c( log( log(2)/2), log(0.5), log(0.5),  0, 0       ,  log(0.75) ,    log(0.75) , log(HR_l)  ),
+    c( log( log(2)/4), log(0.5), 0       ,  0, 0       ,  log(0.75) ,    log(0.75) , log(HR_l)  ),
+    c( log( log(2)/4), log(0.5), log(0.5),  0, log(0.5),  log(0.75) ,    log(0.75) , log(HR_l)  ),
+    c( log( log(2)/4), log(0.5), log(0.5),  0, 0       ,  log(0.75) ,    0         , log(HR_l)  )
+  ) |> label_fun(beta_lab2)
+
+
+
+  beta_death_H0_high_effect<-list(
+    #    Int,              X,       W,    W>0,   L,       trt, switched   , HR_assumed
+    c( log( log(2)/4), log(0.5), log(0.5),  0, 0       ,  0 ,    0 , log(HR_h)  ),
+    c( log( log(2)/2), log(0.5), log(0.5),  0, 0       ,  0 ,    0 , log(HR_h)  ),
+    c( log( log(2)/4), log(0.5), 0       ,  0, 0       ,  0 ,    0 , log(HR_h)  ),
+    c( log( log(2)/4), log(0.5), log(0.5),  0, log(0.5),  0 ,    0 , log(HR_h)  )
+  ) |> label_fun(beta_lab2)
+
+
+
+  beta_death_H0_low_effect<-list(
+    #    Int,              X,       W,     W>0,  L,       trt, switched   , HR_assumed
+    c( log( log(2)/4), log(0.5), log(0.5),  0, 0       ,  0 ,    0 , log(HR_l)  ),
+    c( log( log(2)/2), log(0.5), log(0.5),  0, 0       ,  0 ,    0 , log(HR_l)  ),
+    c( log( log(2)/4), log(0.5), 0       ,  0, 0       ,  0 ,    0 , log(HR_l)  ),
+    c( log( log(2)/4), log(0.5), log(0.5),  0, log(0.5),  0 ,    0 , log(HR_l)  )
+  )  |> label_fun(beta_lab2)
+
+
+  beta_cens<-list(
+    #    Int,                X,       W,       W>0, L,        trt, switched, switching in control only
+    c(log(-log(1-0.025))  ,0       , 0       ,  0,  0       ,    0,  0,		0),
+    c(-Inf                ,0       , 0       ,  0,  0       ,    0,  0,		0),
+    c(log(-log(1-0.025))  ,log(0.5), 0       ,  0,  0       ,    0,  0,		0),
+    c(log(-log(1-0.025))  ,log(0.5), log(0.5),  0,  0       ,    0,  0,		0),
+    c(log(-log(1-0.025))  ,log(0.5), log(0.5),  0,  log(0.5),    0,  0,		0),
+    #extra
+    c(log(-log(1-0.1))  ,log(0.5), log(0.5),  0,  0       ,    0,  0,			0),
+    c(log(-log(1-0.1))  ,log(0.5), log(0.5),  0,  0       ,    0,  0,			1)
+
+
+  ) |> label_fun(beta_lab3)
+
+
+
+  constant<-data.frame(
+    k=k,
+    recr_interval=2,
+    max_duration=7,
+    alpha=0.05,
+    power=0.8,
+    p_trt=0.5,
+    w=0,
+    aimed_for_n_per_required_event=3,
+    version=1
+  )
+
+
+
+  scen_trt_sw_H1_high<-cbind(params_scenarios_grid(mu_W=mu_W,mu_L=mu_L,Sigma_W_L=Sigma_W_L,beta_prog=beta_prog,beta_switch=beta_switch,beta_death=beta_death_high_effect,beta_cens=beta_cens),constant)
+  scen_trt_sw_H1_low<-cbind(params_scenarios_grid(mu_W=mu_W,mu_L=mu_L,Sigma_W_L=Sigma_W_L,beta_prog=beta_prog,beta_switch=beta_switch,beta_death=beta_death_low_effect,beta_cens=beta_cens),constant)
+  scen_trt_sw_H0_high<-cbind(params_scenarios_grid(mu_W=mu_W,mu_L=mu_L,Sigma_W_L=Sigma_W_L,beta_prog=beta_prog,beta_switch=beta_switch,beta_death=beta_death_H0_high_effect,beta_cens=beta_cens),constant)
+  scen_trt_sw_H0_low<-cbind(params_scenarios_grid(mu_W=mu_W,mu_L=mu_L,Sigma_W_L=Sigma_W_L,beta_prog=beta_prog,beta_switch=beta_switch,beta_death=beta_death_H0_low_effect,beta_cens=beta_cens),constant)
+
+  all_scen<-rbind(
+    scen_trt_sw_H1_high,
+    scen_trt_sw_H1_low,
+    scen_trt_sw_H0_high,
+    scen_trt_sw_H0_low
+  )
+
+  #additional specifics
+  #if L has a pre-set effect on death, it must also have an effect on switching and progression:
+  #if L has a pre-set effect on prog or on switch, it must also have an effect on death:
+  #if the mean trajectory of L is special (other than base pattern "1"), there should be full confounding
+  for(i in 1:dim(all_scen)[1]) {
+    case<-0
+
+    if(all_scen$beta_death[[i]][5] != 0) case<-1
+    if(all_scen$beta_prog[[i]][5] != 0 | all_scen$beta_switch[[i]][5] != 0 ) case<-2
+    if(any(unlist(all_scen$mu_L[[i]])!=0)) case<-3
+
+    if(case==1 | case==3) {
+      all_scen$beta_prog[[i]][5]<-log(0.5)
+      all_scen$beta_switch[[i]][5]<-log(1.5)
+    }
+    if(case==2 | case==3) all_scen$beta_death[[i]][5]<-log(0.5) #index 5 is effect of L
+  }
+
+
+  all_scen
 }
 
 #' Calculate true summary statistics for scenarios with delayed treatment effect

@@ -1,54 +1,20 @@
 
-setwd("C:\\EMA_Causal\\CI.RCT.Sim")
-
 devtools::load_all()
 rm(list=ls())
 library(CI.RCT.Sim)
 library(parallel)
 
-pre_sim_parameters <- oncology_scenario(print = FALSE)
-#if L has a pre-set effect on death, it must also have an effect on switching and progression:
-#if L has a pre-set effect on prog or on switch, it must also have an effect on death:
-#if the mean trajectory of L is special (other than base pattern "1"), there should be full confounding
-for(i in 1:dim(pre_sim_parameters)[1]) {
-  case<-0
-
-  if(pre_sim_parameters$beta_death[[i]][5] != 0) case<-1
-  if(pre_sim_parameters$beta_prog[[i]][5] != 0 | pre_sim_parameters$beta_switch[[i]][5] != 0 ) case<-2
-  if(any(unlist(pre_sim_parameters$mu_L[[i]])!=0)) case<-3
-
-  if(case==1 | case==3) {
-    pre_sim_parameters$beta_prog[[i]][5]<-log(0.5)
-    pre_sim_parameters$beta_switch[[i]][5]<-log(1.5)
-  }
-  if(case==2 | case==3) pre_sim_parameters$beta_death[[i]][5]<-log(0.5) #index 5 is effect of L
-}
-
-###Tests
-generate_oncology()
-
-
-#
+pre_sim_parameters <- oncology_scenario()
 A<-pre_sim_parameters |> oncology_scenario_set_truevalues()
-A<-as.data.frame(A)
+head(A)
+
+A$beta_cens
+
+#beta_lab<-c("Int","X","W","Wgrw","L","trt","switched")
+#beta_lab2<-c("Int","X","W","Wgrw","L","trt","switched","logHR_assumed")
+#beta_lab3<-c("Int","X","W","Wgrw","L","trt","switched","switching_in_control_only")
 
 
-beta_lab<-c("Int","X","W","Wgrw","L","trt","switched")
-beta_lab2<-c("Int","X","W","Wgrw","L","trt","switched","logHR_assumed")
-beta_lab3<-c("Int","X","W","Wgrw","L","trt","switched","switching_in_control_only")
-
-#x<-A$Sigma_W_L
-#x<-A$beta_prog
-#if(is.list(x)) {
-# n<-length(x[[1]])
-#
-#}
-#x<-A$ev_soll
-#x
-
-#A$beta_death
-#dim(A)
-#head(A)
 H0<-rep(FALSE,dim(A)[1])
 for(i in 1:length(H0)) {
  H0[i]<-A$beta_death[[i]][6]==0
@@ -114,9 +80,9 @@ for(block_nam in names(LIST)) {
 
   #Betas:
 
-  beta_lab<-c("Int","X","W","Wgrw","L","trt","switched")
-  beta_lab2<-c("Int","X","W","Wgrw","L","trt","switched","logHR_assumed")
-  beta_lab3<-c("Int","X","W","Wgrw","L","trt","switched","switching_in_control_only")
+  #beta_lab<-c("Int","X","W","Wgrw","L","trt","switched")
+  #beta_lab2<-c("Int","X","W","Wgrw","L","trt","switched","logHR_assumed")
+  #beta_lab3<-c("Int","X","W","Wgrw","L","trt","switched","switching_in_control_only")
 
   BETA<-NULL
   beta_names<-names(tab)[grepl("beta",names(tab))]
@@ -124,11 +90,11 @@ for(block_nam in names(LIST)) {
   for(b in beta_names) {
     temp<-tab[[b]]
     betas<-matrix(unlist(temp),ncol=length(temp[[1]]),byrow=TRUE)
-    #colnames(betas)<-paste(b,names(temp[[1]]),sep=".")
-    if(b=="beta_prog" | b=="beta_switch") colnames(betas)<-beta_lab
-    if(b=="beta_death") colnames(betas)<-beta_lab2
-    if(b=="beta_cens") colnames(betas)<-beta_lab3
-    colnames(betas)<-paste(b,colnames(betas),sep=".")
+    colnames(betas)<-paste(b,names(temp[[1]]),sep=".")
+    #if(b=="beta_prog" | b=="beta_switch") colnames(betas)<-beta_lab
+    #if(b=="beta_death") colnames(betas)<-beta_lab2
+    #if(b=="beta_cens") colnames(betas)<-beta_lab3
+    #colnames(betas)<-paste(b,colnames(betas),sep=".")
     BETA<-cbind(BETA,betas)
   }
   BETA<-exp(BETA) #to have Hazard ratios in table
@@ -143,7 +109,6 @@ for(block_nam in names(LIST)) {
 
 all_param_tab<-cbind(Scen_ID=1:dim(all_param_tab)[1],all_param_tab)
 
-setwd("Z:\\Projekte\\EMA_Tender_causal\\Simulation")
 
 
 library(openxlsx)
@@ -151,7 +116,7 @@ library(openxlsx)
 # write dataset
 wb <- createWorkbook()
 addWorksheet(wb, sheetName="Scenarios")
-
+names(all_param_tab)
 all_param_tab$beta_cens.switching_in_control_only<-round(log(all_param_tab$beta_cens.switching_in_control_only))
 
 writeData(wb, sheet="Scenarios", x=all_param_tab)
@@ -180,7 +145,7 @@ for(x in 1:dim(all_param_tab)[1]) {
   }
 }
 # write result
-getwd()
+
 
 #
 addWorksheet(wb, sheetName="Mean_W_patterns")
@@ -206,7 +171,7 @@ for(i in 1:length(Sigma_levels)) {
 #Pat_Sigma
 writeData(wb, sheet="Covariance_patterns", x=Pat_Sigma)
 
-saveWorkbook(wb, "yellow_12May_1-6.xlsx", overwrite=TRUE)
+saveWorkbook(wb, "yellow_13May_1-3.xlsx", overwrite=TRUE)
 
 
 

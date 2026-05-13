@@ -17,8 +17,9 @@
 #'
 #' analyse_oncology_gformula()(setting, dat)
 #' }
-analyse_oncology_gformula <- function(B = 20, reps = 1) {
+analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap=100) {
   function(condition, dat, fixed_objects = NULL) {
+    if(dat$ev_obs[1]>n_ev_cutoff_no_bootstrap) B<-0
     intervals_per_year <- 12
     data <- dat[order(dat$id), ]
     n <- dim(data)[1]
