@@ -212,7 +212,8 @@ analyse_diabetes_gcomputation <- function() {
     se <- stats::sd(boot_est) # se for mean difference
     ci_lower <- as.numeric(stats::quantile(boot_est, probs = 0.025)) # 95% lower CI via percentile method
     ci_upper <- as.numeric(stats::quantile(boot_est, probs = 0.975)) # 95% upper CI via percentile method
-    p <- 1 - pnorm(abs(coef / se))
+    null_dist <- boot_est - coef #centering bootstrap distribution around 0
+    p <- mean(null_dist >= 0) # percentile based pvalue
 
     list(
       coef = coef,
