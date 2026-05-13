@@ -9,6 +9,8 @@ source("scripts/vaccine_scenario_classes.R")
 
 scenario <- Sys.getenv("scenario")
 
+message(paste("Scenario", scenario, "selected"))
+
 selected_scenario <- switch(
   scenario,
   A1 = vaccine_scenario_A1,
@@ -29,6 +31,8 @@ sim_parameters <- selected_scenario |>
     VE = 1-rr_ps
     scenario_nr = seq_along(VE)
   })
+
+message(paste(nrow(sim_parameters), "rows"))
 
 # Constants for simulation -----------------------------------------------
 
@@ -58,10 +62,12 @@ my_analyse <- list(
   iv_vwunobs       = analyse_vaccine_ivreg(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE),
   ps_cov_vwunobs   = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, V_unobserved=TRUE, W_unobserved=TRUE),
   ps_nocov_vwunobs = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, V_unobserved=TRUE, W_unobserved=TRUE),
-  pp_vwunobs       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE),
+  pp_vwunobs       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE)
 )
 
 my_analyse <- wrap_all_in_trycatch(my_analyse)
+
+message(paste(length(my_analyse), "analysis functions"))
 
 # List of summarisation functions ----------------------------------------
 # summarise_estimator and summarise_test are generic summarisation
@@ -102,7 +108,11 @@ my_summarise <- create_summarise_function(
   pp_vwunobs       = summarise_test(alpha_test, name="test")
 )
 
+message(paste(length(environment(my_summarise)$summarise_functions), "summarise functions"))
+
 # Run the simulations ----------------------------------------------------
+
+message(paste("setting up cluster with", detectCores(logical=FALSE)-1 , "cores"))
 
 cl <- makeCluster(detectCores(logical=FALSE)-1)
 clusterEvalQ(cl, {
@@ -116,6 +126,8 @@ nodes_sessioninfo <- clusterEvalQ(cl, {
   sessionInfo()
 })
 
+message(paste("running simulations,", nrow(sim_parameters), "scenarios,", N_sim, "replications"))
+
 results <- runSimulation(
   design = sim_parameters,
   replications = N_sim,
@@ -127,8 +139,10 @@ results <- runSimulation(
   cl = cl
 )
 
+message("stopping cluster")
 stopCluster(cl)
 
 # Save results -----------------------------------------------------------
 
+message("saving results")
 save(results, main_sessioninfo, nodes_sessioninfo, file=format(Sys.time(), paste0("results_vaccine_scenario_", scenario, "_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")))
