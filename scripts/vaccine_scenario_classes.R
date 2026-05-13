@@ -1,4 +1,4 @@
-library(CI.RCT.Sim)
+# library(CI.RCT.Sim)
 
 
 defaults_all_effect_sizes <- \(defaults){
@@ -64,11 +64,11 @@ vaccine_scenario_D1 <- defaults_all_effect_sizes(scenario_D1)
 
 
 ## overall compliance to complicated scenarios
-scenario_extra$overall_compliance <- vaccine_scenario_defaults()$overall_compliance
-## effect before D2 false to complicated scenarios
-scenario_extra$effect_before_d2 <- vaccine_scenario_defaults()$effect_before_d2
+# scenario_extra$overall_compliance <- vaccine_scenario_defaults()$overall_compliance
+# ## effect before D2 false to complicated scenarios
+# scenario_extra$effect_before_d2 <- vaccine_scenario_defaults()$effect_before_d2
 
-scenario_extra <- vaccine_scenario_tweak(
+vaccine_scenario_extra <- vaccine_scenario_tweak(
   overall_compliance = c(0.95,0.5),
   effect_before_d2 = c(T,F),
   gamma_A = c(1,-1)*vaccine_scenario_defaults()$gamma_A[1],
@@ -81,7 +81,7 @@ scenario_extra <- vaccine_scenario_tweak(
   beta_W = vaccine_scenario_defaults()$beta_W[1]*c(1,-1),
   beta_AW = vaccine_scenario_defaults()$beta_AW[1]
 )
-scenario_extra
+# scenario_extra
 
 # Compliance:             C[+,-] + better compliance, - worse compliance
 # Prognosis:              P[+,-] + less infection risk, - more infection risk
@@ -89,7 +89,7 @@ scenario_extra
 # Base scenario is CA-.CV+.CW-.CAW-.PV-.PW-.TA+.TAW+
 # So we can rename to Base, OC50, CW+, CV-, CA+, CAW+, PV+, PW+, D1F
 # Important scenarios are those that do not provide monotonicity which would be CA+ i.e. where treatment increases compliance
-names_extra <- c('base-extra', 'OC50', 'CW+', 'CV-', 'CA+', 'CAW+', 'PV+', 'PW+', 'D1F')
+# names_extra <- c('base-extra', 'OC50', 'CW+', 'CV-', 'CA+', 'CAW+', 'PV+', 'PW+', 'D1F')
 
 
 
