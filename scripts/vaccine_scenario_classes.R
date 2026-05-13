@@ -71,7 +71,7 @@ scenario_extra$effect_before_d2 <- vaccine_scenario_defaults()$effect_before_d2
 scenario_extra <- vaccine_scenario_tweak(
   overall_compliance = c(0.95,0.5),
   effect_before_d2 = c(T,F),
-  gamma_A = vaccine_scenario_defaults()$gamma_A,
+  gamma_A = c(1,-1)*vaccine_scenario_defaults()$gamma_A[1],
   gamma_W = c(-0.8,0.8),
   gamma_V = c(0.5,-0.5),
   gamma_AW = c(-0.3,0.3),
@@ -86,13 +86,10 @@ scenario_extra
 # Compliance:             C[+,-] + better compliance, - worse compliance
 # Prognosis:              P[+,-] + less infection risk, - more infection risk
 # Treatment modification: T[+,-] + better efficacy, - worse efficacy
-names_extra <- c("CA-.CV+.CW-.CAW-.PV-.PW-.TA+.TAW+",
-                 "CA-.CV+.CW-.CAW-.PV-.PW-.TA+.TAW+.OC50",
-                 "CA-.CV+.CW+.CAW-.PV-.PW-.TA+.TAW+",
-                 "CA-.CV-.CW-.CAW-.PV-.PW-.TA+.TAW+",
-                 "CA0.CV+.CW-.CAW-.PV-.PW-.TA+.TAW+",
-                 "CA-.CV+.CW-.CAW+.PV-.PW-.TA+.TAW+",
-                 "CA-.CV+.CW-.CAW-.PV+.PW-.TA+.TAW+",
-                 "CA-.CV+.CW-.CAW-.PV-.PW+.TA+.TAW+",
-                 "CA-.CV+.CW-.CAW-.PV-.PW-.TA+.TAW+.D1F",
-                 )
+# Base scenario is CA-.CV+.CW-.CAW-.PV-.PW-.TA+.TAW+
+# So we can rename to Base, OC50, CW+, CV-, CA+, CAW+, PV+, PW+, D1F
+# Important scenarios are those that do not provide monotonicity which would be CA+ i.e. where treatment increases compliance
+names_extra <- c('base-extra', 'OC50', 'CW+', 'CV-', 'CA+', 'CAW+', 'PV+', 'PW+', 'D1F')
+
+
+
