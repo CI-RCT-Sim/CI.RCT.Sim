@@ -49,6 +49,9 @@ pre_results <- runSimulation(
 
 stopCluster(cl)
 
+# Set true value = 0 under the null hypothesis
+pre_results[which(pre_results$eff_true == 0),]$tp_mean.mean_est <- 0
+
 # Define parameter values and derived quantities -------------------------
 
 sim_parameters <- diabetes_scenario() |>
