@@ -1,21 +1,26 @@
-library(SimNPH)
-library(tidyverse)
+library(CI.RCT.Sim)
 
-vaccine_scenario_defaults()
+
+defaults_all_effect_sizes <- \(defaults){
+  all_beta_A2 <- unique(defaults$beta_A2)
+  defaults$beta_A2 <- NULL
+  do.call(params_scenarios_grid, args=defaults) |>
+    merge(data.frame(beta_A2 = all_beta_A2), by=NULL)
+}
 
 scenario_A1 <- vaccine_scenario_base_defaults()
 scenario_A1$lambda_post <- vaccine_scenario_defaults()$lambda_post
 scenario_A1$effect_before_d2 <- TRUE
 scenario_A1$beta_A2 <- vaccine_scenario_defaults()$beta_A2
 
-vaccine_scenario_A1 <- vaccine_scenario(scenario_defaults = \() scenario_A1)
+vaccine_scenario_A1 <- defaults_all_effect_sizes(scenario_A1)
 
 scenario_A2 <- vaccine_scenario_base_defaults()
 scenario_A2$effect_before_d2 <- TRUE
 scenario_A2$beta_A2 <- vaccine_scenario_defaults()$beta_A2
 scenario_A2$gamma_A <- vaccine_scenario_defaults()$gamma_A
 
-vaccine_scenario_A2 <- vaccine_scenario(scenario_defaults = \() scenario_A2)  # maybe filter gamma_A != 0
+vaccine_scenario_A2 <- defaults_all_effect_sizes(scenario_A2)
 
 scenario_B1 <- vaccine_scenario_base_defaults()
 scenario_B1$effect_before_d2 <- TRUE
@@ -25,7 +30,7 @@ scenario_B1$gamma_A <- vaccine_scenario_defaults()$gamma_A
 scenario_B1$gamma_V <- vaccine_scenario_defaults()$gamma_V
 scenario_B1$beta_V <- vaccine_scenario_defaults()$beta_V
 
-vaccine_scenario_B1 <- vaccine_scenario(scenario_defaults = \() scenario_B1)
+vaccine_scenario_B1 <- defaults_all_effect_sizes(scenario_B1)
 ## maybe B2 with p_V = 0.1
 
 scenario_C1 <- vaccine_scenario_base_defaults()
@@ -38,7 +43,7 @@ scenario_C1$gamma_AW <- vaccine_scenario_defaults()$gamma_AW
 scenario_C1$beta_W <- vaccine_scenario_defaults()$beta_W
 scenario_C1$beta_AW <- vaccine_scenario_defaults()$beta_AW
 
-vaccine_scenario_C1 <- vaccine_scenario(scenario_defaults = \() scenario_C1)
+vaccine_scenario_C1 <- defaults_all_effect_sizes(scenario_C1)
 ## mabe C2 with p_V = 0.1 or a bit more variation in the combination of gamma_AW and beta_AW
 
 scenario_D1 <- vaccine_scenario_base_defaults()
@@ -54,7 +59,7 @@ scenario_D1$p_V <- vaccine_scenario_defaults()$p_V[3]
 scenario_D1$gamma_V <- vaccine_scenario_defaults()$gamma_V
 scenario_D1$beta_V <- vaccine_scenario_defaults()$beta_V
 
-vaccine_scenario_D1 <- vaccine_scenario(scenario_defaults = \() scenario_D1)
+vaccine_scenario_D1 <- defaults_all_effect_sizes(scenario_D1)
 ## likely D1 with more combinations of factors could be interesting
 
 
