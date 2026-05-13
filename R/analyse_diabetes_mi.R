@@ -130,36 +130,36 @@
 #' @examples
 #' \donttest{
 #'
-#' Design <- diabetes_scenario()[1, ] |>
-#'   diabetes_scenario_set_truevalues()
-#'
-#' dat <- generate_diabetes(Design)
-#'
-#' ## ----------------------------
-#' ## Treatment policy estimand
-#' ## ----------------------------
-#' res_tp <- analyse_diabetes_mi(
-#'   strategy = "treatment_policy"
-#' )(Design, dat)
-#'
-#' res_tp
-#'
-#' ## ----------------------------
-#' ## Hypothetical estimand
-#' ## (censor after rescue + MI)
-#' ## ----------------------------
-#' res_hyp <- analyse_diabetes_mi(
-#'   strategy = "hypothetical"
-#' )(Design, dat)
-#'
-#' res_hyp
-#'
-#' ## Compare estimated effects
-#' c(
-#'   treatment_policy = res_tp$coef,
-#'   hypothetical     = res_hyp$coef
-#' )
-#'
+# Design <- diabetes_scenario()[1, ] |>
+#   diabetes_scenario_set_truevalues()
+#
+# dat <- generate_diabetes(Design)
+#
+# ## ----------------------------
+# ## Treatment policy estimand
+# ## ----------------------------
+# res_tp <- analyse_diabetes_mi(
+#   strategy = "treatment_policy"
+# )(Design, dat)
+#
+# res_tp
+#
+# ## ----------------------------
+# ## Hypothetical estimand
+# ## (censor after rescue + MI)
+# ## ----------------------------
+# res_hyp <- analyse_diabetes_mi(
+#   strategy = "hypothetical"
+# )(Design, dat)
+#
+# res_hyp
+#
+# ## Compare estimated effects
+# c(
+#   treatment_policy = res_tp$coef,
+#   hypothetical     = res_hyp$coef
+# )
+
 #' }
 analyse_diabetes_mi <- function(
     strategy = c("hypothetical", "treatment_policy"),
@@ -178,12 +178,7 @@ analyse_diabetes_mi <- function(
     vars_y <- paste0("y", 0:k)
     vars_R <- if (k > 1) paste0("R", 1:(k - 1)) else character(0)
 
-    vars_imp <- c(
-      vars_y,
-      vars_R,
-      "age",
-      "trt"
-    )
+    vars_imp <- c(vars_y, vars_R, "age", "trt")
 
     dat_hyp <- dat
 
@@ -197,7 +192,6 @@ analyse_diabetes_mi <- function(
         rs <- dat_hyp$rescue_start[i]
 
         if (!is.na(rs) && rs < k) {
-
           dat_hyp[i, paste0("y", (rs + 1):k)] <- NA
         }
       }
@@ -206,12 +200,8 @@ analyse_diabetes_mi <- function(
     ############################################################
     # METHOD SPECIFICATION
     ############################################################
-    meth <- mice::make.method(
-      dat_hyp[_vars_imp]
-    )
-
+    meth <- mice::make.method(dat_hyp[vars_imp])
     meth[vars_y] <- "pmm"
-
     meth[c("age", "trt")] <- ""
 
     if (length(vars_R) > 0) {
@@ -219,40 +209,24 @@ analyse_diabetes_mi <- function(
     }
 
     ############################################################
-    # PREDICTOR MATRIX (STRICT SEPARATION RULE)
+    # PREDICTOR MATRIX
     ############################################################
-    pred <- mice::make.predictorMatrix(
-      dat_hyp[_vars_imp]
-    )
-
+    pred <- mice::make.predictorMatrix(dat_hyp[vars_imp])
     pred[,] <- 0
 
-    # baseline structure only
     pred[vars_y, c("y0", "age")] <- 1
 
-    # treatment policy: allow R
-    if (strategy == "treatment_policy" &&
-        length(vars_R) > 0) {
-
+    if (strategy == "treatment_policy" && length(vars_R) > 0) {
       pred[vars_y, vars_R] <- 1
     }
 
-    # hypothetical: NO R influence in outcome models
-    if (strategy == "hypothetical" &&
-        length(vars_R) > 0) {
-
+    if (strategy == "hypothetical" && length(vars_R) > 0) {
       pred[vars_y, vars_R] <- 0
     }
 
-    # minimal stable lag structure (only adjacent visits)
     if (k > 1) {
-
       for (j in 2:k) {
-
-        pred[
-          paste0("y", j),
-          paste0("y", j - 1)
-        ] <- 1
+        pred[paste0("y", j), paste0("y", j - 1)] <- 1
       }
     }
 
@@ -266,116 +240,90 @@ analyse_diabetes_mi <- function(
     for (g in 0:1) {
 
       dat_g <- dat_hyp |>
-        (
-          dplyr::filter(trt == g),
-          dplyr::select(dplyr::all_of(vars_imp))
-        )
+        dplyr::filter(trt == g) |>
+        dplyr::select(dplyr::all_of(vars_imp))
 
-      # enforce strict binary encoding for R
       if (length(vars_R) > 0) {
-
-        dat_g[vars_R] <- lapply(
-          dat_g[vars_R],
-          function(x) {
-            factor(
-              as.integer(x),
-              levels = c(0, 1)
-            )
-        )
-          }
-
-        imp_list[[g + 1]] <- withr::with_seed(
-
-          seed + g,
-
-          mice::_mice(
-            dat_g,
-            m = m,
-            method = meth,
-            predictorMatrix = pred,
-            maxit = maxit,
-
-            # ULTRA-STABLE SETTINGS
-            ridge = 5e-5,
-            donors = 5,
-            pmm.k = 5,
-
-            visitSequence = = sort(vars_y),
-            printFlag = FALSE
-          )
+        dat_g[vars_R] <- lapply(dat_g[vars_R], function(x)
+          factor(as.integer(x), levels = c(0, 1))
         )
       }
 
-      ############################################################
-      # COMBINE IMPUTATIONS
-      ############################################################
-      imp_full <- lapply(seq_len(m), function(i) {
-
-        d <- dplyr::bind_rows(
-          mice::complete(imp_list[[1]], i),
-          mice::_complete(imp_list[[2]], i)
+      imp_list[[g + 1]] <- withr::with_seed(
+        seed + g,
+        mice::mice(
+          dat_g,
+          m = m,
+          method = meth,
+          predictorMatrix = pred,
+          maxit = maxit,
+          ridge = 5e-5,
+          donors = 5,
+          pmm.k = 5,
+          visitSequence = sort(vars_y),
+          printFlag = FALSE
         )
-
-        if (length(vars_R) > 0) {
-
-          d[vars_R] <- lapply(
-            d[vars_R],
-            function(x) {
-              factor(
-                as.integer(x),
-                levels = c(0, 1)
-              )
-          )
-            }
-
-          d
-        })
-
-      ############################################################
-      # ANALYSIS (UNCHANGED ANCOVA)
-      ############################################################
-      fits <- lapply(imp_full, function(d) {
-
-        d$chg <- d[[paste0("y", k)]] - d$y0
-
-        lm(
-          chg ~ trt + age + y0,
-          data = d
-        )
-      })
-
-      imp_obj <- mice::as.mira(fits)
-
-      pooled <- mice::pool(imp_obj)
-
-      ############################################################
-      # Pooled summary with two-sided CI
-      ############################################################
-      sm <- summary(
-        pooled,
-        conf.int = TRUE,
-        conf.level = ci_level
       )
-
-      trt_row <- sm[sm$term == "trt", ]
-
-      ############################################################
-      # One-sided p-value
-      # H1: trt < 0
-      ############################################################
-      p_one_sided <- pt(
-        trt_row$statistic,
-        df = trt_row$df
-      )
-
-      ############################################################
-      # Return
-      ############################################################
-      list(
-        coef = trt_row$estimate,
-        p = p_one_sided,
-        ci_lower = trt_row$`2.5 %`,
-        ci_upper = trt_row$`97.5 %`
-      )
-      }
     }
+
+    ############################################################
+    # COMBINE IMPUTATIONS
+    ############################################################
+    imp_full <- lapply(seq_len(m), function(i) {
+
+      d <- dplyr::bind_rows(
+        mice::complete(imp_list[[1]], i),
+        mice::complete(imp_list[[2]], i)
+      )
+
+      if (length(vars_R) > 0) {
+        d[vars_R] <- lapply(d[vars_R], function(x)
+          factor(as.integer(x), levels = c(0, 1))
+        )
+      }
+
+      d
+    })
+
+    ############################################################
+    # ANALYSIS
+    ############################################################
+    fits <- lapply(imp_full, function(d) {
+
+      d$chg <- d[[paste0("y", k)]] - d$y0
+
+      lm(chg ~ trt + age + y0, data = d)
+    })
+
+    imp_obj <- mice::as.mira(fits)
+    pooled <- mice::pool(imp_obj)
+
+    sm <- summary(pooled, conf.int = TRUE, conf.level = ci_level)
+
+    trt_row <- sm[sm$term == "trt", ]
+
+    if (nrow(trt_row) == 0) {
+      return(list(
+        coef = NA_real_,
+        p = NA_real_,
+        ci_lower = NA_real_,
+        ci_upper = NA_real_
+      ))
+    }
+
+    ############################################################
+    # ONE-SIDED P-VALUE (H1: trt < 0)
+    ############################################################
+    t_stat <- trt_row$statistic
+    df <- trt_row$df
+
+    p_one_sided <- stats::pt(t_stat, df = df)
+
+    list(
+      coef = trt_row$estimate,
+      p = p_one_sided,
+      ci_lower = trt_row[["2.5 %"]],
+      ci_upper = trt_row[["97.5 %"]]
+    )
+  }
+}

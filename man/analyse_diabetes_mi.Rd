@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyse_diabetes_mi.R
 \name{analyse_diabetes_mi}
 \alias{analyse_diabetes_mi}
-\title{Analyse data set with Multiple imputation}
+\title{Analyse data set with Multiple Imputation}
 \usage{
 analyse_diabetes_mi(
   strategy = c("hypothetical", "treatment_policy"),
@@ -15,67 +15,88 @@ analyse_diabetes_mi(
 \arguments{
 \item{strategy}{Either \code{"hypothetical"} or \code{"treatment_policy"}.}
 
-\item{m}{Number of imputations (used for hypothetical only).}
+\item{m}{Number of imputations.}
 
 \item{maxit}{Maximum number of MICE iterations.}
 
-\item{ci_level}{confidence level for the CI (default 0.95)}
+\item{ci_level}{Confidence level for the two-sided confidence interval.}
 
 \item{seed}{Random seed for imputation (used locally via withr).}
 }
 \value{
-A function that, when called with \code{condition} and \code{dat}, returns a list with:
+A function that, when called with \code{condition} and \code{dat},
+returns a list with:
 \itemize{
-\item \code{coef} coefficient for \code{trt}
-\item \code{p} p-value for coef
-\item \code{ci_lower} lower bound of \code{ci-level}\% confidence interval for coef
-\item \code{ci_upper} upper bound of \code{ci-level}\% confidence interval for coef
+\item \code{coef} estimated treatment effect for \code{trt}
+\item \code{p} one-sided p-value for the hypothesis \eqn{\beta_{trt} < 0}
+\item \code{ci_lower} lower bound of the two-sided confidence interval
+\item \code{ci_upper} upper bound of the two-sided confidence interval
 }
 }
 \description{
 Creates an analysis function for the diabetes rescue simulation.
 Depending on the chosen estimand, either a hypothetical strategy
-with multiple imputation after rescue initiation is applied,
-or a treatment policy strategy using observed data only.
+with rescue-based censoring or a treatment policy strategy using
+observed rescue information is applied.
 }
 \details{
-\subsection{Multiple Imputation (Hypothetical Strategy)}{
+\subsection{Multiple Imputation}{
 
-Multiple imputation is used as a comparator method for the hypothetical
-estimand, targeting the scenario in which rescue medication had not been
-available.
-\subsection{Handling of rescue medication}{
+Missing HbA1c outcomes are imputed using the \pkg{mice} package.
 
-For subjects initiating rescue medication at visit \eqn{s}, all post-rescue
-outcomes are set to missing:
+Imputation is performed separately within each treatment group,
+consistent with the trial protocol and avoiding cross-treatment
+borrowing of information.
+}
+
+\subsection{Estimand-specific handling}{
+\subsection{Treatment policy strategy}{
+
+Under the treatment policy estimand, observed post-rescue outcomes
+are retained.
+
+Rescue indicators may be included as predictors in the imputation
+model to preserve associations between rescue use and future HbA1c
+trajectories.
+}
+
+\subsection{Hypothetical strategy}{
+
+Under the hypothetical estimand, the analysis targets the scenario
+in which rescue medication had not been available.
+
+For subjects initiating rescue medication at visit \eqn{s},
+all post-rescue outcomes are set to missing:
 
 \deqn{
-y_{i,j} = \text{NA} \quad \text{for all } j > s
+y_{i,j} = \mathrm{NA}
+\quad \text{for all } j > s
 }
 
-The outcome at the rescue visit itself (\eqn{j = s}) is retained.
+The outcome at the rescue visit itself (\eqn{j=s}) is retained.
 
-This ensures consistency with the hypothetical estimand and aligns with the
-data-generating mechanism.
+Rescue indicators are excluded from the HbA1c imputation models
+under the hypothetical strategy to avoid conditioning on post-rescue
+information.
 }
 
-\subsection{Imputation model (Protocol-aligned)}{
+}
 
-The imputation is performed using the \pkg{mice} package.
+\subsection{Imputation model}{
+
+HbA1c values are imputed using predictive mean matching (\code{"pmm"}).
+
+The imputation model includes:
 \itemize{
-\item HbA1c at each visit is imputed if missing.
-\item The imputation model includes:
-\itemize{
-\item all available HbA1c measurements,
 \item baseline HbA1c (\eqn{y_0}),
-\item age at baseline.
-}
+\item age at baseline,
+\item adjacent HbA1c visit history,
+\item optionally rescue indicators under the treatment policy strategy.
 }
 
-The imputation is performed \strong{separately within each treatment group},
-as specified in the protocol.
+Rescue indicators are imputed using logistic regression.
 
-A total of 10 imputations are generated.
+A total of \code{m} imputations are generated.
 }
 
 \subsection{Analysis model}{
@@ -83,33 +104,55 @@ A total of 10 imputations are generated.
 For each imputed dataset, an ANCOVA model is fitted:
 
 \deqn{
-\Delta y_i = \beta_0 + \beta_1 \cdot \text{trt}_i + \beta_2 \cdot \text{age}_i + \beta_3 \cdot y_{0,i} + \varepsilon_i
+\Delta y_i =
+\beta_0 +
+\beta_1 \cdot \mathrm{trt}_i +
+\beta_2 \cdot \mathrm{age}_i +
+\beta_3 \cdot y_{0,i} +
+\varepsilon_i
 }
 
 where:
 \itemize{
-\item \eqn{\Delta y_i} is the change from baseline in HbA1c
-\item \eqn{y_{0,i}} is baseline HbA1c
+\item \eqn{\Delta y_i} is the change from baseline in HbA1c,
+\item \eqn{y_{0,i}} is baseline HbA1c.
 }
+}
+
+\subsection{Hypothesis testing}{
+
+One-sided p-values are reported for the treatment effect:
+
+\deqn{
+H_0: \beta_{trt} \ge 0
+}
+
+versus
+
+\deqn{
+H_A: \beta_{trt} < 0
+}
+
+since negative changes in HbA1c are considered favorable.
+
+Two-sided confidence intervals are retained.
 }
 
 \subsection{Pooling}{
 
-Estimates from the imputed datasets are pooled using Rubin’s rules via
-\code{mice::pool}.
+Estimates from the imputed datasets are pooled using Rubin's rules
+via \code{mice::pool()}.
 }
 
 \subsection{Reproducibility}{
 
 Randomness from the multiple imputation procedure is controlled using
-\code{withr::with_seed()}, ensuring reproducibility without affecting the
-global random number generator state. This avoids unintended interference
-with simulation data generation.
-}
-
+\code{withr::with_seed()}, ensuring reproducibility without affecting
+the global random number generator state.
 }
 }
 \examples{
 \donttest{
+
 }
 }
