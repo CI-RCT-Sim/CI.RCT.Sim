@@ -109,6 +109,9 @@ analyse_diabetes_ipw <- function(strategy = "hypothetical") {
 
     model <- lmtest::coeftest(fit, vcov = sandwich::vcovHC(fit, type = "HC2"))
     ci <- stats::confint(model)
+    t_stat <- model["trt", "t value"]
+    df <- df.residual(fit)
+    p_one_sided <- pt(t_stat, df = df)
 
     if(exists("temp")) {
       m = max(temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0], na.rm = TRUE)
@@ -125,7 +128,7 @@ analyse_diabetes_ipw <- function(strategy = "hypothetical") {
     list(
       coef = model["trt", "Estimate"],
       se = model["trt", "Std. Error"],
-      p = model["trt", "Pr(>|t|)"],
+      p = p_one_sided,
       ci_lower = ci[2, 1],
       ci_upper = ci[2, 2],
       n = nrow(dat_long[dat_long$visit == k & dat_long$exposure == 1, ]),
