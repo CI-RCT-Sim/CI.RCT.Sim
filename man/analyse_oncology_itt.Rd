@@ -2,7 +2,7 @@
 % Please edit documentation in R/analyse_oncology_itt.R
 \name{analyse_oncology_itt}
 \alias{analyse_oncology_itt}
-\title{Create Analyse Functions for}
+\title{Create Analyse Functions for ITT analysis}
 \usage{
 analyse_oncology_itt(X)
 }
@@ -13,7 +13,7 @@ analyse_oncology_itt(X)
 an analyse function that can be used in runSimulation
 }
 \description{
-Create Analyse Functions for
+Create Analyse Functions for ITT analysis
 }
 \examples{
 setting <- oncology_scenario()[1, ]
