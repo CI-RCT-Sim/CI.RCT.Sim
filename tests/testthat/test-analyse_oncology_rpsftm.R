@@ -1,5 +1,5 @@
 test_that("rpsftm oncology works", {
-  Design <- oncology_scenario(print = FALSE) |>
+  Design <- oncology_scenario() |>
     oncology_scenario_set_truevalues()
 
   my_analyse <- analyse_oncology_rpsftm(recensor = TRUE)
