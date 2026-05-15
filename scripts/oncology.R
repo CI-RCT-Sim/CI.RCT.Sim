@@ -1,33 +1,40 @@
+
+#to be run from oncology_run_all.R
+
 # devtools::install()
 # renv::restore()
 # devtools::document()
-devtools::load_all()
-rm(list=ls())
-library(CI.RCT.Sim)
-library(parallel)
-library(survival)
+#devtools::load_all()
+#rm(list=ls())
+#library(CI.RCT.Sim)
+#library(parallel)
+#library(survival)
 
 #SimClean()
 
-scen_tab <- readxl::read_xlsx("data/oncology_scenario_list.xlsx")
+#scen_tab <- readxl::read_xlsx("data/oncology_scenario_list.xlsx")
 n_scenarios<-dim(scen_tab)[1]
 
 
 # Settings to calculate true value
-pre_N_sim <- 2#10
-ev_soll_for_true_value<-100#0
+#pre_N_sim <- 2#10
+#ev_soll_for_true_value<-100#0
 
 # Iterations and scenarios
-N_sim <- 5
+#N_sim <- 5
 #scen_set<-c(52,57,64)#53 #H0,, #1:3
 ##scen_select<-"all"
 
 #### run with these three settings separately:
 #scen_select<-"small_n"
-scen_select<-"large_n"
+#scen_select<-"large_n"
 # scen_select<-"IPCW_extra"
 
+#hyp_select<-"H1"
+#hyp_select<-"H0"
 #
+
+set_hyp<-grepl(hyp_select,scen_tab$block_nam)
 
 result_name_note<-""
 
@@ -36,15 +43,15 @@ if(scen_select=="all") {
   result_name_note<-"scen_all"
 }
 if(scen_select=="small_n") { #small n is high effect size
-  scen_set<-(1:n_scenarios)[grepl("high",scen_tab$block_nam)]
+  scen_set<-(1:n_scenarios)[grepl("high",scen_tab$block_nam) & set_hyp]
   result_name_note<-"scen_small_n"
 }
 if(scen_select=="large_n") {
-  scen_set<-(1:n_scenarios)[grepl("low",scen_tab$block_nam)]
+  scen_set<-(1:n_scenarios)[grepl("low",scen_tab$block_nam) & set_hyp]
   result_name_note<-"scen_large_n"
 }
 if(scen_select=="IPCW_extra") {
-  scen_set<-(1:n_scenarios)[grepl("high",scen_tab$block_nam) & (grepl("Core",scen_tab$scenario_name) | grepl("random censoring",scen_tab$scenario_name))]
+  scen_set<-(1:n_scenarios)[grepl("high",scen_tab$block_nam) & set_hyp & (grepl("Core",scen_tab$scenario_name) | grepl("random censoring",scen_tab$scenario_name))]
   result_name_note<-"scen_IPCW_extra"
 }
 
@@ -95,7 +102,7 @@ pre_my_summarise <- create_summarise_function(
 cl <- makeCluster(detectCores(logical = FALSE) - 1)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
-  library("survival")
+  #library("survival")
 })
 
 #SimClean()
@@ -111,7 +118,7 @@ pre_results <- runSimulation(
   cl = cl
 )
 as.data.frame(pre_results)
-stopCluster(cl)
+#stopCluster(cl)
 
 # Under H0 the true effect is HR = 1
 pre_results[which(sapply(pre_results$beta_death, `[[`, 6) == 0),]$truth.mean_est <- 1
@@ -290,10 +297,10 @@ my_summarise <- create_summarise_function(
 
 # Run the simulations ----------------------------------------------------
 
-cl <- makeCluster(detectCores(logical = FALSE) - 1)
-clusterEvalQ(cl, {
-  library("CI.RCT.Sim")
-})
+#cl <- makeCluster(detectCores(logical = FALSE) - 1)
+#clusterEvalQ(cl, {
+#  library("CI.RCT.Sim")
+#})
 clusterExport(cl = cl, varlist = c("alpha"))
 
 main_sessioninfo <- sessionInfo()
@@ -316,7 +323,7 @@ stopCluster(cl)
 
 # Save results -----------------------------------------------------------
 path="results/"
-file_name<-paste(path,result_name_note,"_",format(Sys.time(), paste0("results_onco_","nsim",N_sim,"_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep="")
+file_name<-paste(path,result_name_note,"_",set_hyp,"_",format(Sys.time(), paste0("results_onco_","nsim",N_sim,"_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep="")
 file_name
 save(results, main_sessioninfo, nodes_sessioninfo, file = file_name)
 

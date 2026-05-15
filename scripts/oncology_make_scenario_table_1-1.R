@@ -1,7 +1,9 @@
 
-devtools::load_all()
-rm(list=ls())
-library(CI.RCT.Sim)
+#to be run from oncology_run_all.R
+
+#devtools::load_all()
+#rm(list=ls())
+#library(CI.RCT.Sim)
 #library(parallel)
 
 pre_sim_parameters <- oncology_scenario()
@@ -111,11 +113,6 @@ all_param_tab<-cbind(Scen_ID=1:dim(all_param_tab)[1],all_param_tab)
 
 
 
-library(openxlsx)
-
-# write dataset
-wb <- createWorkbook()
-addWorksheet(wb, sheetName="Scenarios")
 names(all_param_tab)
 all_param_tab$beta_cens.switching_in_control_only<-round(log(all_param_tab$beta_cens.switching_in_control_only))
 
@@ -160,7 +157,14 @@ all_param_tab$scenario_name<-scenario_names
 dim2<-dim(all_param_tab)[2]
 all_param_tab<-all_param_tab[,c(1,2,dim2,3:(dim2-1))]
 head(all_param_tab)
+scen_tab<-all_param_tab
 
+if(save_param_tab) {
+library(openxlsx)
+
+# write dataset
+wb <- createWorkbook()
+addWorksheet(wb, sheetName="Scenarios")
 writeData(wb, sheet="Scenarios", x=all_param_tab)
 
 # define style
@@ -215,7 +219,7 @@ writeData(wb, sheet="Covariance_patterns", x=Pat_Sigma)
 
 saveWorkbook(wb, "data/oncology_scenario_list.xlsx", overwrite=TRUE)
 
-
+}
 
 
 
