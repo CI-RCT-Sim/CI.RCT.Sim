@@ -34,7 +34,7 @@ analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap
       temp <- data[i, ]
 
       int_end <- floor(temp$event_time * intervals_per_year)
-      D <- data.frame(id = i, time = 0:int_end, trt = temp$trt, ev = 0, prog = 0, switch = 0, X = temp$X_0, W = NA, L = NA, prog_now = 0, switch_now = 0, ever_prog = FALSE, ever_switch = FALSE) # time=interval
+      D <- data.frame(id = i, time = 0:int_end, trt = temp$trt, ev = 0, prog = 0, switch = 0, X = temp$X_0, W = NA, L = NA, prog_now = 0, switch_now = 0, ever_prog = FALSE, ever_switch = FALSE, random_cens_event=0) # time=interval
       D$start <- D$time * IL
       D$stop <- (D$time + 1) * IL
 

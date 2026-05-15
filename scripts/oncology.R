@@ -7,6 +7,8 @@ library(CI.RCT.Sim)
 library(parallel)
 library(survival)
 
+#SimClean()
+
 scen_tab <- readxl::read_xlsx("data/oncology_scenario_list.xlsx")
 
 # Settings to calculate true value

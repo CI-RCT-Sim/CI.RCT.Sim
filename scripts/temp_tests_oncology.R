@@ -20,8 +20,14 @@ system.time(analyse_oncology_gformula(B=200)(A,data))
 
 analyse_oncology_gformula(B=20,n_ev_cutoff_no_bootstrap=100)(A,data)
 
-
-
+B = 20
+reps = 1
+n_ev_cutoff_no_bootstrap=100
+use_censoring_IPW=FALSE
+requ_n_cens=5
+trunc_weights=5
+dat<-data
+condition<-A
 B<-all_scen[90,]
 
 B
