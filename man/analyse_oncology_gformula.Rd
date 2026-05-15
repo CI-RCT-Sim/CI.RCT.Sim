@@ -4,12 +4,28 @@
 \alias{analyse_oncology_gformula}
 \title{Create Analyse Functions for g formula}
 \usage{
-analyse_oncology_gformula(B = 20, reps = 1)
+analyse_oncology_gformula(
+  B = 20,
+  reps = 1,
+  n_ev_cutoff_no_bootstrap = 100,
+  use_censoring_IPW = FALSE,
+  requ_n_cens = 5,
+  trunc_weights = 5
+)
 }
 \arguments{
 \item{B}{Number of bootstrap samples}
 
 \item{reps}{Number of repetitions for the g-formula simulation (per bootstrap sample)}
+
+\item{n_ev_cutoff_no_bootstrap}{If the observed number of events exceeds this cutoff, no bootstrap will be used. Only a point estimate for the
+hazard ratio is then calculated, but no further inferential statistics. The default value is 100.}
+
+\item{use_censoring_IPW}{Logical, indicating whether to use inverse probability of censoring weighting when calculating the models. Default is FALSE.}
+
+\item{requ_n_cens}{The minimum number of random censoring events required to use inverse probability of censoring weighting when calculating the models. Default is 5.}
+
+\item{trunc_weights}{Weights exceeding this value will be truncated to this value. Default is 5.}
 }
 \value{
 an analyse function that can be used in runSimulation

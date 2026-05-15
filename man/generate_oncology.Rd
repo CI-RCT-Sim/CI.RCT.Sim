@@ -12,7 +12,7 @@ generate_oncology(
     allow_random_cens = TRUE)
 )
 
-oncology_scenario(print = interactive())
+oncology_scenario()
 
 oncology_scenario_set_truevalues(Design, fixed_objects = NULL)
 }
@@ -21,9 +21,9 @@ oncology_scenario_set_truevalues(Design, fixed_objects = NULL)
 
 \item{fixed_objects}{fixed objects not used for now}
 
-\item{print}{print code to generate parameter set?}
-
 \item{Design}{Design data.frame for x}
+
+\item{print}{print code to generate parameter set?}
 }
 \value{
 For generate_oncology: A data set with n rows and the columns .....
