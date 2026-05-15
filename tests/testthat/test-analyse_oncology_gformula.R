@@ -14,11 +14,11 @@ test_that("gformula oncology works", {
 
   # Generate data with no missingness, and no treatment effect, to check equivalence with linear regression
   withr::with_seed(121, {
-    dat <- generate_oncology(Design[50, ])
+    dat <- generate_oncology(Design[52, ])
   })
   expect_no_error({
     set.seed(123)
-    res <- my_analyse(Design[50, ], dat)
+    res <- my_analyse(Design[52, ], dat)
   })
 
   # sanity checks under the null hypothesis
