@@ -9,7 +9,7 @@
 generate_oncology(
   condition,
   fixed_objects = list(allow_switch = TRUE, logHR_assumed = NULL, ev_soll = NULL,
-    allow_random_cens = TRUE)
+    allow_random_cens = TRUE, random_cens_only_control = FALSE)
 )
 
 oncology_scenario(print = interactive())

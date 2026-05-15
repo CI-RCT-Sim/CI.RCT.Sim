@@ -243,18 +243,38 @@ analyse_diabetes_mi <- function(
         dplyr::filter(trt == g) |>
         dplyr::select(dplyr::all_of(vars_imp))
 
+      ##########################################################
+      # ✅ Minimal robust fix: keep ALL R as factors
+      ##########################################################
       if (length(vars_R) > 0) {
         dat_g[vars_R] <- lapply(dat_g[vars_R], function(x)
           factor(as.integer(x), levels = c(0, 1))
         )
       }
 
+      ##########################################################
+      # ✅ Disable imputation for degenerate R variables
+      ##########################################################
+      meth_g <- meth
+
+      if (length(vars_R) > 0) {
+        for (r in vars_R) {
+          vals <- unique(na.omit(dat_g[[r]]))
+          if (length(vals) < 2) {
+            meth_g[r] <- ""   # no variation → skip imputation
+          }
+        }
+      }
+
+      ##########################################################
+      # MICE call
+      ##########################################################
       imp_list[[g + 1]] <- withr::with_seed(
         seed + g,
         mice::mice(
           dat_g,
           m = m,
-          method = meth,
+          method = meth_g,
           predictorMatrix = pred,
           maxit = maxit,
           ridge = 5e-5,

@@ -53,7 +53,11 @@ mace_scenario <- function() {
   # buffer window
   further14 <- baseline |> replace(c("assumed_window"), 0) # lower assumed window
   further15 <- baseline |> replace(c("assumed_window"), 2 / 12) # greater assumed window
-
+  
+  further16 <- baseline |> replace(c("beta_mace_trt_before","beta_mace_trt_buffer","beta_mace_L"), c(0,0,log(2))) # Confounding MACE Null
+  further17 <- baseline |> replace(c("beta_mace_trt_before","beta_mace_trt_buffer","beta_disc_L"), c(0,0,log(2))) # Confounding Disc Null
+  further18 <- baseline |> replace(c("beta_mace_trt_before","beta_mace_trt_buffer","beta_wd_L"), c(0,0,log(2))) # Confounding Withd Null
+  
 
   OFATT <- bind_rows(
     baseline,
@@ -71,7 +75,10 @@ mace_scenario <- function() {
     further12,
     further13,
     further14,
-    further15
+    further15,
+    further16,
+    further17,
+    further18
   )
 
 
