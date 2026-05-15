@@ -18,14 +18,14 @@ pre_N_sim <- 2#10
 ev_soll_for_true_value<-100#0
 
 # Iterations and scenarios
-N_sim <- 3
+N_sim <- 5
 #scen_set<-c(52,57,64)#53 #H0,, #1:3
 ##scen_select<-"all"
 
-#run with these three settings separately:
-scen_select<-"small_n"
+#### run with these three settings separately:
+#scen_select<-"small_n"
 scen_select<-"large_n"
-scen_select<-"IPCW_extra"
+# scen_select<-"IPCW_extra"
 
 #
 
@@ -145,6 +145,7 @@ analysis_functions_list<-list(
 )
 
 if(scen_select=="small_n") analysis_functions_list<-c(analysis_functions_list,gformula = analyse_oncology_gformula(B = 20))
+
 
 if(scen_select=="IPCW_extra") {
   #IPCW_functions
