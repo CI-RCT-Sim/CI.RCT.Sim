@@ -12,7 +12,7 @@
 #' @export
 #'
 #' @importFrom survival tmerge coxph Surv
-#' @importFrom stats confint glm predict sd model.matrix pnorm
+#' @importFrom stats confint glm predict sd model.matrix pnorm aggregate na.omit
 #'
 #' @examples
 #' \donttest{
