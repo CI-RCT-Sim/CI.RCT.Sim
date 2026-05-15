@@ -119,14 +119,12 @@
 #'
 #' @export
 analyse_diabetes_mmrm <- function(
-    ci_level = 0.95,
-    strategy = c("treatment_policy", "hypothetical")
+  ci_level = 0.95,
+  strategy = c("treatment_policy", "hypothetical")
 ) {
-
   strategy <- match.arg(strategy)
 
   function(condition, dat, fixed_objects = NULL) {
-
     term <- "trt"
 
     safe_result <- list(
@@ -146,21 +144,17 @@ analyse_diabetes_mmrm <- function(
     # HYPOTHETICAL STRATEGY (HARMONIZED)
     # ============================================================
     if (strategy == "hypothetical") {
-
       # encode no-rescue consistently with generator
       dat_work$rescue_start[is.na(dat_work$rescue_start)] <- condition$k + 2
 
       for (i in seq_len(nrow(dat_work))) {
-
         start <- dat_work$rescue_start[i]
 
         # CENSOR ONLY AFTER rescue visit
         if (start < condition$k) {
-
           post_visits <- (start + 1):condition$k
 
           dat_work[i, paste0("y", post_visits)] <- NA
-
         }
       }
     }
@@ -180,7 +174,9 @@ analyse_diabetes_mmrm <- function(
       error = function(e) NULL
     )
 
-    if (is.null(long)) return(safe_result)
+    if (is.null(long)) {
+      return(safe_result)
+    }
 
     long$id <- factor(long$id)
 
@@ -190,7 +186,7 @@ analyse_diabetes_mmrm <- function(
     )
 
     # Reference = final visit
-    long$visit <- stats::relevel(long$visit, ref = as.character(condition$k))
+    long$visit <- relevel(long$visit, ref = as.character(condition$k))
 
     long$y0 <- baseline[match(long$id, dat$id)]
 
@@ -198,16 +194,14 @@ analyse_diabetes_mmrm <- function(
     # FIT WITH COVARIANCE FALLBACK
     # ============================================================
     fit_mmrm <- function(cov_type) {
-
-      formula_str <- switch(
-        cov_type,
+      formula_str <- switch(cov_type,
         "us" = y ~ trt * visit + y0 * visit + age * visit + us(visit | id),
         "cs" = y ~ trt * visit + y0 * visit + age * visit + cs(visit | id),
         "diag" = y ~ trt * visit + y0 * visit + age * visit + diag(visit | id)
       )
 
       tryCatch(
-        mmrm::mmrm(formula_str, data = long),
+        mmrm(formula_str, data = long),
         error = function(e) NULL
       )
     }
@@ -227,7 +221,9 @@ analyse_diabetes_mmrm <- function(
       safe_result$fallback <- TRUE
     }
 
-    if (is.null(fit)) return(safe_result)
+    if (is.null(fit)) {
+      return(safe_result)
+    }
 
     safe_result$covariance <- covariance_used
 
@@ -240,11 +236,11 @@ analyse_diabetes_mmrm <- function(
 
     if (
       is.null(coefs) ||
-      is.null(vc) ||
-      is.null(summ) ||
-      !(term %in% names(coefs)) ||
-      !(term %in% rownames(vc)) ||
-      !(term %in% rownames(summ$coefficients))
+        is.null(vc) ||
+        is.null(summ) ||
+        !(term %in% names(coefs)) ||
+        !(term %in% rownames(vc)) ||
+        !(term %in% rownames(summ$coefficients))
     ) {
       return(safe_result)
     }
@@ -260,16 +256,16 @@ analyse_diabetes_mmrm <- function(
 
     if (
       is.na(est) || is.na(se) || is.na(df) ||
-      se <= 0 || df <= 0 ||
-      !is.finite(se) || !is.finite(df)
+        se <= 0 || df <= 0 ||
+        !is.finite(se) || !is.finite(df)
     ) {
       return(safe_result)
     }
 
-    tcrit <- stats::qt(1 - (1 - ci_level) / 2, df)
+    tcrit <- qt(1 - (1 - ci_level) / 2, df)
 
     list(
-      p = 2 * (1 - stats::pt(abs(est / se), df)),
+      p = 2 * (1 - pt(abs(est / se), df)),
       coef = est,
       ci_lower = est - tcrit * se,
       ci_upper = est + tcrit * se,

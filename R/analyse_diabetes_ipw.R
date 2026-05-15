@@ -1,13 +1,23 @@
-#' Analyse Dataset with the Inverse probability weighting
+#' Analyse data set with the Inverse probability weighting
 #'
 #' @param strategy the estimand targeted by the CI method, default: "hypothetical". Allowed also: "treatment_policy".
 #'
-#' @return an analyse function that can be used in runSimulation that returns a list with the elements
+#' @return A function that, when called with `condition` and `dat`, returns a list with:
 #' * `coef` coefficient for `trt`
 #' * `se` standard error for coef
 #' * `p` p-value for coef
-#' * `ci_lower` lower bound of confidence interval for coef
-#' * `ci_upper` upper bound of confidence interval for coef
+#' * `ci_lower` lower bound of 95% confidence interval for coef
+#' * `ci_upper` upper bound of 95% confidence interval for coef
+#'
+#' @details
+#' This is a function to implement the inverse probability weighting for estimation of the treatment effect in a diabetes trial.
+#' The function first reshapes the data to a long format, where each row corresponds to a visit for a patient.
+#' Then, depending on the chosen strategy, it creates an indicator variable for missing outcomes due to treatment discontinuation (treatment policy) or due to both treatment discontinuation and rescue medication use (hypothetical).
+#' It fits a logistic regression model to estimate the probability of missingness and computes inverse probability weights.
+#' Finally, it fits a weighted linear regression model to estimate the treatment effect on the change in HbA1c at the final visit, using robust standard errors to account for the weighting.
+#'
+#'
+#'
 #'
 #' @export
 #'
@@ -20,15 +30,13 @@
 #' @importFrom magrittr `%>%`
 #'
 #' @examples
-#' Design <- diabetes_scenario() |>
+#' Design <- diabetes_scenario()[1, ] |>
 #'   diabetes_scenario_set_truevalues()
 #'
-#' condition <- Design[1, ]
+#' dat <- generate_diabetes(Design)
 #'
-#' dat <- generate_diabetes(condition)
-#'
-#' analyse_diabetes_ipw(strategy = "treatment_policy")(condition, dat)
-#' analyse_diabetes_ipw(strategy = "hypothetical")(condition, dat)
+#' analyse_diabetes_ipw(strategy = "treatment_policy")(Design, dat)
+#' analyse_diabetes_ipw(strategy = "hypothetical")(Design, dat)
 #'
 analyse_diabetes_ipw <- function(strategy = "hypothetical") {
   function(condition, dat, fixed_objects = NULL) {
@@ -65,16 +73,28 @@ analyse_diabetes_ipw <- function(strategy = "hypothetical") {
 
     if (nrow(dat_long[dat_long$visit == k & dat_long$exposure == 1, ]) > 1) { # there need to be more than one missing value due to discontinuation (both estimands) or rescue (in case of hypothetical estimand only)
 
-      temp <- ipw::ipwtm(
-        exposure = exposure, # indicator for missing data at visit j
-        family = "binomial",
-        link = "logit",
-        denominator = ~ trt + age + hba1c_lag + R_lag,
-        id = id,
-        timevar = visit,
-        type = "first",
-        data = dat_long
-      )
+      if (strategy == "treatment_policy") {
+        temp <- ipw::ipwtm(
+          exposure = exposure, # indicator for missing data at visit j
+          family = "binomial",
+          link = "logit",
+          denominator = ~ trt + age + hba1c_lag + R_lag,
+          id = id,
+          timevar = visit,
+          type = "first",
+          data = dat_long
+        )} else if (strategy == "hypothetical") {
+          temp <- ipw::ipwtm(
+            exposure = exposure, # indicator for missing data at visit j
+            family = "binomial",
+            link = "logit",
+            denominator = ~ trt + age + hba1c_lag,
+            id = id,
+            timevar = visit,
+            type = "first",
+            data = dat_long
+          )
+        }
       fit <- lm( # OLS with HC2 variance estimator
         as.formula(paste0("y ~ trt + hba1c_0 + age")),
         weights = temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0],
@@ -89,13 +109,33 @@ analyse_diabetes_ipw <- function(strategy = "hypothetical") {
 
     model <- lmtest::coeftest(fit, vcov = sandwich::vcovHC(fit, type = "HC2"))
     ci <- stats::confint(model)
+    t_stat <- model["trt", "t value"]
+    df <- df.residual(fit)
+    p_one_sided <- pt(t_stat, df = df)
+
+    if(exists("temp")) {
+      m = max(temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0], na.rm = TRUE)
+      k = max(temp$ipw.weights, na.rm = TRUE)
+      s = sum(is.na(temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0]))
+      j = sum(is.na(temp$ipw.weights))
+    } else {
+      m = NA_real_
+      k = NA_real_
+      s = NA_integer_
+      j = NA_integer_
+    }
 
     list(
       coef = model["trt", "Estimate"],
       se = model["trt", "Std. Error"],
-      p = model["trt", "Pr(>|t|)"],
+      p = p_one_sided,
       ci_lower = ci[2, 1],
-      ci_upper = ci[2, 2]
+      ci_upper = ci[2, 2],
+      n = nrow(dat_long[dat_long$visit == k & dat_long$exposure == 1, ]),
+      m = m,
+      k = k,
+      s = s,
+      j = j
     )
   }
 }
