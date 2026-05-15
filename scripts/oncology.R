@@ -10,32 +10,44 @@ library(survival)
 #SimClean()
 
 scen_tab <- readxl::read_xlsx("data/oncology_scenario_list.xlsx")
+n_scenarios<-dim(scen_tab)[1]
+
 
 # Settings to calculate true value
 pre_N_sim <- 2#10
 ev_soll_for_true_value<-100#0
 
 # Iterations and scenarios
-N_sim <- 4
+N_sim <- 3
 #scen_set<-c(52,57,64)#53 #H0,, #1:3
-scen_set<-"all"
+##scen_select<-"all"
 
-# Set whether IPCW extra methods are used or standard methods:
-IPCW_extra<-FALSE
-#IPCW_extra<-TRUE
+#run with these three settings separately:
+scen_select<-"small_n"
+scen_select<-"large_n"
+scen_select<-"IPCW_extra"
 
-if(scen_set=="all") {
-  n_scenarios<-dim(scen_tab)[1]
-  #use all scenarios in case this is specified
-  if(!IPCW_extra) {
-    scen_set<-1:n_scenarios
-  } else {
-    scen_set<-(1:n_scenarios)[grepl("Core",scen_tab$`Short name`) | grepl("random censoring",scen_tab$`Short name`)]
-  }
+#
 
+result_name_note<-""
 
-
+if(scen_select=="all") {
+  scen_set<-1:n_scenarios
+  result_name_note<-"scen_all"
 }
+if(scen_select=="small_n") { #small n is high effect size
+  scen_set<-(1:n_scenarios)[grepl("high",scen_tab$block_nam)]
+  result_name_note<-"scen_small_n"
+}
+if(scen_select=="large_n") {
+  scen_set<-(1:n_scenarios)[grepl("low",scen_tab$block_nam)]
+  result_name_note<-"scen_large_n"
+}
+if(scen_select=="IPCW_extra") {
+  scen_set<-(1:n_scenarios)[grepl("high",scen_tab$block_nam) & (grepl("Core",scen_tab$scenario_name) | grepl("random censoring",scen_tab$scenario_name))]
+  result_name_note<-"scen_IPCW_extra"
+}
+
 
 
 # Alpha
@@ -120,21 +132,21 @@ sim_parameters$true_eff[scen_set]<-pre_results$truth.mean_est
 
 # List of analysis functions ---------------------------------------------
 
+#all or large n case
+analysis_functions_list<-list(
+  rpsftm_rc = analyse_oncology_rpsftm(recensor = TRUE),
+  rpsftm = analyse_oncology_rpsftm(recensor = FALSE),
+  tse_rc = analyse_oncology_TSE(recensor = TRUE),
+  tse = analyse_oncology_TSE(recensor = FALSE),
+  #gformula = analyse_oncology_gformula(B = 20),
+  ipw = analyse_oncology_ipw(),
+  #itt = analyse_oncology_itt(),
+  cens = analyse_oncology_cens()
+)
 
-if(IPCW_extra==FALSE) {
-  #standard_functions
-  analysis_functions_list<-list(
-    rpsftm_rc = analyse_oncology_rpsftm(recensor = TRUE),
-    rpsftm = analyse_oncology_rpsftm(recensor = FALSE),
-    tse_rc = analyse_oncology_TSE(recensor = TRUE),
-    tse = analyse_oncology_TSE(recensor = FALSE),
-    gformula = analyse_oncology_gformula(B = 20),
-    ipw = analyse_oncology_ipw(),
-    #itt = analyse_oncology_itt(),
-    cens = analyse_oncology_cens()
- )
- result_name_note<-"sim"
-} else {
+if(scen_select=="small_n") analysis_functions_list<-c(analysis_functions_list,gformula = analyse_oncology_gformula(B = 20))
+
+if(scen_select=="IPCW_extra") {
   #IPCW_functions
   analysis_functions_list<-list(
     rpsftm = analyse_oncology_rpsftm(recensor = FALSE),
@@ -144,10 +156,10 @@ if(IPCW_extra==FALSE) {
 
     rpsftm_IPCW =  analyse_oncology_mixed(method="RPSFTM",recensor = TRUE,B = 100,trunc_weights = 5,use_censoring_IPW = TRUE,requ_n_cens = 5),
     tse_IPCW =  analyse_oncology_mixed(method="TSE",recensor = TRUE,B = 100,trunc_weights = 5,use_censoring_IPW = TRUE,requ_n_cens = 5),
-    gformula_IPCW = analyse_oncology_gformula(B = 20,use_censoring_IPW=TRU, requ_n_cens=5, trunc_weights=5),
+    gformula_IPCW = analyse_oncology_gformula(B = 20,use_censoring_IPW=TRUE, requ_n_cens=5, trunc_weights=5),
     ipw_IPCW =analyse_oncology_ipw2(use_censoring_IPW = TRUE, trunc_weights = 5, requ_n_cens = 5)
   )
-  result_name_note<-"IPCW_extra"
+
 }
 
 my_analyse <- c(
@@ -310,10 +322,7 @@ save(results, main_sessioninfo, nodes_sessioninfo, file = file_name)
 
 #results
 A<-as.data.frame(results)
-head(A)
-A$ipw.test.rejection_0.025
 rej<-grepl("test.rejection_0.025",names(A))
-colMeans(A[,rej])
 cover<-grepl("est.coverage",names(A))
-A[rej]
-A[cover]
+#A[rej]
+#A[cover]
