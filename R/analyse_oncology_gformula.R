@@ -2,12 +2,17 @@
 #'
 #' @param B Number of bootstrap samples
 #' @param reps Number of repetitions for the g-formula simulation (per bootstrap sample)
+#' @param n_ev_cutoff_no_bootstrap If the observed number of events exceeds this cutoff, no bootstrap will be used. Only a point estimate for the
+#'  hazard ratio is then calculated, but no further inferential statistics. The default value is 100.
+#' @param use_censoring_IPW Logical, indicating whether to use inverse probability of censoring weighting when calculating the models. Default is FALSE.
+#' @param requ_n_cens The minimum number of random censoring events required to use inverse probability of censoring weighting when calculating the models. Default is 5.
+#' @param trunc_weights Weights exceeding this value will be truncated to this value. Default is 5.
 #'
 #' @return an analyse function that can be used in runSimulation
 #' @export
 #'
 #' @importFrom survival tmerge coxph Surv
-#' @importFrom stats confint glm predict sd model.matrix
+#' @importFrom stats confint glm predict sd model.matrix pnorm
 #'
 #' @examples
 #' \donttest{
@@ -17,7 +22,7 @@
 #'
 #' analyse_oncology_gformula()(setting, dat)
 #' }
-analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap=100) {
+analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap=100, use_censoring_IPW=FALSE, requ_n_cens=5, trunc_weights=5) {
   function(condition, dat, fixed_objects = NULL) {
     if(dat$ev_obs[1]>n_ev_cutoff_no_bootstrap) B<-0
     intervals_per_year <- 12
@@ -35,6 +40,9 @@ analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap
 
       # D$ev[temp$event_time > D$start & temp$event_time <= D$stop] <- 1
       if(temp$ev==1)  D$ev[int_end+1] <- 1
+
+      # include random censoring to later on calcualte IPW for censoring
+      if(temp$random_cens)  D$random_cens_event[int_end+1] <- 1
 
       D$prog[temp$prog_time <= D$stop] <- 1
       if (any(D$prog == 1)) {
@@ -73,10 +81,25 @@ analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap
         dat_bs <- data[boot_ind, ] # data is orderd by id
       }
 
-      mod_prog <- glm(prog ~ X + W + trt_actual + time, family = binomial, data = D[D$prog == 0 | D$prog_now == 1, ])
+      #Censoring weights
+      if(use_censoring_IPW & sum(data$random_cens)>=requ_n_cens) {
+
+        mod_cens<-glm(!random_cens_event~trt*(X+W+time)+switch,data=D,family=binomial)
+        PR<-predict(mod_cens,type="response")
+        Ag<-aggregate(PR~D$id,FUN=cumprod)
+        cumpr<-unlist(Ag[[2]])
+        w<-1/cumpr
+      } else {
+        w<-NULL
+      }
+
+      mod_prog<-glm(prog~X+W+trt_actual+time,family=binomial,data=D[D$prog==0 | D$prog_now==1,],weights=w[D$prog==0 | D$prog_now==1])  #NULL[subset] gives NULL
+      #mod_prog<- glm(prog ~ X + W + trt_actual + time, family = binomial, data = D[D$prog == 0 | D$prog_now == 1, ])
       mod_sw <- glm(switch ~ X + W, family = binomial, data = D[D$trt == 0 & D$prog_now == 1, ])
-      mod_death <- glm(ev ~ X + W + trt + time + switch, family = binomial, data = D)
-      mod_W <- lm(W ~ X + W_lag + time, data = D)
+      mod_death<-glm(ev~X+W+trt+time+switch,family=binomial,data=D,weights=w)
+      #mod_death <- glm(ev ~ X + W + trt + time + switch, family = binomial, data = D)
+      mod_W<-lm(W~X+W_lag+time,data=D,weights=w)
+      #mod_W <- lm(W ~ X + W_lag + time, data = D)
 
       DS <- NULL
 

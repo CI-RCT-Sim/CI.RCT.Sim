@@ -2,7 +2,7 @@
 devtools::load_all()
 rm(list=ls())
 library(CI.RCT.Sim)
-library(parallel)
+#library(parallel)
 
 pre_sim_parameters <- oncology_scenario()
 A<-pre_sim_parameters |> oncology_scenario_set_truevalues()
@@ -119,6 +119,48 @@ addWorksheet(wb, sheetName="Scenarios")
 names(all_param_tab)
 all_param_tab$beta_cens.switching_in_control_only<-round(log(all_param_tab$beta_cens.switching_in_control_only))
 
+#names:
+names_temp<-c(
+  "Core",
+  "W - decrease under ctr",
+  "W - decrease in both groups",
+  "L - decrease under ctr, effect on death, progr., switching (unobs. conf.)",
+  "L - decrease in both groups, effect on death, progr., switching (unobs. conf.)",
+  "time dependent correlation - Toeplitz",
+  "progression - fast",
+  "progresssion - no effect of W",
+  "progression - reduced effect of trt",
+  "progression - no effect of trt",
+  "progression - unobserved confounding with death",
+  "switch - high probability",
+  "switch - no effect of W",
+  "switch - W>0 near separation",
+  "switch - unobserved confounding with death",
+  "death - high rate",
+  "death - no effect of W",
+  "death - unobserved confounding with progr. and switch",
+  "Trt effect post switch - reduced",
+  "Trt effect post switch - none",
+  "random censoring - none",
+  "random censoring - effect of X",
+  "random censoring - effect of X and W",
+  "random censoring - effect of X, W and L",
+  "random censoring - high rate, effect of X, W",
+  "random censoring - high rate, control only, effect of X, W")
+
+scenario_names<-c(
+  names_temp,
+  names_temp[names_temp!="Trt effect post switch - reduced"],
+  names_temp[!grepl("Trt effect post switch",names_temp)],
+  names_temp[!grepl("Trt effect post switch",names_temp)]
+)
+
+
+all_param_tab$scenario_name<-scenario_names
+dim2<-dim(all_param_tab)[2]
+all_param_tab<-all_param_tab[,c(1,2,dim2,3:(dim2-1))]
+head(all_param_tab)
+
 writeData(wb, sheet="Scenarios", x=all_param_tab)
 
 # define style
@@ -140,7 +182,7 @@ for(b in names(LIST)) {
 
 
 for(x in 1:dim(all_param_tab)[1]) {
-  for(y in 2:dim(all_param_tab)[2]) { #start at 2, because 1 is the ID and these are all different but should not be highlighted
+  for(y in 4:dim(all_param_tab)[2]) { #start at 4, because 1:3 are the ID, senario block and name and two of these are different but should not be highlighted
     if(checko[x,y]) addStyle(wb, sheet="Scenarios", style=yellow_style, rows=x+1, cols=y, gridExpand=TRUE) # +1 for header line
   }
 }
@@ -171,7 +213,7 @@ for(i in 1:length(Sigma_levels)) {
 #Pat_Sigma
 writeData(wb, sheet="Covariance_patterns", x=Pat_Sigma)
 
-saveWorkbook(wb, "yellow_13May_1-3.xlsx", overwrite=TRUE)
+saveWorkbook(wb, "data/oncology_scenario_list.xlsx", overwrite=TRUE)
 
 
 

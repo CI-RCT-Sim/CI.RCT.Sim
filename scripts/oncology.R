@@ -1,19 +1,57 @@
 # devtools::install()
 # renv::restore()
+# devtools::document()
 devtools::load_all()
 rm(list=ls())
 library(CI.RCT.Sim)
 library(parallel)
 library(survival)
 
+scen_tab <- readxl::read_xlsx("data/oncology_scenario_list.xlsx")
+
+# Settings to calculate true value
+pre_N_sim <- 2#10
+ev_soll_for_true_value<-100#0
+
+# Iterations and scenarios
+N_sim <- 4
+#scen_set<-c(52,57,64)#53 #H0,, #1:3
+scen_set<-"all"
+
+# Set whether IPCW extra methods are used or standard methods:
+IPCW_extra<-FALSE
+#IPCW_extra<-TRUE
+
+if(scen_set=="all") {
+  n_scenarios<-dim(scen_tab)[1]
+  #use all scenarios in case this is specified
+  if(!IPCW_extra) {
+    scen_set<-1:n_scenarios
+  } else {
+    scen_set<-(1:n_scenarios)[grepl("Core",scen_tab$`Short name`) | grepl("random censoring",scen_tab$`Short name`)]
+  }
+
+
+
+}
+
+
+# Alpha
+alpha <- 0.05 #two sided, tests will be one-sided using alpha/2, confidence intervals are mostly hard coded to 0.95
+
+
+###################################
+
 # Derive true treatment effect -------------------------------------------
 
 sim_parameters <- oncology_scenario() |>
   oncology_scenario_set_truevalues()
 
+
+
+
 #pre_sim_parameters <- oncology_scenario()
 
-pre_N_sim <- 2
 
 pre_my_analyse <- list(
   truth = function(condition, dat, fixed_objects = NULL) {
@@ -49,12 +87,12 @@ clusterEvalQ(cl, {
 #SimClean()
 
 pre_results <- runSimulation(
-  design = sim_parameters,
+  design = sim_parameters[scen_set,],
   replications = pre_N_sim,
   generate = generate_oncology,
   analyse = pre_my_analyse,
   summarise = pre_my_summarise,
-  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = 100, allow_random_cens = TRUE),
+  fixed_objects = list(allow_switch = FALSE, logHR_assumed = NULL, ev_soll = ev_soll_for_true_value, allow_random_cens = TRUE),
   parallel = TRUE,
   cl = cl
 )
@@ -66,29 +104,61 @@ pre_results[which(sapply(pre_results$beta_death, `[[`, 6) == 0),]$truth.mean_est
 
 # Define parameter values and derived quantities -------------------------
 
-sim_parameters <- oncology_scenario() |>
-  oncology_scenario_set_truevalues() |>
-  dplyr::mutate(true_eff = pre_results$truth.mean_est) #redundant, pool in first step
+#sim_parameters <- oncology_scenario() |>
+#  oncology_scenario_set_truevalues() |>
+#  dplyr::mutate(true_eff = pre_results$truth.mean_est) #redundant, pool in first step
 
-sim_parameters <- sim_parameters |>
-  dplyr::mutate(true_eff = pre_results$truth.mean_est) #redundant, pool in first step
-
+#sim_parameters <- sim_parameters |>
+#  dplyr::mutate(true_eff = pre_results$truth.mean_est)
+sim_parameters$true_eff<-NA
+sim_parameters$true_eff[scen_set]<-pre_results$truth.mean_est
 # Constants for simulation -----------------------------------------------
 
-N_sim <- 10
-alpha <- 0.05
+
 
 # List of analysis functions ---------------------------------------------
 
-my_analyse <- list(
-  rpsftm_rc = analyse_oncology_rpsftm(recensor = TRUE),
-  rpsftm = analyse_oncology_rpsftm(recensor = FALSE),
-  tse_rc = analyse_oncology_TSE(recensor = TRUE),
-  tse = analyse_oncology_TSE(recensor = FALSE),
-  gformula = analyse_oncology_gformula(B = 20),
-  ipw = analyse_oncology_ipw(),
-  itt = analyse_oncology_itt(),
-  cens = analyse_oncology_cens(),
+
+if(IPCW_extra==FALSE) {
+  #standard_functions
+  analysis_functions_list<-list(
+    rpsftm_rc = analyse_oncology_rpsftm(recensor = TRUE),
+    rpsftm = analyse_oncology_rpsftm(recensor = FALSE),
+    tse_rc = analyse_oncology_TSE(recensor = TRUE),
+    tse = analyse_oncology_TSE(recensor = FALSE),
+    gformula = analyse_oncology_gformula(B = 20),
+    ipw = analyse_oncology_ipw(),
+    #itt = analyse_oncology_itt(),
+    cens = analyse_oncology_cens()
+ )
+ result_name_note<-"sim"
+} else {
+  #IPCW_functions
+  analysis_functions_list<-list(
+    rpsftm = analyse_oncology_rpsftm(recensor = FALSE),
+    tse = analyse_oncology_TSE(recensor = FALSE),
+    gformula = analyse_oncology_gformula(B = 20),
+    ipw = analyse_oncology_ipw(),
+
+    rpsftm_IPCW =  analyse_oncology_mixed(method="RPSFTM",recensor = TRUE,B = 100,trunc_weights = 5,use_censoring_IPW = TRUE,requ_n_cens = 5),
+    tse_IPCW =  analyse_oncology_mixed(method="TSE",recensor = TRUE,B = 100,trunc_weights = 5,use_censoring_IPW = TRUE,requ_n_cens = 5),
+    gformula_IPCW = analyse_oncology_gformula(B = 20,use_censoring_IPW=TRU, requ_n_cens=5, trunc_weights=5),
+    ipw_IPCW =analyse_oncology_ipw2(use_censoring_IPW = TRUE, trunc_weights = 5, requ_n_cens = 5)
+  )
+  result_name_note<-"IPCW_extra"
+}
+
+my_analyse <- c(
+  analysis_functions_list,
+  list(
+  #rpsftm_rc = analyse_oncology_rpsftm(recensor = TRUE),
+  #rpsftm = analyse_oncology_rpsftm(recensor = FALSE),
+  #tse_rc = analyse_oncology_TSE(recensor = TRUE),
+  #tse = analyse_oncology_TSE(recensor = FALSE),
+  #gformula = analyse_oncology_gformula(B = 20),
+  #ipw = analyse_oncology_ipw(),
+  #itt = analyse_oncology_itt(),
+  #cens = analyse_oncology_cens(),
   describe = function(condition, dat, fixed_objects = NULL) {
     tabulate_helper <- function(dat, var) {
       tmp <- list(
@@ -107,7 +177,8 @@ my_analyse <- list(
       n_switch = sum(dat$switch),
       max_followup = max(dat$event_time),
       sufficient_events = sum(dat$ev) >= condition$ev_soll,
-      n_random_cens = sum(dat$random_cens)
+      n_random_cens = sum(dat$random_cens),
+      sufficient_random_cens = sum(dat$random_cens)>=5
     )
     result <- c(result, tabulate_helper(dat, "ev"))
     if (!is.null(attr(dat, "followup"))) {
@@ -123,7 +194,7 @@ my_analyse <- list(
     }
     result
   }
-)
+))
 
 my_analyse <- wrap_all_in_trycatch(my_analyse)
 
@@ -141,10 +212,45 @@ summy<-summarise_estimator(
   name = "est"
 )
 
-sumtest<-summarise_test(
+summarise_test_one_sided_for_HR<-function (alpha, name = NULL) {
+  res <- function(condition, results, fixed_objects) {
+    results$p<-results$p/2
+    results$p[results$HR>1]<-1-results$p[results$HR>1]
+    rejection_tmp <- setNames(as.data.frame(as.list(colMeans(outer(results$p,
+                                                                   alpha, FUN = `<`), na.rm = TRUE))), paste0("rejection_",
+                                                                                                              alpha))
+    missing_tmp <- setNames(as.data.frame(as.list(colSums(outer(results$p,
+                                                                1 - alpha, FUN = function(p, a) {
+                                                                  is.na(p)
+                                                                })))), paste0("N_missing_", alpha))
+    results_tmp <- cbind(rejection_tmp, missing_tmp, N = nrow(results))
+    results_tmp$mean_n_pat <- NA_real_
+    results_tmp$sd_n_pat <- NA_real_
+    results_tmp$mean_n_evt <- NA_real_
+    results_tmp$sd_n_evt <- NA_real_
+    results_tmp$N_missing_n_pat <- NA_real_
+    results_tmp$N_missing_n_evt <- NA_real_
+    if (hasName(results, "N_pat")) {
+      results_tmp$mean_n_pat <- mean(results$N_pat, na.rm = TRUE)
+      results_tmp$sd_n_pat <- sd(results$N_pat, na.rm = TRUE)
+      results_tmp$N_missing_n_pat <- sum(is.na(results$N_pat))
+    }
+    if (hasName(results, "N_evt")) {
+      results_tmp$mean_n_evt <- mean(results$N_evt, na.rm = TRUE)
+      results_tmp$sd_n_evt <- sd(results$N_evt, na.rm = TRUE)
+      results_tmp$N_missing_n_evt <- sum(is.na(results$N_evt))
+    }
+    results_tmp
+  }
+  attr(res, "name") <- name
+  res
+}
+
+sumtest<-summarise_test_one_sided_for_HR(
   alpha/2,
   name = "test"
 )
+
 my_summarise <- create_summarise_function(
   # bias, SD, coverage etc. for the treatment effect at final visit
   rpsftm_rc = summy,
@@ -181,7 +287,7 @@ nodes_sessioninfo <- clusterEvalQ(cl, {
 })
 
 results <- runSimulation(
-  design = sim_parameters[1:3,],
+  design = sim_parameters[scen_set,],
   replications = N_sim,
   generate = generate_oncology,
   analyse = my_analyse,
@@ -194,5 +300,18 @@ results <- runSimulation(
 stopCluster(cl)
 
 # Save results -----------------------------------------------------------
-path="data/"
-save(results, main_sessioninfo, nodes_sessioninfo, file = paste(path,format(Sys.time(), paste0("results_onco_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep=""))
+path="results/"
+file_name<-paste(path,result_name_note,"_",format(Sys.time(), paste0("results_onco_","nsim",N_sim,"_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep="")
+file_name
+save(results, main_sessioninfo, nodes_sessioninfo, file = file_name)
+
+
+#results
+A<-as.data.frame(results)
+head(A)
+A$ipw.test.rejection_0.025
+rej<-grepl("test.rejection_0.025",names(A))
+colMeans(A[,rej])
+cover<-grepl("est.coverage",names(A))
+A[rej]
+A[cover]
