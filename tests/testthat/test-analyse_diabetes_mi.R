@@ -16,18 +16,18 @@ test_that("mi diabetes works", {
   })
 
   mod_lm <- lm(y12 ~ trt + age + y0, data = dat)
-  expect_equal(res$coef, coef(mod_lm)["trt"], tolerance = 1e-8)
+  expect_equal(res$coef, coef(mod_lm)[["trt"]], tolerance = 1e-8)
 
   # Generate data with no missingness, and no treatment effect, to check equivalence with linear regression
   withr::with_seed(129, {
-    dat <- generate_diabetes(Design[12, ])
+    dat <- generate_diabetes(Design[15, ])
   })
   expect_no_error({
-    res <- my_analyse(Design[12, ], dat)
+    res <- my_analyse(Design[15, ], dat)
   })
 
   mod_lm <- lm(y12 ~ trt + age + y0, data = dat)
-  expect_equal(res$coef, coef(mod_lm)["trt"], tolerance = 1e-8)
+  expect_equal(res$coef, coef(mod_lm)[["trt"]], tolerance = 1e-8)
 
   # sanity checks under the null hypothesis
   expect_gt(res$p, 0.025)

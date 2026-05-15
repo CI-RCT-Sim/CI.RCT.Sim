@@ -26,7 +26,6 @@ Suggests:
     testthat (>= 3.0.0),
     covr
 Roxygen: list(markdown = TRUE)
-RoxygenNote: 7.3.3
 URL: https://ci-rct-sim.github.io/CI.RCT.Sim/
 Config/testthat/edition: 3
 Imports: 
@@ -41,8 +40,6 @@ Imports:
     tidyr,
     ipw,
     mmrm,
-    gfoRmula,
-    data.table,
     logistf,
     tidyselect,
     emmeans,
@@ -52,3 +49,5 @@ Imports:
     survival,
     trtswitch
 VignetteBuilder: knitr
+Config/roxygen2/version: 8.0.0
+RoxygenNote: 7.3.3
