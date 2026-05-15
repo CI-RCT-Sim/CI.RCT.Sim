@@ -10,21 +10,24 @@ analyse_diabetes_mmrm(
 )
 }
 \arguments{
-\item{ci_level}{Confidence level for the confidence interval (default 0.95)}
+\item{ci_level}{Confidence level for the two-sided confidence interval (default 0.95)}
 
 \item{strategy}{Strategy for handling rescue medication:
-"treatment_policy" or "hypothetical"}
+\itemize{
+\item \code{"treatment_policy"}
+\item \code{"hypothetical"}
+}}
 }
 \value{
 A function that, when called with \code{condition} and \code{dat}, returns a list with:
 \itemize{
-\item \code{coef} coefficient for \code{trt}
-\item \code{p} p-value for coef
-\item \code{ci_lower} lower bound of 95\% confidence interval for coef
-\item \code{ci_upper} upper bound of 95\% confidence interval for coef
-\item \code{converged} boolean indicating whether the model converged
-\item \code{covariance} the covariance structure used
-\item \code{fallback} boolean indicating whether a fallback covariance structure was used
+\item \code{coef} estimated treatment effect at final visit
+\item \code{p} one-sided p-value for \eqn{\beta_{trt} < 0}
+\item \code{ci_lower} lower bound of the two-sided confidence interval
+\item \code{ci_upper} upper bound of the two-sided confidence interval
+\item \code{converged} logical indicating whether the model converged
+\item \code{covariance} covariance structure used (\code{us}, \code{cs}, or \code{diag})
+\item \code{fallback} logical indicating whether fallback covariance was used
 }
 }
 \description{
@@ -34,76 +37,97 @@ the treatment effect at the final visit in a longitudinal clinical trial setting
 \details{
 \subsection{Model specification}{
 
-The following linear model is fitted:
+The following linear mixed model is fitted:
 
 \deqn{
-y_{ij} = \beta_0
+y_{ij} =
+\beta_0
 + \beta_1 \cdot \text{trt}_i
-+ \gamma_j \cdot \text{visit}_j
-+ \delta_j \cdot (\text{trt}i \times \text{visit}j)
-+ \alpha_j \cdot y{0,i}
-+ \eta_j \cdot \text{age}i
-+ \varepsilon{ij}
++ \sum_{j} \gamma_j \cdot \mathbb{1}(\text{visit}_j)
++ \sum_{j} \delta_j \cdot \left(\text{trt}_i \times \mathbb{1}(\text{visit}_j)\right)
++ \sum_{j} \alpha_j \cdot y_{0,i} \cdot \mathbb{1}(\text{visit}_j)
++ \sum_{j} \eta_j \cdot \text{age}_i \cdot \mathbb{1}(\text{visit}_j)
++ \varepsilon_{ij}
 }
 
 where:
 \itemize{
-\item \eqn{y{ij}} is the outcome for subject \eqn{i} at visit \eqn{j}
+\item \eqn{y_{ij}} is the outcome for subject \eqn{i} at visit \eqn{j}
 \item \eqn{\text{trt}_i} is the treatment indicator
-\item \eqn{\text{visit}j} is a categorical visit effect
-\item \eqn{y{0,i}} is the baseline value
-\item \eqn{\text{age}i} is a baseline covariate
+\item \eqn{\text{visit}_j} is a categorical visit factor
+\item \eqn{y_{0,i}} is baseline value
+\item \eqn{\text{age}_i} is a baseline covariate
 }
 
-The within-subject covariance is modeled using an unstructured covariance matrix:
+The within-subject covariance is modeled using an unstructured covariance:
 
 \deqn{
 \varepsilon_i \sim \mathcal{N}(0, \Sigma)
 }
 
-with \eqn{\Sigma} fully unstructured across visits.
+where \eqn{\Sigma} is an unstructured covariance matrix across visits.
 }
 
-\subsection{Interpretation of treatment effect}{
+\subsection{Estimand and interpretation}{
 
-The visit factor is re-leveled such that the final visit (visit = k) is the
-reference category. As a result, the main effect coefficient for trt
+The visit factor is re-leveled such that the final visit (visit = k)
+is the reference category. Therefore, the main treatment coefficient
 corresponds directly to the treatment effect at the final visit.
-
-Without this releveling, the treatment effect would correspond to the reference
-visit (typically the first visit), and additional contrasts would be required
-to obtain the effect at the final visit.
 }
 
 \subsection{Handling of intercurrent events (rescue medication)}{
 
 Two strategies are supported:
-\itemize{
-\item "treatment_policy":
+\subsection{Treatment policy}{
+
 All observed post-baseline data are used regardless of rescue medication.
-\item "hypothetical":
-For subjects who initiate rescue medication during the study
-(i.e. rescue_start <= k), all outcomes from the rescue visit onward are
-set to missing. This results in a monotone missingness pattern, where:
 }
+
+\subsection{Hypothetical strategy}{
+
+For subjects who initiate rescue medication at visit \eqn{s}, all outcomes
+strictly after rescue are set to missing:
 
 \deqn{
-y{i, j} = \text{NA for all } j \geq \text{rescue_start}_i
+y_{i,j} = \mathrm{NA} \quad \text{for all } j > s
 }
 
-Subjects without rescue (i.e. rescue_start > k or NA) remain unchanged.
+Subjects without rescue (or with rescue after the final visit)
+remain unchanged.
 
-This approach targets a hypothetical estimand corresponding to outcomes
-that would have been observed had rescue medication not been initiated.
+This targets a hypothetical estimand corresponding to outcomes that
+would have been observed had rescue medication not been initiated.
+}
+
 }
 
 \subsection{Inference}{
 
-Treatment effects are estimated using restricted maximum likelihood (REML),
-and inference is based on Satterthwaite approximations for the degrees of freedom.
+Treatment effects are estimated using restricted maximum likelihood (REML).
 
-Confidence intervals are constructed using a t-distribution with the estimated
-degrees of freedom.
+Degrees of freedom are computed using Satterthwaite approximation.
+\subsection{Hypothesis testing}{
+
+A one-sided test is used for the treatment effect:
+
+\deqn{
+H_0: \beta_{trt} \ge 0
+\quad \text{vs} \quad
+H_A: \beta_{trt} < 0
+}
+
+since a reduction in HbA1c (negative change) is considered beneficial.
+
+Two-sided confidence intervals are retained and reported.
+}
+
+}
+
+\subsection{Covariance structures}{
+
+The model attempts the following covariance structures in order:
+unstructured (\code{us}), compound symmetry (\code{cs}), and diagonal (\code{diag}),
+falling back if convergence fails.
 }
 }
 \examples{
@@ -113,10 +137,8 @@ Design <- diabetes_scenario()[1, ] |>
 
 dat <- generate_diabetes(Design)
 
-# Treatment policy estimand
 analyse_diabetes_mmrm(strategy = "treatment_policy")(Design, dat)
-
-# Hypothetical estimand (censor after rescue)
 analyse_diabetes_mmrm(strategy = "hypothetical")(Design, dat)
 }
+
 }
