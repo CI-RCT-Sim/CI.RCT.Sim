@@ -154,5 +154,34 @@ the global random number generator state.
 \examples{
 \donttest{
 
+Design <- diabetes_scenario()[1, ] |>
+  diabetes_scenario_set_truevalues()
+
+dat <- generate_diabetes(Design)
+
+## ----------------------------
+## Treatment policy estimand
+## ----------------------------
+res_tp <- analyse_diabetes_mi(
+  strategy = "treatment_policy"
+)(Design, dat)
+
+res_tp
+
+## ----------------------------
+## Hypothetical estimand
+## (censor after rescue + MI)
+## ----------------------------
+res_hyp <- analyse_diabetes_mi(
+  strategy = "hypothetical"
+)(Design, dat)
+
+res_hyp
+
+## Compare estimated effects
+c(
+  treatment_policy = res_tp$coef,
+  hypothetical     = res_hyp$coef
+)
 }
 }

@@ -110,7 +110,7 @@ analyse_diabetes_ipw <- function(strategy = "hypothetical") {
     model <- lmtest::coeftest(fit, vcov = sandwich::vcovHC(fit, type = "HC2"))
     ci <- stats::confint(model)
     t_stat <- model["trt", "t value"]
-    df <- df.residual(fit)
+    df <- stats::df.residual(fit)
     p_one_sided <- pt(t_stat, df = df)
 
     if(exists("temp")) {

@@ -130,36 +130,35 @@
 #' @examples
 #' \donttest{
 #'
-# Design <- diabetes_scenario()[1, ] |>
-#   diabetes_scenario_set_truevalues()
-#
-# dat <- generate_diabetes(Design)
-#
-# ## ----------------------------
-# ## Treatment policy estimand
-# ## ----------------------------
-# res_tp <- analyse_diabetes_mi(
-#   strategy = "treatment_policy"
-# )(Design, dat)
-#
-# res_tp
-#
-# ## ----------------------------
-# ## Hypothetical estimand
-# ## (censor after rescue + MI)
-# ## ----------------------------
-# res_hyp <- analyse_diabetes_mi(
-#   strategy = "hypothetical"
-# )(Design, dat)
-#
-# res_hyp
-#
-# ## Compare estimated effects
-# c(
-#   treatment_policy = res_tp$coef,
-#   hypothetical     = res_hyp$coef
-# )
-
+#' Design <- diabetes_scenario()[1, ] |>
+#'   diabetes_scenario_set_truevalues()
+#'
+#' dat <- generate_diabetes(Design)
+#'
+#' ## ----------------------------
+#' ## Treatment policy estimand
+#' ## ----------------------------
+#' res_tp <- analyse_diabetes_mi(
+#'   strategy = "treatment_policy"
+#' )(Design, dat)
+#'
+#' res_tp
+#'
+#' ## ----------------------------
+#' ## Hypothetical estimand
+#' ## (censor after rescue + MI)
+#' ## ----------------------------
+#' res_hyp <- analyse_diabetes_mi(
+#'   strategy = "hypothetical"
+#' )(Design, dat)
+#'
+#' res_hyp
+#'
+#' ## Compare estimated effects
+#' c(
+#'   treatment_policy = res_tp$coef,
+#'   hypothetical     = res_hyp$coef
+#' )
 #' }
 analyse_diabetes_mi <- function(
     strategy = c("hypothetical", "treatment_policy"),
@@ -259,7 +258,7 @@ analyse_diabetes_mi <- function(
 
       if (length(vars_R) > 0) {
         for (r in vars_R) {
-          vals <- unique(na.omit(dat_g[[r]]))
+          vals <- unique(stats::na.omit(dat_g[[r]]))
           if (length(vals) < 2) {
             meth_g[r] <- ""   # no variation → skip imputation
           }

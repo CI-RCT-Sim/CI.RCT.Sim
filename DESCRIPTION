@@ -40,8 +40,6 @@ Imports:
     tidyr,
     ipw,
     mmrm,
-    gfoRmula,
-    data.table,
     logistf,
     tidyselect,
     emmeans,
@@ -52,3 +50,4 @@ Imports:
     trtswitch
 VignetteBuilder: knitr
 Config/roxygen2/version: 8.0.0
+RoxygenNote: 7.3.3
