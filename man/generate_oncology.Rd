@@ -22,8 +22,6 @@ oncology_scenario_set_truevalues(Design, fixed_objects = NULL)
 \item{fixed_objects}{fixed objects not used for now}
 
 \item{Design}{Design data.frame for x}
-
-\item{print}{print code to generate parameter set?}
 }
 \value{
 For generate_oncology: A data set with n rows and the columns .....
@@ -60,9 +58,7 @@ Condition has to contain the following columns:
 }
 
 oncology_scenario generates a default design \code{data.frame}
-for use with generate_oncology. If print is \code{TRUE} code to produce
-the template is also printed for copying, pasting and editing by the user.
-(This is the default when run in an interactive session.)
+for use with generate_oncology.
 }
 \section{Functions}{
 \itemize{

@@ -248,14 +248,10 @@ generate_oncology <- function(condition, fixed_objects = list(allow_switch = TRU
 
 #' Create an empty assumptions data.frame for generate_oncology
 #'
-#' @param print print code to generate parameter set?
-#'
 #' @return For oncology_scenario: a design tibble with default values invisibly
 #'
 #' @details oncology_scenario generates a default design `data.frame`
-#'   for use with generate_oncology. If print is `TRUE` code to produce
-#'   the template is also printed for copying, pasting and editing by the user.
-#'   (This is the default when run in an interactive session.)
+#'   for use with generate_oncology.
 #'
 #' @export
 #' @describeIn generate_oncology generate default design tibble
