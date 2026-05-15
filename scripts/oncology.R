@@ -323,7 +323,7 @@ stopCluster(cl)
 
 # Save results -----------------------------------------------------------
 path="results/"
-file_name<-paste(path,result_name_note,"_",set_hyp,"_",format(Sys.time(), paste0("results_onco_","nsim",N_sim,"_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep="")
+file_name<-paste(path,result_name_note,"_",hyp_select,"_",format(Sys.time(), paste0("results_onco_","nsim",N_sim,"_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep="")
 file_name
 save(results, main_sessioninfo, nodes_sessioninfo, file = file_name)
 
