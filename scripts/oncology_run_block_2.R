@@ -2,7 +2,7 @@
 rm(list=ls())
 
 sim_block<-2 #can be 1 to 6 or 0 for all
-N_sim <- 100#00
+N_sim <- 10000
 
 batch_length<-8
 
