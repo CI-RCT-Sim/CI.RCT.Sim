@@ -1,18 +1,36 @@
 #Run the simulation
+rm(list=ls())
+
 sim_block<-1 #can be 1 to 6 or 0 for all
 N_sim <- 10000
 
 batch_length<-8
 
-# devtools::install()
+#
 # renv::activate()
 ## renv::restore()
 ## devtools::document()
 devtools::load_all()
-rm(list=ls())
+#install.packages("fs")
+#install.packages("rlang")
+#install.packages("pkgload")
+#devtools::install()
 library(CI.RCT.Sim)
 library(parallel)
 library(survival)
+
+#test
+
+# cl <- makeCluster(2)
+# clusterEvalQ(cl, {
+#   library("CI.RCT.Sim")
+#   #library("survival")
+# })
+# alpha<-0.05
+# clusterExport(cl = cl, varlist = c("alpha"))
+#
+# stopCluster(cl)
+#
 
 #Make scenario table, the code now also adds the column with scneario short names
 #save_param_tab<-FALSE #not in use, use version 1-1 for saving the table
