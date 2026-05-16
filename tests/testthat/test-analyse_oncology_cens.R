@@ -1,5 +1,5 @@
 test_that("cens oncology works", {
-  Design <- oncology_scenario(print = FALSE) |>
+  Design <- oncology_scenario() |>
     oncology_scenario_set_truevalues()
 
   my_analyse <- analyse_oncology_cens()
