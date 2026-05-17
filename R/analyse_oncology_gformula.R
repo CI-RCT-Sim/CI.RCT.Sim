@@ -82,7 +82,8 @@ analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap
       }
 
       #Censoring weights
-      if(use_censoring_IPW & sum(data$random_cens)>=requ_n_cens) {
+      #if(use_censoring_IPW & sum(data$random_cens)>=requ_n_cens) {
+      if(use_censoring_IPW & sum(D$random_cens)>=requ_n_cens) {
 
         mod_cens<-glm(!random_cens_event~trt*(X+W+time)+switch,data=D,family=binomial)
         PR<-predict(mod_cens,type="response")

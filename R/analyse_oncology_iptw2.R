@@ -175,7 +175,9 @@ analyse_oncology_ipw2 <- function(use_censoring_IPW = FALSE,
       SElogHR = SE,
       low = CI[["2.5 %"]],
       up = CI[["97.5 %"]],
-      p = p
+      p = p,
+      N_pat = nrow(dat),
+      N_evt = sum(dat$ev)
     )
   }
 }

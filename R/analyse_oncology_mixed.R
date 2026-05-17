@@ -161,7 +161,7 @@ analyse_oncology_mixed <- function(method = c("RPSFTM", "TSE")[1],
       names(data_k)[names(data_k) == "t_star"] <- "event_time"
       names(data_k)[names(data_k) == "d_star"] <- "ev"
 
-      if (use_censoring_IPW & sum(data$random_cens) >= requ_n_cens) {
+      if (use_censoring_IPW & sum(data_k$random_cens) >= requ_n_cens) {
         sdat <- get_weights(data_k, trunc_weights = trunc_weights)
         cox <- coxph(
           Surv(
@@ -190,7 +190,9 @@ analyse_oncology_mixed <- function(method = c("RPSFTM", "TSE")[1],
         SElogHR = SE,
         low = KI[1],
         up = KI[2],
-        p = p
+        p = p,
+        N_pat = nrow(dat),
+        N_evt = sum(dat$ev)
       )
     } else {
       out <- list(
@@ -198,7 +200,9 @@ analyse_oncology_mixed <- function(method = c("RPSFTM", "TSE")[1],
         SElogHR = NA,
         low = NA,
         up = NA,
-        p = NA
+        p = NA,
+        N_pat = nrow(dat),
+        N_evt = sum(dat$ev)
       )
     }
     out

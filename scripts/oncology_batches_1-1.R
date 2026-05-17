@@ -102,8 +102,8 @@ if(scen_select=="IPCW_extra") {
     gformula = analyse_oncology_gformula(B = 20),
     ipw = analyse_oncology_ipw(),
 
-    rpsftm_IPCW =  analyse_oncology_mixed(method="RPSFTM",recensor = TRUE,B = 100,trunc_weights = 5,use_censoring_IPW = TRUE,requ_n_cens = 5),
-    tse_IPCW =  analyse_oncology_mixed(method="TSE",recensor = TRUE,B = 100,trunc_weights = 5,use_censoring_IPW = TRUE,requ_n_cens = 5),
+    rpsftm_IPCW =  analyse_oncology_mixed(method="RPSFTM",recensor = TRUE,B = 50,trunc_weights = 5,use_censoring_IPW = TRUE,requ_n_cens = 5),
+    tse_IPCW =  analyse_oncology_mixed(method="TSE",recensor = TRUE,B = 50,trunc_weights = 5,use_censoring_IPW = TRUE,requ_n_cens = 5),
     gformula_IPCW = analyse_oncology_gformula(B = 20,use_censoring_IPW=TRUE, requ_n_cens=5, trunc_weights=5),
     ipw_IPCW =analyse_oncology_ipw2(use_censoring_IPW = TRUE, trunc_weights = 5, requ_n_cens = 5)
   )
@@ -223,6 +223,10 @@ my_summarise <- create_summarise_function(
   ipw = summy,
   itt = summy,
   cens = summy,
+  rpsftm_IPCW = summy,
+  tse_IPCW = summy,
+  gformula_IPCW = summy,
+  ipw_IPCW = summy,
   # rejection rates
   rpsftm_rc = sumtest,
   rpsftm = sumtest,
@@ -232,6 +236,10 @@ my_summarise <- create_summarise_function(
   ipw = sumtest,
   itt = sumtest,
   cens = sumtest,
+  rpsftm_IPCW = sumtest,
+  tse_IPCW = sumtest,
+  gformula_IPCW = sumtest,
+  ipw_IPCW =  sumtest,
   describe = summarise_describe()
 )
 
