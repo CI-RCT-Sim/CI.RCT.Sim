@@ -174,8 +174,79 @@ dim(scen_tab)
 scen_tab$true_eff[is.na(scen_tab$true_eff)]<-1
 
 #remove H0 scenario with unequal trajectories for W
-head(scen_tab)
-rem<-grepl("H0",scen_tab$block_nam) & grepl("W - decrease under ctr",scen_tab$scenario_name)
-rem
-scen_tab<-scen_tab[!rem,]
+#not needed, I changed the scenario such that W has no effect on death
+#head(scen_tab)
+#rem<-grepl("H0",scen_tab$block_nam) & grepl("W - decrease under ctr",scen_tab$scenario_name)
+#rem
+#scen_tab<-scen_tab[!rem,]
 #dim(scen_tab)
+
+save_param_tab<-FALSE
+if(save_param_tab) {
+  library(openxlsx)
+
+  # write dataset
+  wb <- createWorkbook()
+  addWorksheet(wb, sheetName="Scenarios")
+  writeData(wb, sheet="Scenarios", x=all_param_tab)
+
+  # define style
+  yellow_style <- createStyle(fgFill="#FFFF00")
+
+  # difference to core scenario:
+  checko<-matrix(FALSE,nrow=dim(all_param_tab)[1],ncol=dim(all_param_tab)[2])
+  b<-names(LIST)[1]
+
+  for(b in names(LIST)) {
+    set<-all_param_tab$block_nam==b
+    ind<-(1:dim(all_param_tab)[1])[set]
+    for(i in ind[-1]) {
+      different<-which(all_param_tab[i,]!=all_param_tab[ind[1],])
+      checko[i,different]<-TRUE
+    }
+  }
+
+
+
+  for(x in 1:dim(all_param_tab)[1]) {
+    for(y in 4:dim(all_param_tab)[2]) { #start at 4, because 1:3 are the ID, senario block and name and two of these are different but should not be highlighted
+      if(checko[x,y]) addStyle(wb, sheet="Scenarios", style=yellow_style, rows=x+1, cols=y, gridExpand=TRUE) # +1 for header line
+    }
+  }
+  # write result
+
+
+  #
+  addWorksheet(wb, sheetName="Mean_W_patterns")
+  Pat_muW<-data.frame(Pattern=1:length(muW_levels),Value=muW_levels)
+  writeData(wb, sheet="Mean_W_patterns", x=Pat_muW)
+
+  addWorksheet(wb, sheetName="Mean_L_patterns")
+  Pat_muL<-data.frame(Pattern=1:length(muL_levels),Value=muL_levels)
+  writeData(wb, sheet="Mean_L_patterns", x=Pat_muL)
+
+  addWorksheet(wb, sheetName="Covariance_patterns")
+  matrix(unlist(Sigma_levels),ncol=sqrt(length(Sigma_levels[[1]])))
+
+  Pat_Sigma<-NULL
+  for(i in 1:length(Sigma_levels)) {
+    xx<-Sigma_levels[i]
+    yy<-as.numeric(strsplit(xx,", ")[[1]])
+    mat<-matrix(yy,ncol=sqrt(length(yy)))
+    colnames(mat)<-paste("V",1:dim(mat)[2],sep="")
+    Pat_Sigma<-rbind(Pat_Sigma,cbind(Pattern=i,mat))
+  }
+
+  #Pat_Sigma
+  writeData(wb, sheet="Covariance_patterns", x=Pat_Sigma)
+
+  saveWorkbook(wb, "results/oncology_scenario_list.xlsx", overwrite=TRUE)
+
+}
+
+
+
+
+
+#
+

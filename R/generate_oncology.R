@@ -461,11 +461,18 @@ oncology_scenario <- function() {
       all_scen$beta_switch[[i]][5]<-log(1.5)
     }
     if(case==2 | case==3) all_scen$beta_death[[i]][5]<-log(0.5) #index 5 is effect of L
-  }
+
+    #in th H0 scnenario with unequal trajectories of W, there should be no effect of W (index 3) on death
+    if(!all(all_scen$mu_W[[i]][[1]]==all_scen$mu_W[[i]][[2]]) & all_scen$beta_death[[i]][6] == 0) all_scen$beta_death[[i]][3]<-0
+    if(!all(all_scen$mu_L[[i]][[1]]==all_scen$mu_L[[i]][[2]]) & all_scen$beta_death[[i]][6] == 0) all_scen$beta_death[[i]][5]<-0
+
+ }
+
 
 
   all_scen
 }
+
 
 #' Calculate true summary statistics for scenarios with delayed treatment effect
 #'
