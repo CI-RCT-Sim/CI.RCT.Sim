@@ -2,9 +2,11 @@
 rm(list=ls())
 
 sim_block<-1 #can be 1 to 6 or 0 for all
-N_sim <- 10000
+N_sim <- 1000
 
 batch_length<-8
+
+Sim_ID<-"SIM_1_"
 
 #
 # renv::activate()
@@ -33,7 +35,7 @@ library(survival)
 #
 
 #Make scenario table, the code now also adds the column with scneario short names
-#save_param_tab<-FALSE #not in use, use version 1-1 for saving the table
+
 source("scripts/oncology_make_scenario_table_1-2.R")
 
 #Run different scenario settings:

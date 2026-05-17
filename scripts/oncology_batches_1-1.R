@@ -14,6 +14,10 @@
 
 
 n_scenarios<-dim(scen_tab)[1]
+sim_parameters <- oncology_scenario() |>
+  oncology_scenario_set_truevalues()
+sim_parameters$true_eff<-scen_tab$true_eff
+#dim(sim_parameters)
 
 set_hyp<-grepl(hyp_select,scen_tab$block_nam)
 
@@ -64,8 +68,8 @@ for(batch_index in 1:n_batches) {
   scen_set<-batch_list[[batch_index]]
   batch_name<-paste("sc","_",scen_set[1],"to",scen_set[length(scen_set)],sep="")
 
-  sim_parameters <- oncology_scenario() |>
-    oncology_scenario_set_truevalues()
+  #sim_parameters <- oncology_scenario() |>
+  #  oncology_scenario_set_truevalues()
 
 
 
@@ -258,9 +262,15 @@ stopCluster(cl)
 
 # Save results -----------------------------------------------------------
 path="results/"
-file_name<-paste(path,result_name_note,"_",hyp_select,"_",batch_name,"_",format(Sys.time(), paste0("results_onco_","nsim",N_sim,"_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep="")
+file_name<-paste(path,Sim_ID,result_name_note,"_",hyp_select,"_",batch_name,"_",format(Sys.time(), paste0("results_onco_","nsim",N_sim,"_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep="")
 file_name
+#add scenario numbers
+results$scen_set<-scen_set
+
 save(results, main_sessioninfo, nodes_sessioninfo, file = file_name)
+file_name_only_results<-paste(path,"RESULTS_",Sim_ID,result_name_note,"_",hyp_select,"_",batch_name,"_",format(Sys.time(), paste0("results_onco_","nsim",N_sim,"_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep="")
+file_name_only_results
+save(results, file = file_name_only_results)
 
 }
 
