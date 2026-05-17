@@ -51,7 +51,9 @@ alpha <- 0.05 #two sided, tests will be one-sided using alpha/2, confidence inte
 n_selected_scen<-length(scen_set)
 n_batches<-ceiling(n_selected_scen/batch_length)
 n_batches
-size_last_batch<-n_selected_scen%%batch_length
+rest<-n_selected_scen%%batch_length
+if(rest==0) size_last_batch<-batch_length else size_last_batch<-rest
+
 if(n_batches==1) {
   batch_list<-list(scen_set)
 } else {
