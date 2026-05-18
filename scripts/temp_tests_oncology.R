@@ -7,7 +7,7 @@ library(parallel)
 
 sim_parameters <- oncology_scenario()
 is(sim_parameters)
-A<-sim_parameters[27,]
+A<-sim_parameters[73,]
 #A<-as.data.frame(A)
 data<-generate_oncology(A)
 head(data)
@@ -19,6 +19,9 @@ system.time(analyse_oncology_gformula(B=20)(A,data))
 system.time(analyse_oncology_gformula(B=200)(A,data))
 
 analyse_oncology_gformula(B=20,n_ev_cutoff_no_bootstrap=100)(A,data)
+analyse_oncology_gformula(B = 20,use_censoring_IPW=TRUE, requ_n_cens=5, trunc_weights=5,n_ev_cutoff_no_bootstrap=100)(A,data)
+
+sum(data$random_cens)
 
 B = 20
 reps = 1

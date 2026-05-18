@@ -1,11 +1,11 @@
 rm(list=ls())
 
 sim_block<-1 #can be 1 to 6 or 0 for all
-N_sim <- 10#00
+N_sim <- 15#00
 
 source("scripts/oncology_make_scenario_table_1-2.R")
 
-scen_set<-1:26 #small n, H1
+#scen_set<-1:26 #small n, H1
 
 
 Sim_ID<-"Aspera"
@@ -24,8 +24,7 @@ library(parallel)
 library(survival)
 
 #analysis functions
-ipw_fun<-analyse_oncology_ipw2()
-ipw_c_fun<-analyse_oncology_ipw2(use_censoring_IPW = TRUE, trunc_weights = 5, requ_n_cens = 5)
+ipw_fun<-analyse_oncology_ipw()
 rpsftm_fun<-analyse_oncology_rpsftm(recensor = FALSE)
 rpsftm_rc_fun<-analyse_oncology_rpsftm(recensor = TRUE)
 tse_fun<-analyse_oncology_TSE(recensor = FALSE)
@@ -42,24 +41,41 @@ ipw_IPCW_fun<-analyse_oncology_ipw2(use_censoring_IPW = TRUE, trunc_weights = 5,
 make_data<-generate_oncology
 
 
+#TRY<-function(x) {
+TRY<-function(x) tryCatch(x, error = function(e) {
+    data.frame(
+      HR=NA,
+      SElogHR=NA,
+      low=NA,
+      up=NA,
+      p=NA,
+      N_pat=NA,
+      N_evt=NA
+    )
+  }
+)
+
+TRY(runif(10))
+TRY(runif(-10))
+#cond=sim_parameters[22,]
+#set.seed(569497)
 sim_one_2<-function(i) {
   seed_range<-1000000
   seed<-round(runif(1,0,seed_range))
   set.seed(seed)
   data<-make_data(cond)
   res<-rbind(
-    ipw=as.data.frame(ipw_fun(cond,data)),
-    ipw_c=as.data.frame(ipw_c_fun(cond,data)),
-    rpsftm=as.data.frame(rpsftm_fun(cond,data)),
-    rpsftm_rc=as.data.frame(rpsftm_rc_fun(cond,data)),
-    tse=as.data.frame(tse_fun(cond,data)),
-    tse_rc=as.data.frame(tse_rc_fun(cond,data)),
-    gformula=as.data.frame(gformula_fun(cond,data)),
-    cens=as.data.frame(cens_fun(cond,data))#,
-    #ipw_IPCW=as.data.frame(ipw_IPCW_fun(cond,data)),
-    #rpsftm_IPCW=as.data.frame(rpsftm_IPCW_fun(cond,data)),
-    #tse_IPCW=as.data.frame(tse_IPCW_fun(cond,data)),
-    #gformula_IPCW=as.data.frame(gformula_IPCW_fun(cond,data)),
+    ipw=TRY(as.data.frame(ipw_fun(cond,data))),
+    rpsftm=TRY(as.data.frame(rpsftm_fun(cond,data))),
+    rpsftm_rc=TRY(as.data.frame(rpsftm_rc_fun(cond,data))),
+    tse=TRY(as.data.frame(tse_fun(cond,data))),
+    tse_rc=TRY(as.data.frame(tse_rc_fun(cond,data))),
+    gformula=TRY(as.data.frame(gformula_fun(cond,data))),
+    cens=TRY(as.data.frame(cens_fun(cond,data)))#,
+    #ipw_IPCW=TRY(as.data.frame(ipw_IPCW_fun(cond,data))),
+    #rpsftm_IPCW=TRY(as.data.frame(rpsftm_IPCW_fun(cond,data))),
+    #tse_IPCW=TRY(as.data.frame(tse_IPCW_fun(cond,data))),
+    #gformula_IPCW=TRY(as.data.frame(gformula_IPCW_fun(cond,data))),
   )
   res<-as.data.frame(res)
   res$bias<-res$HR-cond$true_eff
@@ -75,15 +91,15 @@ sim_one_2<-function(i) {
   res$seed<-seed
   res
 }
-#cond=sim_parameters[1,]
-#sim_one_2(1)
+cond=sim_parameters[1,]
+sim_one_2(1)
 
 library(future.apply)
 plan(multisession, workers = availableCores() - 4)
 
-R<-10
+R<-15
 R
-scen_set<-1:2
+scen_set<-1:26
 scen_id<-1
 for(scen_id in scen_set) {
   cond=sim_parameters[scen_id,]
@@ -106,20 +122,20 @@ n_param<-dim(res[[1]])[2]
 Ar<-array(unlist(res),dim=c(n_methods,n_param,R),dimnames=list(rownames(res[[1]]),names(res[[1]]),1:R))
 path<-"results/"
 filename=paste(path,Sim_ID,"_scen_",scen_id,"_nsim_",R,".RData",sep="")
-save(Ar,file=filename)
+save(Ar,scen_id,file=filename)
 }
 
 #bias and coverage
 
-dim(Ar) #Methods, Parameters, Iterations
+#dim(Ar) #Methods, Parameters, Iterations
 
-Ar[,,1]
-Ar[,,2]
-resm<-apply(Ar,c(1,2),mean)
-resm
-Ar[,1,1]
-SE_emp<-apply(log(Ar[,1,]),1,sd)
+#Ar[,,1]
+#Ar[,,2]
+#resm<-apply(Ar,c(1,2),mean)
+#resm
+#Ar[,1,1]
+#SE_emp<-apply(log(Ar[,1,]),1,sd)
 
-tab_sav<-cbind(resm,SE_emp,trueHR)
-tab_sav
+#tab_sav<-cbind(resm,SE_emp,trueHR)
+#tab_sav
 

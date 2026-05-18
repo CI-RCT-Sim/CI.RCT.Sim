@@ -182,7 +182,7 @@ analyse_oncology_mixed <- function(method = c("RPSFTM", "TSE")[1],
     }
 
     if (B > 0) {
-      SE <- sd(hr[-1])
+      SE <- sd(hr[-1],na.rm=TRUE)
       p <- 2 * (1 - pnorm(abs(hr[1] / SE)))
       KI <- exp(hr[1] + c(-1, 1) * SE * qnorm(0.975))
       out <- list(
