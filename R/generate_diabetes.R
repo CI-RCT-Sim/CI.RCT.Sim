@@ -189,7 +189,7 @@ diabetes_scenario <- function(print = interactive()) {
   lambda      = log(2)/2,                 # Rate of increasing treatment effect
   delta_resc  = -0.75,                    # Maximal effect of rescue medication
   lambda_resc = log(2),                        # Rate of increasing effect of rescue medication
-  resc_0      = qlogis(c(0.05,0.02)),     # probability for rescue medication
+  resc_0      = qlogis(c(0.05,0.2)),      # probability for rescue medication
   resc_y      = log(c(3,150)),            # strong effect due to high HbA1c
   resc_age    = -log(1.01),               # weaker age effect than for dropout
   setup       = c(0,1), # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
