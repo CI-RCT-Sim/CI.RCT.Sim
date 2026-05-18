@@ -196,7 +196,7 @@ diabetes_scenario <- function(print = interactive()) {
   miss        = list(
   c(qlogis(0.02), log(3),log(1.02),log(1.5)), # probability for missing data in the core scenario
   c(-100000,0,0,0),                                # probability for missing data in the scenario with no dropout
-  c(qlogis(0.04),log(150),log(1.02),log(1.5))# probability for missing data in the scenario with stronger dropout
+  c(qlogis(0.2),log(150),log(1.02),log(1.5))# probability for missing data in the scenario with stronger dropout
   )) |>
   merge(data.frame(hyp=c(1,0)), by=NULL)
 "
