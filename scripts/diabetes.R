@@ -72,8 +72,8 @@ my_analyse <- list(
   mitp = analyse_diabetes_mi(strategy = "treatment_policy"),
   ## Hypothetical estimands
   ipwhyp = analyse_diabetes_ipw(strategy = "hypothetical"),
-  dm = analyse_diabetes_demediation(),
-  gcom = analyse_diabetes_gcomputation(),
+  dmhyp = analyse_diabetes_demediation(),
+  gcomhyp = analyse_diabetes_gcomputation(),
   mmrmhyp = analyse_diabetes_mmrm(strategy = "hypothetical"),
   mihyp = analyse_diabetes_mi(strategy = "hypothetical"),
   describe = function(condition, dat, fixed_objects = NULL) {
@@ -125,8 +125,8 @@ my_summarise <- create_summarise_function(
   mitp = sum_test,
   ## Hypothetical testimands
   ipwhyp = sum_test,
-  dm = sum_test,
-  gcom = sum_test,
+  dmhyp = sum_test,
+  gcomhyp = sum_test,
   mmrmhyp = sum_test,
   mihyp = sum_test,
   mmrmtp = function(condition, results, fixed_objects = NULL){
