@@ -17,9 +17,9 @@
 #'
 #' @examples
 #' setting <- oncology_scenario()[1, ]
-#' dat <- generate_oncology(setting)
-#' analyse_oncology_mixed(method = "RPSFTM")(setting, dat)
-#' analyse_oncology_mixed(method = "TSE")(setting, dat)
+#' data <- generate_oncology(setting)
+#' analyse_oncology_mixed(method = "RPSFTM")(setting, data)
+#' analyse_oncology_mixed(method = "TSE")(setting, data)
 analyse_oncology_mixed <- function(method = c("RPSFTM", "TSE")[1],
                                    recensor = TRUE,
                                    alpha = 0.05,
@@ -28,7 +28,7 @@ analyse_oncology_mixed <- function(method = c("RPSFTM", "TSE")[1],
                                    show_progress = FALSE,
                                    use_censoring_IPW = FALSE,
                                    requ_n_cens = 5) {
-  function(condition, dat, fixed_objects = NULL) {
+  function(condition, data, fixed_objects = NULL) {
     prep_data_RPSFTM_fun <- function(data) {
       data$time_on_trt <- 0
       data$time_on_trt[data$trt == 1] <- data$event_time[data$trt == 1]
@@ -88,7 +88,7 @@ analyse_oncology_mixed <- function(method = c("RPSFTM", "TSE")[1],
 
       sdat
     }
-    data <- dat[order(dat$id), ]
+    data <- data[order(data$id), ]
     n <- dim(data)[1]
 
     if (B < 1)
@@ -191,8 +191,8 @@ analyse_oncology_mixed <- function(method = c("RPSFTM", "TSE")[1],
         low = KI[1],
         up = KI[2],
         p = p,
-        N_pat = nrow(dat),
-        N_evt = sum(dat$ev)
+        N_pat = nrow(data),
+        N_evt = sum(data$ev)
       )
     } else {
       out <- list(
@@ -201,8 +201,8 @@ analyse_oncology_mixed <- function(method = c("RPSFTM", "TSE")[1],
         low = NA,
         up = NA,
         p = NA,
-        N_pat = nrow(dat),
-        N_evt = sum(dat$ev)
+        N_pat = nrow(data),
+        N_evt = sum(data$ev)
       )
     }
     out

@@ -6,8 +6,11 @@
 #library(CI.RCT.Sim)
 #library(parallel)
 
-pre_sim_parameters <- oncology_scenario()
-A<-pre_sim_parameters |> oncology_scenario_set_truevalues()
+#pre_sim_parameters <- oncology_scenario()
+#A<-pre_sim_parameters |> oncology_scenario_set_truevalues()
+#head(A)
+
+A<-oncology_scenario() |> oncology_scenario_set_truevalues()
 head(A)
 
 A$beta_cens
@@ -172,6 +175,10 @@ scen_tab<-merge(all_param_tab,trueHR,by="Scen_ID",all.x=TRUE,all.y=FALSE)
 head(scen_tab)
 dim(scen_tab)
 scen_tab$true_eff[is.na(scen_tab$true_eff)]<-1
+
+
+A$true_eff<-scen_tab$true_eff
+sim_parameters<-A
 
 #remove H0 scenario with unequal trajectories for W
 #not needed, I changed the scenario such that W has no effect on death

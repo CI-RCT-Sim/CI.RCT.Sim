@@ -12,12 +12,12 @@
 #'
 #' @examples
 #' setting <- oncology_scenario()[1, ]
-#' dat <- generate_oncology(setting)
-#' analyse_oncology_ipw2()(setting, dat)
+#' data <- generate_oncology(setting)
+#' analyse_oncology_ipw2()(setting, data)
 analyse_oncology_ipw2 <- function(use_censoring_IPW = FALSE,
                                   trunc_weights = 5,
                                   requ_n_cens = 5) {
-  function(condition, dat, fixed_objects = NULL) {
+  function(condition, data, fixed_objects = NULL) {
     prep_data_RPSFTM_fun <- function(data) {
       data$time_on_trt <- 0
       data$time_on_trt[data$trt == 1] <- data$event_time[data$trt == 1]
@@ -30,21 +30,21 @@ analyse_oncology_ipw2 <- function(use_censoring_IPW = FALSE,
       data
     }
 
-    set <- dat$trt == 0 & dat$prog_ev == 1
+    set <- data$trt == 0 & data$prog_ev == 1
     wmod <- glm(
       switch ~ X_2BL + W_2BL,
       family = binomial,
-      data = dat,
+      data = data,
       subset = set
     )
     pred <- predict(wmod, type = "response")
-    pred_a <- ifelse(dat$switch[set] == 1, pred, 1 - pred)
-    dat$w <- 1
-    dat$w[set] <- 1 / pred_a
+    pred_a <- ifelse(data$switch[set] == 1, pred, 1 - pred)
+    data$w <- 1
+    data$w[set] <- 1 / pred_a
 
 
     #only required columns
-    data_k <- dat[, c("id",
+    data_k <- data[, c("id",
                       "trt",
                       "X_0",
                       "W_0",
@@ -75,7 +75,7 @@ analyse_oncology_ipw2 <- function(use_censoring_IPW = FALSE,
     sdat$w[sdat$PD == 0 | sdat$trt == 1] <- 1
     sdat$w[sdat$w > trunc_weights] <- trunc_weights
 
-    if (use_censoring_IPW & sum(dat$random_cens) >= requ_n_cens) {
+    if (use_censoring_IPW & sum(data$random_cens) >= requ_n_cens) {
       long <- reshape(
         data[, c(
           "id",
@@ -176,8 +176,8 @@ analyse_oncology_ipw2 <- function(use_censoring_IPW = FALSE,
       low = CI[["2.5 %"]],
       up = CI[["97.5 %"]],
       p = p,
-      N_pat = nrow(dat),
-      N_evt = sum(dat$ev)
+      N_pat = nrow(data),
+      N_evt = sum(data$ev)
     )
   }
 }

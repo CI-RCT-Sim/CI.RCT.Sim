@@ -6,8 +6,11 @@
 #library(CI.RCT.Sim)
 #library(parallel)
 
-pre_sim_parameters <- oncology_scenario()
-A<-pre_sim_parameters |> oncology_scenario_set_truevalues()
+#sim_parameters <- oncology_scenario()
+#A<-sim_parameters |> oncology_scenario_set_truevalues()
+#head(A)
+#sim_parameters <- oncology_scenario()
+A<-oncology_scenario() |> oncology_scenario_set_truevalues()
 head(A)
 
 A$beta_cens
@@ -158,6 +161,9 @@ dim2<-dim(all_param_tab)[2]
 all_param_tab<-all_param_tab[,c(1,2,dim2,3:(dim2-1))]
 head(all_param_tab)
 scen_tab<-all_param_tab
+
+#A$true_eff<-scen_tab$true_eff
+#sim_parameters<-A
 
 if(save_param_tab) {
 library(openxlsx)
