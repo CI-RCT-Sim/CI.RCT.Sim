@@ -1,12 +1,14 @@
 #Run the simulation
 rm(list=ls())
 
-sim_block<-1 #can be 1 to 6 or 0 for all
-N_sim <- 1000
+sim_block<-6 #can be 1 to 6 or 0 for all
+N_sim <- 10
 
 batch_length<-8
 
-Sim_ID<-"SIM_1_"
+Sim_ID<-"TEST6_"
+#output path
+path="results2/"
 
 #
 # renv::activate()
@@ -42,7 +44,7 @@ source("scripts/oncology_make_scenario_table_1-2.R")
 #need to create folder "results" if not present!!
 if(!file.exists("results"))  dir.create("results")
 
-if(sim_block==1 | sim_block==0) {
+if(sim_block==1 | sim_block==10) {
   #Small n H1
   scen_select<-"small_n"
   hyp_select<-"H1"

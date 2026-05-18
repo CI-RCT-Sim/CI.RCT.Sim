@@ -271,7 +271,7 @@ results <- runSimulation(
 stopCluster(cl)
 
 # Save results -----------------------------------------------------------
-path="results/"
+#path="results/"
 file_name<-paste(path,Sim_ID,result_name_note,"_",hyp_select,"_",batch_name,"_",format(Sys.time(), paste0("results_onco_","nsim",N_sim,"_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep="")
 file_name
 #add scenario numbers
