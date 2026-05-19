@@ -164,7 +164,7 @@ analyse_diabetes_gcomputation <- function() {
               age = sim_dat$age
             )
             mu_hba1c <- stats::predict(fit_hba1c[[v]], newdata = newdat_hba1c)
-            sim_dat$hba1c <- stats::rnorm(nrow(sim_dat), mean = mu_hba1c, sd = summary(fit_hba1c[[v]])$sigma)
+            sim_dat$hba1c <- mu_hba1c
             sim_dat$R <- 0
           }
         }
@@ -177,9 +177,7 @@ analyse_diabetes_gcomputation <- function() {
           hba1c_0 = sim_dat$hba1c_0
         )
         mu_y <- stats::predict(fit_ymodel, newdata = newdat_y)
-        y_k_sim <- stats::rnorm(nrow(sim_dat), mean = mu_y, sd = summary(fit_ymodel)$sigma)
-
-        mean(y_k_sim)
+        mean(mu_y)
       }
 
       mean_trt <- simulate_mean(trt_value = 1)
@@ -212,8 +210,8 @@ analyse_diabetes_gcomputation <- function() {
     se <- stats::sd(boot_est) # se for mean difference
     ci_lower <- as.numeric(stats::quantile(boot_est, probs = 0.025)) # 95% lower CI via percentile method
     ci_upper <- as.numeric(stats::quantile(boot_est, probs = 0.975)) # 95% upper CI via percentile method
-    null_dist <- boot_est - coef #centering bootstrap distribution around 0
-    p <- mean(null_dist >= 0) # percentile based pvalue
+    null_dist <- boot_est - mean(boot_est) #centering boot_est with its own mean
+    p <- (sum(null_dist <= coef) + 1) / (length(null_dist) + 1)
 
     list(
       coef = coef,
