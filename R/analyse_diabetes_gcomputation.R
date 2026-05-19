@@ -164,7 +164,7 @@ analyse_diabetes_gcomputation <- function() {
               age = sim_dat$age
             )
             mu_hba1c <- stats::predict(fit_hba1c[[v]], newdata = newdat_hba1c)
-            sim_dat$hba1c <- stats::rnorm(nrow(sim_dat), mean = mu_hba1c, sd = summary(fit_hba1c[[v]])$sigma)
+            sim_dat$hba1c <- mu_hba1c
             sim_dat$R <- 0
           }
         }
@@ -177,9 +177,7 @@ analyse_diabetes_gcomputation <- function() {
           hba1c_0 = sim_dat$hba1c_0
         )
         mu_y <- stats::predict(fit_ymodel, newdata = newdat_y)
-        y_k_sim <- stats::rnorm(nrow(sim_dat), mean = mu_y, sd = summary(fit_ymodel)$sigma)
-
-        mean(y_k_sim)
+        mean(mu_y)
       }
 
       mean_trt <- simulate_mean(trt_value = 1)
