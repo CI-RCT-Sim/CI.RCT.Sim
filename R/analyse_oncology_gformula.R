@@ -174,7 +174,8 @@ analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap
       hr[boot] <- coef(cox)[1]
     }
     SE <- sd(hr[-1],na.rm=TRUE)
-    p <- 2 * (1 - pnorm(abs(hr[1] / SE)))
+    #p <- 2 * (1 - pnorm(abs(hr[1] / SE)))
+    p <- pnorm(hr[1] / SE)
     KI <- exp(hr[1] + c(-1, 1) * SE * qnorm(0.975))
     list(
       HR = exp(hr[1]),

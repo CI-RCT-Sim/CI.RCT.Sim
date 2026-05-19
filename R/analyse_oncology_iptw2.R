@@ -169,12 +169,13 @@ analyse_oncology_ipw2 <- function(use_censoring_IPW = FALSE,
     CI <- exp(confint(mod)[1, ])
     smr <- summary(mod)
     p <- smr$coef[1, "Pr(>|z|)"]
+    p<-ifelse(HR<=1,p/2,1-p/2)
     SE <- smr$coef[1, "robust se"]
     list(
       HR = HR,
       SElogHR = SE,
-      low = CI[["2.5 %"]],
-      up = CI[["97.5 %"]],
+      low = CI[[1]],
+      up = CI[[2]],
       p = p,
       N_pat = nrow(data),
       N_evt = sum(data$ev)

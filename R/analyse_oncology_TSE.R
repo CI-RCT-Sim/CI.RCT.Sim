@@ -55,13 +55,16 @@ analyse_oncology_TSE <- function(recensor = TRUE, alpha = 0.05, B = 100) {
       seed = sample(1:10000,1)
     )
 
-    SE <- stats::sd(log(TSE$hr_boots))
+    SE <- stats::sd(log(TSE$hr_boots),na.rm=TRUE)
+    HR <- TSE$hr
+    p <- TSE$pvalue
+    p<-ifelse(HR<=1,p/2,1-p/2)
     list(
-      HR = TSE$hr,
+      HR = HR,
       SElogHR = SE,
       low = TSE$hr_CI[1],
       up = TSE$hr_CI[2],
-      p = TSE$pvalue,
+      p = p,
       N_pat = nrow(data),
       N_evt = sum(data$ev)
     )
