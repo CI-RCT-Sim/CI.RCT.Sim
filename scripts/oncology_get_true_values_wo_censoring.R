@@ -19,7 +19,7 @@ source("scripts/oncology_make_scenario_table_1-2.R")
 if(!file.exists("results"))  dir.create("results")
 
 #Set number of iterations
-with_random_cens<-TRUE
+with_random_cens<-FALSE
 pre_N_sim <- 40#0
 ev_soll_for_true_value<-10000
 
