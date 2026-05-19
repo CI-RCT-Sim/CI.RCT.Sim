@@ -49,13 +49,16 @@ analyse_oncology_rpsftm <- function(recensor = TRUE, alpha = 0.05, B = 100) {
       seed = sample(1:10000,1)
     )
 
-    SE <- stats::sd(log(RPS$hr_boots)) # is there a mix between sd and se here?
+    SE <- stats::sd(log(RPS$hr_boots),na.rm=TRUE)
+    HR <- RPS$hr
+    p <- RPS$pvalue
+    p <- ifelse(HR<=1,p/2,1-p/2)
     list(
-      HR = RPS$hr,
+      HR = HR,
       SElogHR = SE,
       low = RPS$hr_CI[1],
       up = RPS$hr_CI[2],
-      p = RPS$pvalue,
+      p = p,
       N_pat = nrow(data),
       N_evt = sum(data$ev)
     )

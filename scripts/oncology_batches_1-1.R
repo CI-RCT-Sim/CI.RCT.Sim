@@ -176,8 +176,8 @@ summy<-summarise_estimator(
 
 summarise_test_one_sided_for_HR<-function (alpha, name = NULL) {
   res <- function(condition, results, fixed_objects) {
-    results$p<-results$p/2
-    results$p[results$HR>1]<-1-results$p[results$HR>1]
+    #results$p<-results$p/2
+    #results$p[results$HR>1]<-1-results$p[results$HR>1]
     rejection_tmp <- setNames(as.data.frame(as.list(colMeans(outer(results$p,
                                                                    alpha, FUN = `<`), na.rm = TRUE))), paste0("rejection_",
                                                                                                               alpha))

@@ -22,12 +22,13 @@ analyse_oncology_cens <- function(X) {
     CI <- exp(confint(mod)[1, ])
     smr <- summary(mod)
     p <- smr$coef[1, "Pr(>|z|)"]
+    p<-ifelse(HR<=1,p/2,1-p/2)
     SE <- smr$coef[1, "se(coef)"]
     list(
       HR = HR,
       SElogHR = SE,
-      low = CI[1],
-      up = CI[2],
+      low = CI[[1]],
+      up = CI[[2]],
       p = p,
       N_pat = nrow(data),
       N_evt = N_evt

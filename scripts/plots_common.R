@@ -7,6 +7,12 @@ library(CI.RCT.Sim)
 library(purrr)
 library(fs)
 
+# global color scale
+options(
+  ggplot2.discrete.colour = function(...) scale_color_brewer(type="Qualitative", palette = "Set1", ...),
+  ggplot2.discrete.fill   = function(...) scale_fill_brewer(type="Qualitative",palette = "Set1", ...)
+)
+
 # set global theme
 theme_set(
   theme_bw(base_size = 10) +
