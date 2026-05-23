@@ -99,14 +99,14 @@ pre_results$truth.mean_est
 names(pre_results)
 out<-data.frame(scen=scen_set,trueHR=pre_results$truth.mean_est)
 out
-filename<-paste("scripts/true_logHR_nsim",pre_N_sim,"_n_ev",ev_soll_for_true_value,"withRandomCens",with_random_cens,".csv",sep="")
+filename<-paste("results4/true_logHR_SE_nsim",pre_N_sim,"_n_ev",ev_soll_for_true_value,"withRandomCens",with_random_cens,".csv",sep="")
 write.csv(out,file=filename)
 
 # Save results -----------------------------------------------------------
-#path="results/"
-#file_name<-paste(path,result_name_note,"_",hyp_select,"_",format(Sys.time(), paste0("results_onco_","nsim",N_sim,"_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep="")
-#file_name
-#save(results, main_sessioninfo, nodes_sessioninfo, file = file_name)
+path="results4/"
+filename<-paste("results4/true_logHR_SE_nsim",pre_N_sim,"_n_ev",ev_soll_for_true_value,"withRandomCens",with_random_cens,".RData",sep="")
+file_name
+save(results, main_sessioninfo, nodes_sessioninfo, file = file_name)
 
 
 #results

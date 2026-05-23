@@ -22,7 +22,7 @@
 #'
 #' analyse_oncology_gformula()(setting, data)
 #' }
-analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap=100, use_censoring_IPW=FALSE, requ_n_cens=5, trunc_weights=5) {
+analyse_oncology_gformula_unequal <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap=100, use_censoring_IPW=FALSE, requ_n_cens=5, trunc_weights=5, return_data=FALSE) {
   function(condition, data, fixed_objects = NULL) {
     if(data$ev_obs[1]>n_ev_cutoff_no_bootstrap) B<-0
     intervals_per_year <- 12
@@ -99,7 +99,11 @@ analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap
       mod_sw <- glm(switch ~ X + W, family = binomial, data = D[D$trt == 0 & D$prog_now == 1, ])
       mod_death<-glm(ev~X+W+trt+time+switch,family=binomial,data=D,weights=w)
       #mod_death <- glm(ev ~ X + W + trt + time + switch, family = binomial, data = D)
-      mod_W<-lm(W~X+W_lag+time,data=D,weights=w)
+
+      #unequal process for W by group
+      mod_W_trt<-lm(W~X+W_lag+time,data=D,weights=w,subset=D$trt==1)
+      mod_W_ctr<-lm(W~X+W_lag+time,data=D,weights=w,subset=D$trt==0)
+
       #mod_W <- lm(W ~ X + W_lag + time, data = D)
 
       DS <- NULL
@@ -108,8 +112,12 @@ analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap
 
       switch <- rep(0, n)
 
-      b_W <- coef(mod_W)
-      sd_W <- summary(mod_W)$sigma
+      b_W_trt <- coef(mod_W_trt)
+      sd_W_trt <- summary(mod_W_trt)$sigma
+
+      b_W_ctr <- coef(mod_W_ctr)
+      sd_W_ctr <- summary(mod_W_ctr)$sigma
+
       b_death <- coef(mod_death)
       b_prog <- coef(mod_prog)
       b_switch <- coef(mod_sw)
@@ -133,14 +141,22 @@ analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap
       maxtime <- dat_bs$calendar_end_of_study - dat_bs$calendar_start_time
       maxint_i <- round(maxtime * intervals_per_year)
       event_final <- rep(0, n)
+      n_trt<-sum(trt==1)
+      n_ctr<-sum(trt==0)
       TIME_EV <- lapply(1:reps, \(u){
         for (i in 1:maxint) {
           zeit <- i - 0.5 # i or i-0.5 to make it mid-interval
 
           M <- model.matrix(~ X + W + trt)
+          #M_trt <- model.matrix(~ X + W)
+          #M_ctr <- model.matrix(~ X + W)
+
           trt_actual <- as.numeric(trt == 1 | switch == 1)
           M <- cbind(M, time = i - 1, switch = switch, trt_actual = trt_actual)
-          if (i > 1) M[, "W"] <- M[, c(1:3, 5)] %*% b_W + rnorm(n, 0, sd_W)
+          if (i > 1) {
+            M[trt==1, "W"] <- M[trt==1, c(1:3, 5)] %*% b_W_trt + rnorm(n_trt, 0, sd_W_trt)
+            M[trt==0, "W"] <- M[trt==0, c(1:3, 5)] %*% b_W_ctr + rnorm(n_ctr, 0, sd_W_ctr)
+          }
 
           ev <- samp_binom(M[active, 1:6, drop = FALSE], b_death)
           set_ev <- ev == 1
@@ -171,6 +187,9 @@ analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap
       W0 <- rep(W0, reps)
       trt <- rep(trt, reps)
       cox <- coxph(Surv(time = TIME_EV$TIME, event = TIME_EV$EV) ~ trt + X0 + W0)
+      if(boot==1 & return_data) {
+        gformula_data<-data.frame(time = TIME_EV$TIME, event = TIME_EV$EV, trt , X0 , W0)
+      }
       hr[boot] <- coef(cox)[1]
     }
     SE <- sd(hr[-1],na.rm=TRUE)
@@ -178,7 +197,7 @@ analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap
     #p <- pnorm(hr[1] / SE)
     p <- pt(hr[1] / SE,df=B-1)
     KI <- exp(hr[1] + c(-1, 1) * SE * qt(0.975,df=B-1)) #qnorm(0.975))
-    list(
+    outlist<-list(
       HR = exp(hr[1]),
       SElogHR = SE,
       low = KI[1],
@@ -187,5 +206,7 @@ analyse_oncology_gformula <- function(B = 20, reps = 1, n_ev_cutoff_no_bootstrap
       N_pat = n,
       N_evt = sum(data$ev)
     )
+    if(return_data) outlist<-c(outlist,gformula_data=gformula_data)
+    outlist
   }
 }
