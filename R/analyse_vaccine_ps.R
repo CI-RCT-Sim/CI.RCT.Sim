@@ -85,6 +85,11 @@ analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outco
       contrast(method="pairwise", type="response") |>
       summary(null=log(1-VE_margin), side="<", infer=TRUE, level=ci_level)
 
+    ci_rr_sandwich <- lemm |>
+      contrast(method="pairwise", type="response") |>
+      summary(null=log(1-VE_margin), side="<", infer=TRUE, level=ci_level, vcov. = sandwich::vcovHAC)
+
+
     list(
       p = ci_rr$p.value,
       VE = 1-ci_rr$ratio,
@@ -92,7 +97,11 @@ analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outco
       VE_upper = 1-ci_rr$asymp.LCL,
       OR = ci_or$odds.ratio,
       OR_lower = ci_or$asymp.LCL,
-      OR_upper = ci_or$asymp.UCL
+      OR_upper = ci_or$asymp.UCL,
+      p_sandwich = ci_rr_sandwich$p.value,
+      VE_sandwich = 1-ci_rr_sandwich$ratio,
+      VE_lower_sandwich = 1-ci_rr_sandwich$asymp.UCL,
+      VE_upper_sandwich = 1-ci_rr_sandwich$asymp.LCL
     )
   }
 }
