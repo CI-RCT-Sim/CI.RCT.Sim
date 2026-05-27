@@ -82,22 +82,30 @@ analyse_vaccine_ivreg <- function(ci_level=0.95, VE_margin=0.3, V_unobserved=FAL
     # results on the log scale (risk-ratio)
     res <- emm |>
       pairs(type="response") |>
-      summary(null=log(1-VE_margin), side="<", infer=TRUE, level=ci_level)
+      summary(null=log(1-VE_margin), side="<")
+
+    res_ci <- emm |>
+      pairs(type="response") |>
+      summary(infer=TRUE, level=ci_level)
 
     res_sandwich <- emm |>
       pairs(type="response") |>
-      summary(null=log(1-VE_margin), side="<", infer=TRUE, level=ci_level, vcov. = sandwich::vcovHAC)
+      summary(null=log(1-VE_margin), side="<", vcov. = sandwich::vcovHAC)
+
+    res_ci_sandwich <- emm |>
+      pairs(type="response") |>
+      summary(infer=TRUE, level=ci_level, vcov. = sandwich::vcovHAC)
 
     # lower and upper exchanged because VE = 1-RR
     list(
       p = res$p.value,
       VE = 1-res$ratio,
-      VE_lower = 1-res$asymp.UCL,
-      VE_upper = 1-res$asymp.LCL,
+      VE_lower = 1-res_ci$asymp.UCL,
+      VE_upper = 1-res_ci$asymp.LCL,
       p_sandwich = res_sandwich$p.value,
       VE_sandwich = 1-res_sandwich$ratio,
-      VE_lower_sandwich = 1-res_sandwich$asymp.UCL,
-      VE_upper_sandwich = 1-res_sandwich$asymp.LCL
+      VE_lower_sandwich = 1-res_ci_sandwich$asymp.UCL,
+      VE_upper_sandwich = 1-res_ci_sandwich$asymp.LCL
     )
   }
 }

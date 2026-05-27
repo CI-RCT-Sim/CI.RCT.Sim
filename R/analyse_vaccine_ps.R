@@ -79,27 +79,35 @@ analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outco
     ci_or <- emm |>
       pairs(type="response") |>
       confint(level=ci_level)
+
     # results on the log scale (risk-ratio)
     lemm <- regrid(emm, "log")
     ci_rr <- lemm |>
       contrast(method="pairwise", type="response") |>
-      summary(null=log(1-VE_margin), side="<", infer=TRUE, level=ci_level)
+      summary(infer=TRUE, level=ci_level)
+
+    test_rr <- lemm |>
+      contrast(method="pairwise", type="response") |>
+      summary(null=log(1-VE_margin), side="<")
 
     ci_rr_sandwich <- lemm |>
       contrast(method="pairwise", type="response") |>
-      summary(null=log(1-VE_margin), side="<", infer=TRUE, level=ci_level, vcov. = sandwich::vcovHAC)
+      summary(infer=TRUE, level=ci_level, vcov. = sandwich::vcovHAC)
 
+    test_rr_sandwich <- lemm |>
+      contrast(method="pairwise", type="response") |>
+      summary(null=log(1-VE_margin), side="<", vcov. = sandwich::vcovHAC)
 
     list(
-      p = ci_rr$p.value,
-      VE = 1-ci_rr$ratio,
+      p = test_rr$p.value,
+      VE = 1-test_rr$ratio,
       VE_lower = 1-ci_rr$asymp.UCL,
       VE_upper = 1-ci_rr$asymp.LCL,
       OR = ci_or$odds.ratio,
       OR_lower = ci_or$asymp.LCL,
       OR_upper = ci_or$asymp.UCL,
-      p_sandwich = ci_rr_sandwich$p.value,
-      VE_sandwich = 1-ci_rr_sandwich$ratio,
+      p_sandwich = test_rr_sandwich$p.value,
+      VE_sandwich = 1-test_rr_sandwich$ratio,
       VE_lower_sandwich = 1-ci_rr_sandwich$asymp.UCL,
       VE_upper_sandwich = 1-ci_rr_sandwich$asymp.LCL
     )
