@@ -58,17 +58,19 @@ analyse_vaccine_pp <- function(ci_level=0.95, VE_margin=0.3, V_unobserved=FALSE,
       pairs(type="response") |>
       summary(null=log(1-VE_margin), side="<")
 
-    res_sandwich <- emm |>
-      pairs(type="response") |>
-      summary(null=log(1-VE_margin), side="<", vcov. = sandwich::vcovHAC)
-
     res_ci <- emm |>
       pairs(type="response") |>
       summary(infer=TRUE, level=ci_level)
 
-    res_ci_sandwich <- emm |>
+    emm_sandwich <- emmeans(mod_ve, ~ trt, vcov. = sandwich::vcovHAC)
+
+    res_sandwich <- emm_sandwich |>
       pairs(type="response") |>
-      summary(infer=TRUE, level=ci_level, vcov. = sandwich::vcovHAC)
+      summary(null=log(1-VE_margin), side="<")
+
+    res_ci_sandwich <- emm_sandwich |>
+      pairs(type="response") |>
+      summary(infer=TRUE, level=ci_level)
 
     # lower and upper exchanged because VE = 1-RR
     list(

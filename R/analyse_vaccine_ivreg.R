@@ -88,13 +88,14 @@ analyse_vaccine_ivreg <- function(ci_level=0.95, VE_margin=0.3, V_unobserved=FAL
       pairs(type="response") |>
       summary(infer=TRUE, level=ci_level)
 
-    res_sandwich <- emm |>
+    emm_sandwich <- emmeans(stage2, ~ stage1_T, at=list(stage1_T=c(0,1)), vcov. = sandwich::vcovHAC)
+    res_sandwich <- emm_sandwich |>
       pairs(type="response") |>
-      summary(null=log(1-VE_margin), side="<", vcov. = sandwich::vcovHAC)
+      summary(null=log(1-VE_margin), side="<")
 
-    res_ci_sandwich <- emm |>
+    res_ci_sandwich <- emm_sandwich |>
       pairs(type="response") |>
-      summary(infer=TRUE, level=ci_level, vcov. = sandwich::vcovHAC)
+      summary(infer=TRUE, level=ci_level)
 
     # lower and upper exchanged because VE = 1-RR
     list(
