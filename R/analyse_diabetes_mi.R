@@ -341,7 +341,7 @@ analyse_diabetes_mi <- function(
     list(
       coef = trt_row$estimate,
       p = p_one_sided,
-      se = se = trt_row$std.error,
+      se = trt_row$std.error,
       ci_lower = trt_row[["2.5 %"]],
       ci_upper = trt_row[["97.5 %"]]
     )
