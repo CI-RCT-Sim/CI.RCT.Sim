@@ -14,10 +14,19 @@ dat <- generate_vaccine(condition)
 1-exp(condition$beta_A2)
 1-condition$rr_ps
 
-analyse_vaccine_ps(covariates_in_outcomes_model = TRUE)(condition, dat)
-analyse_vaccine_ps(covariates_in_outcomes_model = FALSE)(condition, dat)
-analyse_vaccine_ivreg()(condition, dat)
-
+# res <- list(
+#   analyse_vaccine_ps(covariates_in_outcomes_model = TRUE)(condition, dat),
+#   analyse_vaccine_ps(covariates_in_outcomes_model = FALSE)(condition, dat),
+#   analyse_vaccine_ivreg()(condition, dat),
+#   analyse_vaccine_pp()(condition, dat)
+# ) |>
+#   lapply(as.data.frame) |>
+#   purrr::list_rbind() |>
+#   _[c("VE", "VE_lower", "p")]
+#
+# (res$VE * 100) |>
+#   round(1) |>
+#   cat(sep="\n")
 
 # IV regression -----------------------------------------------------------
 library(emmeans)
@@ -55,8 +64,8 @@ res <- emmeans(stage2, ~ stage1_T, at=list(stage1_T=c(0,1))) |>
 
 # calculate VE as 1-risk ratio
 1-res$ratio
-1-res$asymp.LCL
 1-res$asymp.UCL
+res$p.value
 
 
 # principal score weighting -----------------------------------------------
@@ -97,8 +106,8 @@ res <- emmeans(outcome_mod_1, ~ trt) |>
 
 # calculate VE as 1-risk ratio
 1-res$ratio
-1-res$asymp.LCL
 1-res$asymp.UCL
+res$p.value
 
 # calculate outcomes model, weighted by score
 # version 2, without V and W in the outcomes model
@@ -111,8 +120,8 @@ res <- emmeans(outcome_mod_2, ~ trt) |>
 
 # calculate VE as 1-risk ratio
 1-res$ratio
-1-res$asymp.LCL
 1-res$asymp.UCL
+res$p.value
 
 
 # per protocol analysis ---------------------------------------------------
@@ -133,5 +142,5 @@ res <- emmeans(mod_ve, ~ trt) |>
 
 # calculate VE as 1-risk ratio
 1-res$ratio
-1-res$asymp.LCL
 1-res$asymp.UCL
+res$p.value
