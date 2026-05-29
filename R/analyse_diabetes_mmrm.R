@@ -130,6 +130,7 @@ analyse_diabetes_mmrm <- function(
     safe_result <- list(
       p = NA_real_,
       coef = NA_real_,
+      se = NA_real_,
       ci_lower = NA_real_,
       ci_upper = NA_real_,
       converged = FALSE,
@@ -267,6 +268,7 @@ analyse_diabetes_mmrm <- function(
     list(
       p = 2 * (1 - pt(abs(est / se), df)),
       coef = est,
+      se = se,
       ci_lower = est - tcrit * se,
       ci_upper = est + tcrit * se,
       converged = TRUE,
