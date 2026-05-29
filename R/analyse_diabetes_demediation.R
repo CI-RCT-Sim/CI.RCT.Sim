@@ -196,17 +196,16 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
     )
 
     t_stat <- end_res$qbar / sqrt(end_res$t)
-    p_pool <- 2 * pt(
-      -abs(t_stat),
-      df = end_res$df
-    )
+    p_onesided <- pt(t_stat, df = end_res$df)
+    p_pool <- 2 * pt(-abs(t_stat), df = end_res$df)
 
     list(
       coef = end_res$qbar,
-      p = p_pool,
+      p = p_onesided,
       se = sqrt(end_res$t),
       ci_lower = ci[1],
-      ci_upper = ci[2]
+      ci_upper = ci[2],
+      two_sided = p_pool
     )
   }
 }

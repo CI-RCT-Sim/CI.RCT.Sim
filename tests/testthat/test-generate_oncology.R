@@ -1,5 +1,5 @@
 test_that("generate oncology works", {
-  Design <- oncology_scenario(print = FALSE) |>
+  Design <- oncology_scenario() |>
     oncology_scenario_set_truevalues()
 
   # Generate data
