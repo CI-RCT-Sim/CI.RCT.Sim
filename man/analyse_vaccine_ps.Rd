@@ -7,7 +7,9 @@
 analyse_vaccine_ps(
   ci_level = 0.95,
   VE_margin = 0.3,
-  covariates_in_outcomes_model = TRUE
+  covariates_in_outcomes_model = TRUE,
+  V_unobserved = FALSE,
+  W_unobserved = FALSE
 )
 }
 \arguments{
@@ -16,6 +18,10 @@ analyse_vaccine_ps(
 \item{VE_margin}{vaccine efficacy margin for the super-superiority test}
 
 \item{covariates_in_outcomes_model}{should the covariates to estimate the principal score also be included in the outcomes model}
+
+\item{V_unobserved}{consider covariate V unobserved (don't use it in analysis)}
+
+\item{W_unobserved}{consider covariate W unobserved (don't use it in analysis)}
 }
 \value{
 an analyse function that returns a list with the elements
