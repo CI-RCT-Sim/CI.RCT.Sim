@@ -1,6 +1,6 @@
 #' Create Analyse Functions for
 #'
-#' @param use_censoring_IPW logical, Default is FALSE
+#' @param use_censoring_IPW logical, default is FALSE
 #' @param trunc_weights numeric
 #' @param requ_n_cens numeric
 #'

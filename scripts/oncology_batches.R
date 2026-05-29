@@ -61,6 +61,27 @@ if(scen_select=="IPCW_extra") {
 alpha <- 0.05 #two sided, tests will be one-sided using alpha/2, confidence intervals are mostly hard coded to 0.95
 
 
+#make batches of up to batch_length scenarios
+scen_set
+n_selected_scen<-length(scen_set)
+n_batches<-ceiling(n_selected_scen/batch_length)
+n_batches
+size_last_batch<-n_selected_scen%%batch_length
+if(n_batches==1) {
+  batch_list<-list(scen_set)
+} else {
+
+  batch_list<-vector(length=n_batches,mode="list")
+
+
+  for(vv in 1:(n_batches-1)) batch_list[[vv]]<-scen_set[1:batch_length+batch_length*(vv-1)]
+  batch_list[[length(batch_list)]]<-scen_set[batch_length*(n_batches-1)+1:size_last_batch]
+
+}
+
+for(batch_index in 1:n_batches) {
+  scen_set<-batch_list[[batch_index]]
+  batch_name<-paste("sc","_",scen_set[1],"to",scen_set[length(scen_set)],sep="")
 ###################################
 
 # Derive true treatment effect -------------------------------------------
@@ -323,14 +344,15 @@ stopCluster(cl)
 
 # Save results -----------------------------------------------------------
 path="results/"
-file_name<-paste(path,result_name_note,"_",hyp_select,"_",format(Sys.time(), paste0("results_onco_","nsim",N_sim,"_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep="")
+file_name<-paste(path,result_name_note,"_",hyp_select,"_",batch_name,"_",format(Sys.time(), paste0("results_onco_","nsim",N_sim,"_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")),sep="")
 file_name
 save(results, main_sessioninfo, nodes_sessioninfo, file = file_name)
 
+}
 
 #results
-A<-as.data.frame(results)
-rej<-grepl("test.rejection_0.025",names(A))
-cover<-grepl("est.coverage",names(A))
+#A<-as.data.frame(results)
+#rej<-grepl("test.rejection_0.025",names(A))
+#cover<-grepl("est.coverage",names(A))
 #A[rej]
 #A[cover]

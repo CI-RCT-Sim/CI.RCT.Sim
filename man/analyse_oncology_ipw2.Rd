@@ -11,7 +11,7 @@ analyse_oncology_ipw2(
 )
 }
 \arguments{
-\item{use_censoring_IPW}{logical, Default is FALSE}
+\item{use_censoring_IPW}{logical, default is FALSE}
 
 \item{trunc_weights}{numeric}
 

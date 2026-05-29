@@ -13,6 +13,7 @@
 #' @export
 #'
 #' @importFrom trtswitch rpsftm tsesimp
+#' @importFrom stats pnorm
 #'
 #' @examples
 #' setting <- oncology_scenario()[1, ]
