@@ -341,6 +341,14 @@ vaccine_scenario_set_beta_A1_relative <- function(Design, diff=-0.2){
 #' @export
 vaccine_scenario_set_gamma_0 <- function(Design, r=1){
   set_gamma_0_rowwise <- function(condition){
+    if(condition$overall_compliance == 1){
+      return(Inf)
+    }
+
+    if(condition$overall_compliance == 0){
+      return(-Inf)
+    }
+
     # plug-in mean for W, V
     A0 <- condition$gamma_W * condition$p_W +
       condition$gamma_V * condition$p_V

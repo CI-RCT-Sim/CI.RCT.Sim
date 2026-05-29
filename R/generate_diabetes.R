@@ -189,14 +189,14 @@ diabetes_scenario <- function(print = interactive()) {
   lambda      = log(2)/2,                 # Rate of increasing treatment effect
   delta_resc  = -0.75,                    # Maximal effect of rescue medication
   lambda_resc = log(2),                        # Rate of increasing effect of rescue medication
-  resc_0      = qlogis(c(0.05,0.02)),     # probability for rescue medication
+  resc_0      = qlogis(c(0.05,0.2)),      # probability for rescue medication
   resc_y      = log(c(3,150)),            # strong effect due to high HbA1c
   resc_age    = -log(1.01),               # weaker age effect than for dropout
   setup       = c(0,1), # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
   miss        = list(
   c(qlogis(0.02), log(3),log(1.02),log(1.5)), # probability for missing data in the core scenario
   c(-100000,0,0,0),                                # probability for missing data in the scenario with no dropout
-  c(qlogis(0.04),log(150),log(1.02),log(1.5))# probability for missing data in the scenario with stronger dropout
+  c(qlogis(0.2),log(150),log(1.02),log(1.5))# probability for missing data in the scenario with stronger dropout
   )) |>
   merge(data.frame(hyp=c(1,0)), by=NULL)
 "

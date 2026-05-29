@@ -46,3 +46,39 @@ test_that("setting sample size works", {
   expect_true(all(Design5$n_ctrl > Design1$n_ctrl))
 })
 
+test_that("setting gamma0 works", {
+  Design1 <- vaccine_scenario() |>
+    vaccine_scenario_set_gamma_0()
+
+  expect_gt(min(Design1$gamma_0), 0)
+  expect_lt(max(Design1$gamma_0), Inf)
+
+  Design2 <- vaccine_scenario() |>
+    within({
+      overall_compliance <- 0
+    }) |>
+    vaccine_scenario_set_gamma_0()
+
+  expect_all_equal(Design2$gamma_0, -Inf)
+
+  Design3 <- vaccine_scenario() |>
+    within({
+      overall_compliance <- 1
+    }) |>
+    vaccine_scenario_set_gamma_0()
+
+  expect_all_equal(Design3$gamma_0, Inf)
+
+  Design4 <- data.frame(
+    p_V = 0.3,
+    p_W = 0.3,
+    gamma_V = 0.5,
+    gamma_W = -0.357,
+    gamma_AW = -0.3,
+    overall_compliance = c(0, 0.5, 0.8, 1)
+  ) |>
+    vaccine_scenario_set_gamma_0()
+
+  # gamma0 should increase with increasing overall compliance
+  expect_all_true(sign(diff(Design4$gamma_0)) == sign(diff(Design4$overall_compliance)))
+})

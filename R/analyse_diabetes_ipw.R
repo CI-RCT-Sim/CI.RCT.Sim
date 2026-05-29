@@ -72,22 +72,29 @@ analyse_diabetes_ipw <- function(strategy = "hypothetical") {
     }
 
     if (nrow(dat_long[dat_long$visit == k & dat_long$exposure == 1, ]) > 1) { # there need to be more than one missing value due to discontinuation (both estimands) or rescue (in case of hypothetical estimand only)
-    } else if (strategy == "hypothetical") {
-      dat_long$exposure <- ifelse(is.na(dat_long$y) | dat_long$R == 1, 1L, 0L) # indicator for missing outcomes and rescue medication
-    }
 
-    if (nrow(dat_long[dat_long$visit == k & dat_long$exposure == 1, ]) > 1) { # there need to be more than one missing value due to discontinuation (both estimands) or rescue (in case of hypothetical estimand only)
-
-      temp <- ipw::ipwtm(
-        exposure = exposure, # indicator for missing data at visit j
-        family = "binomial",
-        link = "logit",
-        denominator = ~ trt + age + hba1c_lag + R_lag,
-        id = id,
-        timevar = visit,
-        type = "first",
-        data = dat_long
-      )
+      if (strategy == "treatment_policy") {
+        temp <- ipw::ipwtm(
+          exposure = exposure, # indicator for missing data at visit j
+          family = "binomial",
+          link = "logit",
+          denominator = ~ trt + age + hba1c_lag + R_lag,
+          id = id,
+          timevar = visit,
+          type = "first",
+          data = dat_long
+        )} else if (strategy == "hypothetical") {
+          temp <- ipw::ipwtm(
+            exposure = exposure, # indicator for missing data at visit j
+            family = "binomial",
+            link = "logit",
+            denominator = ~ trt + age + hba1c_lag,
+            id = id,
+            timevar = visit,
+            type = "first",
+            data = dat_long
+          )
+        }
       fit <- lm( # OLS with HC2 variance estimator
         as.formula(paste0("y ~ trt + hba1c_0 + age")),
         weights = temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0],
@@ -102,13 +109,33 @@ analyse_diabetes_ipw <- function(strategy = "hypothetical") {
 
     model <- lmtest::coeftest(fit, vcov = sandwich::vcovHC(fit, type = "HC2"))
     ci <- stats::confint(model)
+    t_stat <- model["trt", "t value"]
+    df <- stats::df.residual(fit)
+    p_one_sided <- pt(t_stat, df = df)
+
+    if(exists("temp")) {
+      m = max(temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0], na.rm = TRUE)
+      k = max(temp$ipw.weights, na.rm = TRUE)
+      s = sum(is.na(temp$ipw.weights[dat_long$visit == k & dat_long$exposure == 0]))
+      j = sum(is.na(temp$ipw.weights))
+    } else {
+      m = NA_real_
+      k = NA_real_
+      s = NA_integer_
+      j = NA_integer_
+    }
 
     list(
       coef = model["trt", "Estimate"],
       se = model["trt", "Std. Error"],
-      p = model["trt", "Pr(>|t|)"],
+      p = p_one_sided,
       ci_lower = ci[2, 1],
-      ci_upper = ci[2, 2]
+      ci_upper = ci[2, 2],
+      n = nrow(dat_long[dat_long$visit == k & dat_long$exposure == 1, ]),
+      m = m,
+      k = k,
+      s = s,
+      j = j
     )
   }
 }

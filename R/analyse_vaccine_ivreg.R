@@ -2,6 +2,8 @@
 #'
 #' @param ci_level the confidence level for the CIs (defaults to 0.95)
 #' @param VE_margin vaccine efficacy margin for the super-superiority test
+#' @param V_unobserved consider covariate V unobserved (don't use it in analysis)
+#' @param W_unobserved consider covariate W unobserved (don't use it in analysis)
 #'
 #' @returns an analyse function that returns a list with the elements
 #'  * `p` the p-value of the super-superiority test
@@ -27,7 +29,7 @@
 #' dat <- generate_vaccine(Design[3,])
 #' my_analyse <- analyse_vaccine_ivreg(ci_level=0.95)
 #' my_analyse(Design[3, ], dat)
-analyse_vaccine_ivreg <- function(ci_level=0.95, VE_margin=0.3){
+analyse_vaccine_ivreg <- function(ci_level=0.95, VE_margin=0.3, V_unobserved=FALSE, W_unobserved=FALSE){
   function(condition, dat, fixed_objects = NULL){
 
     dat1 <- dat |>
@@ -48,7 +50,7 @@ analyse_vaccine_ivreg <- function(ci_level=0.95, VE_margin=0.3){
     vars_stage2 <- c("stage1_T")
     formula_stage2 <- evt ~ stage1_1 + stage1_T
 
-    if(length(unique(dat$V)) > 1){
+    if((length(unique(dat$V)) > 1) & (!V_unobserved)){
       formula_stage1x <- update(formula_stage1x, ~ . + V)
       formula_stage1y <- update(formula_stage1y, ~ . + V)
       formula_stage2  <- update(formula_stage2 , ~ . + stage1_V)
@@ -56,7 +58,7 @@ analyse_vaccine_ivreg <- function(ci_level=0.95, VE_margin=0.3){
       vars_stage2 <- c(vars_stage2, "stage1_V")
     }
 
-    if(length(unique(dat$W)) > 1){
+    if((length(unique(dat$W)) > 1) & (!W_unobserved)){
       formula_stage1x <- update(formula_stage1x, ~ . + W)
       formula_stage1y <- update(formula_stage1y, ~ . + W)
       formula_stage2  <- update(formula_stage2 , ~ . + stage1_W)
