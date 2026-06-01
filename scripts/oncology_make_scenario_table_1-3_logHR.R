@@ -127,7 +127,7 @@ names_temp<-c(
   "L - decrease under ctr, effect on death, progr., switching (unobs. conf.)",
   "L - decrease in both groups, effect on death, progr., switching (unobs. conf.)",
   "time dependent correlation - Toeplitz",
-  "progression - fast",
+  "progression - slow",
   "progresssion - no effect of W",
   "progression - reduced effect of trt",
   "progression - no effect of trt",

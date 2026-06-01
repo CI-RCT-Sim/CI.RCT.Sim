@@ -447,13 +447,13 @@ oncology_scenario <- function() {
 
   #additional specifics
   #if L has a pre-set effect on death, it must also have an effect on switching and progression:
-  #if L has a pre-set effect on prog or on switch, it must also have an effect on death:
+  #if L has a pre-set effect on prog or on switch or on censoring, it must also have an effect on death:
   #if the mean trajectory of L is special (other than base pattern "1"), there should be full confounding
   for(i in 1:dim(all_scen)[1]) {
     case<-0
 
     if(all_scen$beta_death[[i]][5] != 0) case<-1
-    if(all_scen$beta_prog[[i]][5] != 0 | all_scen$beta_switch[[i]][5] != 0 ) case<-2
+    if(all_scen$beta_prog[[i]][5] != 0 | all_scen$beta_switch[[i]][5] != 0 | all_scen$beta_cens[[i]][5] != 0 ) case<-2
     if(any(unlist(all_scen$mu_L[[i]])!=0)) case<-3
 
     if(case==1 | case==3) {
