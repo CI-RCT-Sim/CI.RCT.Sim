@@ -1,9 +1,9 @@
 #!/usr/bin/sh
 
-scenario=A1 Rscript ./scripts/vaccine.R
-scenario=A2 Rscript ./scripts/vaccine.R
-scenario=B1 Rscript ./scripts/vaccine.R
-scenario=C1 Rscript ./scripts/vaccine.R
-scenario=D1 Rscript ./scripts/vaccine.R
-scenario=extra Rscript ./scripts/vaccine.R
+scenario=A1 start=1 Rscript ./scripts/vaccine_chunked.R
+scenario=A2 start=1 Rscript ./scripts/vaccine_chunked.R
+scenario=B1 start=1 Rscript ./scripts/vaccine_chunked.R
+scenario=C1 start=1 Rscript ./scripts/vaccine_chunked.R
+scenario=D1 start=1 Rscript ./scripts/vaccine_chunked.R
+scenario=extra start=1 Rscript ./scripts/vaccine_chunked.R
 

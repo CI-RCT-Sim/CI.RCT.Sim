@@ -55,3 +55,7 @@ docs
 inst/doc
 /doc/
 /Meta/
+
+# old simulation results
+sim_results_tests_old/*
+results_vaccine_scenario_*
