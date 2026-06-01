@@ -107,7 +107,7 @@ analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outco
       summary(null=log(1-VE_margin), side="<", vcov. = sandwich::vcovHAC)
 
     list(
-      p = test_rr$p.value,
+      p_model = test_rr$p.value,
       VE = 1-test_rr$ratio,
       VE_lower = 1-ci_rr$asymp.UCL,
       VE_upper = 1-ci_rr$asymp.LCL,
@@ -117,7 +117,7 @@ analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outco
       OR_sandwich = ci_or_sandwich$odds.ratio,
       OR_lower_sandwich = ci_or_sandwich$asymp.LCL,
       OR_upper_sandwich = ci_or_sandwich$asymp.UCL,
-      p_sandwich = test_rr_sandwich$p.value,
+      p = test_rr_sandwich$p.value,
       VE_sandwich = 1-test_rr_sandwich$ratio,
       VE_lower_sandwich = 1-ci_rr_sandwich$asymp.UCL,
       VE_upper_sandwich = 1-ci_rr_sandwich$asymp.LCL

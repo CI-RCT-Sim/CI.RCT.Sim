@@ -74,11 +74,11 @@ analyse_vaccine_pp <- function(ci_level=0.95, VE_margin=0.3, V_unobserved=FALSE,
 
     # lower and upper exchanged because VE = 1-RR
     list(
-      p = res$p.value,
+      p_model = res$p.value,
       VE = 1-res$ratio,
       VE_lower = 1-res_ci$asymp.UCL,
       VE_upper = 1-res_ci$asymp.LCL,
-      p_sandwich = res_sandwich$p.value,
+      p = res_sandwich$p.value,
       VE_sandwich = 1-res_sandwich$ratio,
       VE_lower_sandwich = 1-res_ci_sandwich$asymp.UCL,
       VE_upper_sandwich = 1-res_ci_sandwich$asymp.LCL
