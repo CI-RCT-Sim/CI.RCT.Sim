@@ -81,6 +81,14 @@ vaccine_scenario_extra <- vaccine_scenario_tweak(
   beta_W = vaccine_scenario_defaults()$beta_W[1]*c(1,-1),
   beta_AW = vaccine_scenario_defaults()$beta_AW[1]
 )
+
+vaccnine_scenario_extra$beta_A2 <- NULL
+
+vaccine_scenario_extra <- vaccine_scenario_extra |>
+  merge(y=data.frame(beta_A2=unique(scenario_A1$beta_A2)), by=NULL)
+
+
+
 # scenario_extra
 
 # Compliance:             C[+,-] + better compliance, - worse compliance
