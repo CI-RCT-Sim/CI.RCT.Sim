@@ -112,4 +112,3 @@ results_long |>
   geom_point() +
   geom_hline(yintercept=0.05) +
   scale_y_continuous(limits=c(0,1))
-

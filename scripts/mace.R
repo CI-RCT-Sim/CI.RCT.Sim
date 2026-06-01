@@ -12,7 +12,7 @@ sim_parameters <- mace_scenario() |>
 # Constants for simulation -----------------------------------------------
 
 N_sim <- 10000
-alpha <- 0.05
+alpha <- 0.025
 
 # List of analysis functions ---------------------------------------------
 
@@ -34,10 +34,10 @@ my_summarise <- create_summarise_function(
   cox_cov  =summarise_estimator(est=HR, real=exp(true_trt), lower=CI.l, upper=CI.u, null=1, name="HR"),
   ipw_nocov=summarise_estimator(est=HR, real=exp(true_trt), lower=CI.l, upper=CI.u, null=1, name="HR"),
   ipw_cov  =summarise_estimator(est=HR, real=exp(true_trt), lower=CI.l, upper=CI.u, null=1, name="HR"),
-  cox_nocov=summarise_test(alpha=0.05, name="test"),
-  cox_cov  =summarise_test(alpha=0.05, name="test"),
-  ipw_nocov=summarise_test(alpha=0.05, name="test"),
-  ipw_cov  =summarise_test(alpha=0.05, name="test")
+  cox_nocov=summarise_test(alpha=0.025, name="test"),
+  cox_cov  =summarise_test(alpha=0.025, name="test"),
+  ipw_nocov=summarise_test(alpha=0.025, name="test"),
+  ipw_cov  =summarise_test(alpha=0.025, name="test")
 )
 
 # Run the simulations ----------------------------------------------------
