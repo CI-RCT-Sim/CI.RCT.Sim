@@ -9,7 +9,8 @@ analyse_vaccine_ps(
   VE_margin = 0.3,
   covariates_in_outcomes_model = TRUE,
   V_unobserved = FALSE,
-  W_unobserved = FALSE
+  W_unobserved = FALSE,
+  W_interaction = FALSE
 )
 }
 \arguments{
@@ -22,6 +23,8 @@ analyse_vaccine_ps(
 \item{V_unobserved}{consider covariate V unobserved (don't use it in analysis)}
 
 \item{W_unobserved}{consider covariate W unobserved (don't use it in analysis)}
+
+\item{W_interaction}{add treatment x W interaction in outcomes model}
 }
 \value{
 an analyse function that returns a list with the elements

@@ -5,6 +5,7 @@
 #' @param covariates_in_outcomes_model should the covariates to estimate the principal score also be included in the outcomes model
 #' @param V_unobserved consider covariate V unobserved (don't use it in analysis)
 #' @param W_unobserved consider covariate W unobserved (don't use it in analysis)
+#' @param W_interaction add treatment x W interaction in outcomes model
 #'
 #' @returns an analyse function that returns a list with the elements
 #'  * `p` the p-value of the super-superiority test
@@ -30,7 +31,11 @@
 #' dat <- generate_vaccine(Design[3,])
 #' my_analyse <- analyse_vaccine_ps(ci_level=0.95)
 #' my_analyse(Design[3, ], dat)
-analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outcomes_model=TRUE, V_unobserved=FALSE, W_unobserved=FALSE){
+analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outcomes_model=TRUE, V_unobserved=FALSE, W_unobserved=FALSE, W_interaction=FALSE){
+  if(W_unobserved && W_interaction){
+    stop("Cannot include treatement x W interaction if W is not observed.")
+  }
+
   function(condition, dat, fixed_objects = NULL){
 
     formula_ps <- C ~ 1
@@ -67,7 +72,11 @@ analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outco
     }
 
     if(covariates_in_outcomes_model & (!W_unobserved)){
-      formula_outcome <- update.formula(formula_outcome, .~.+W)
+      if(W_interaction){
+        formula_outcome <- update.formula(formula_outcome, .~.+W*trt)
+      } else {
+        formula_outcome <- update.formula(formula_outcome, .~.+W)
+      }
     }
 
     outcome_mod <- suppressWarnings({

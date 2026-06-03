@@ -23,7 +23,6 @@ Useful links:
 
 Authors:
 \itemize{
-  \item Tobias Fellinger \email{tobias.fellinger@ages.at} (\href{https://orcid.org/0000-0001-9474-2731}{ORCID})
   \item Louise Jespersen
   \item Niels Hendrickx
   \item Paula Starke

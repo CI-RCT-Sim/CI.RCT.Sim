@@ -7,6 +7,7 @@
 #' @param VE_margin vaccine efficacy margin for the super-superiority test
 #' @param V_unobserved consider covariate V unobserved (don't use it in analysis)
 #' @param W_unobserved consider covariate W unobserved (don't use it in analysis)
+#' @param W_interaction add treatment x W interaction in outcomes model
 #'
 #' @returns an analyse function that returns a list with the elements
 #'  * `p` the p-value of the super-superiority test
@@ -30,7 +31,11 @@
 #' dat <- generate_vaccine(Design[1,])
 #' my_analyse <- analyse_vaccine_pp(ci_level=0.95)
 #' my_analyse(Design[1, ], dat)
-analyse_vaccine_pp <- function(ci_level=0.95, VE_margin=0.3, V_unobserved=FALSE, W_unobserved=FALSE){
+analyse_vaccine_pp <- function(ci_level=0.95, VE_margin=0.3, V_unobserved=FALSE, W_unobserved=FALSE, W_interaction=FALSE){
+  if(W_unobserved && W_interaction){
+    stop("Cannot include treatement x W interaction if W is not observed.")
+  }
+
   function(condition, dat, fixed_objects = NULL){
 
     dat1 <- dat |>
@@ -44,7 +49,11 @@ analyse_vaccine_pp <- function(ci_level=0.95, VE_margin=0.3, V_unobserved=FALSE,
     }
 
     if(!W_unobserved){
-      formula_outcome <- update.formula(formula_outcome, .~.+W)
+      if(W_interaction){
+        formula_outcome <- update.formula(formula_outcome, .~.+W*trt)
+      } else {
+        formula_outcome <- update.formula(formula_outcome, .~.+W)
+      }
     }
 
     # filter compliant participants and calculate risk-ratio

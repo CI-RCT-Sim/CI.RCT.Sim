@@ -8,7 +8,8 @@ analyse_vaccine_pp(
   ci_level = 0.95,
   VE_margin = 0.3,
   V_unobserved = FALSE,
-  W_unobserved = FALSE
+  W_unobserved = FALSE,
+  W_interaction = FALSE
 )
 }
 \arguments{
@@ -19,6 +20,8 @@ analyse_vaccine_pp(
 \item{V_unobserved}{consider covariate V unobserved (don't use it in analysis)}
 
 \item{W_unobserved}{consider covariate W unobserved (don't use it in analysis)}
+
+\item{W_interaction}{add treatment x W interaction in outcomes model}
 }
 \value{
 an analyse function that returns a list with the elements
