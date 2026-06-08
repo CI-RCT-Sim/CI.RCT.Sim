@@ -4,6 +4,7 @@ library(CI.RCT.Sim)
 library(parallel)
 
 source("scripts/vaccine_scenario_classes.R")
+source("scripts/vaccine_analyse_summarise.R")
 
 # Define parameter values and derived quantities -------------------------
 
@@ -23,7 +24,7 @@ selected_scenario <- switch(
 )
 
 
-# run simulations in chunks -----------------------------------------------
+# setup chunks of scenarios -----------------------------------------------
 
 start_chunk <- Sys.getenv("start") |>
   strtoi()
@@ -42,6 +43,8 @@ rows_chunks <- lapply(1:N_chunks, \(i){
   rows <- rows[rows <= N_scenarios]
   rows
 })
+
+# run simulations ---------------------------------------------------------
 
 for(i in start_chunk:length(rows_chunks)){
   message(paste0("Running chunk ", i, " of ", N_chunks, ", rows ", paste0(rows_chunks[[i]], collapse=", ")))
@@ -65,94 +68,10 @@ for(i in start_chunk:length(rows_chunks)){
   alpha_ci <- 0.05
   alpha_test <- c(0.05, 0.025)
 
-  # List of analysis functions ---------------------------------------------
-
-  my_analyse <- list(
-    # both V and W observed
-    iv       = analyse_vaccine_ivreg(ci_level = 1-alpha_ci, VE_margin = 0.3),
-    ps_cov   = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = TRUE),
-    ps_nocov = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = FALSE),
-    pp       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3),
-    # V unobserved
-    iv_vunobs       = analyse_vaccine_ivreg(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE),
-    ps_cov_vunobs   = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, V_unobserved=TRUE),
-    ps_nocov_vunobs = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, V_unobserved=TRUE),
-    pp_vunobs       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE),
-    # W unobserved
-    iv_wunobs       = analyse_vaccine_ivreg(ci_level = 1-alpha_ci, VE_margin = 0.3, W_unobserved=TRUE),
-    ps_cov_wunobs   = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, W_unobserved=TRUE),
-    ps_nocov_wunobs = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, W_unobserved=TRUE),
-    pp_wunobs       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3, W_unobserved=TRUE),
-    # both V and W unobserved
-    iv_vwunobs       = analyse_vaccine_ivreg(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE),
-    ps_cov_vwunobs   = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, V_unobserved=TRUE, W_unobserved=TRUE),
-    ps_nocov_vwunobs = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, V_unobserved=TRUE, W_unobserved=TRUE),
-    pp_vwunobs       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE)
-  )
-
-  my_analyse <- wrap_all_in_trycatch(my_analyse)
-
-  message(paste(length(my_analyse), "analysis functions"))
-
-  # List of summarisation functions ----------------------------------------
-  # summarise_estimator and summarise_test are generic summarisation
-  # functions from CI.RCT.Sim / SimDesign
-
-  my_summarise <- create_summarise_function(
-    iv               = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    ps_cov           = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    ps_nocov         = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    pp               = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    iv_vunobs        = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    ps_cov_vunobs    = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    ps_nocov_vunobs  = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    pp_vunobs        = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    iv_wunobs        = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    ps_cov_wunobs    = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    ps_nocov_wunobs  = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    pp_wunobs        = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    iv_vwunobs       = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    ps_cov_vwunobs   = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    ps_nocov_vwunobs = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    pp_vwunobs       = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
-    iv               = summarise_test(alpha_test, name="test"),
-    ps_cov           = summarise_test(alpha_test, name="test"),
-    ps_nocov         = summarise_test(alpha_test, name="test"),
-    pp               = summarise_test(alpha_test, name="test"),
-    iv_vunobs        = summarise_test(alpha_test, name="test"),
-    ps_cov_vunobs    = summarise_test(alpha_test, name="test"),
-    ps_nocov_vunobs  = summarise_test(alpha_test, name="test"),
-    pp_vunobs        = summarise_test(alpha_test, name="test"),
-    iv_wunobs        = summarise_test(alpha_test, name="test"),
-    ps_cov_wunobs    = summarise_test(alpha_test, name="test"),
-    ps_nocov_wunobs  = summarise_test(alpha_test, name="test"),
-    pp_wunobs        = summarise_test(alpha_test, name="test"),
-    iv_vwunobs       = summarise_test(alpha_test, name="test"),
-    ps_cov_vwunobs   = summarise_test(alpha_test, name="test"),
-    ps_nocov_vwunobs = summarise_test(alpha_test, name="test"),
-    pp_vwunobs       = summarise_test(alpha_test, name="test"),
-    iv               = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    ps_cov           = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    ps_nocov         = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    pp               = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    iv_vunobs        = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    ps_cov_vunobs    = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    ps_nocov_vunobs  = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    pp_vunobs        = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    iv_wunobs        = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    ps_cov_wunobs    = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    ps_nocov_wunobs  = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    pp_wunobs        = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    iv_vwunobs       = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    ps_cov_vwunobs   = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    ps_nocov_vwunobs = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich"),
-    pp_vwunobs       = summarise_estimator(VE_sandwich, VE, VE_lower_sandwich, VE_upper_sandwich, null=0.3, name="est_sandwich")
-  )
-
-  message(paste(length(environment(my_summarise)$summarise_functions), "summarise functions"))
-
   # Run the simulations ----------------------------------------------------
 
+  message(paste(length(my_analyse), "analysis functions"))
+  message(paste(length(environment(my_summarise)$summarise_functions), "summarise functions"))
   message(paste("setting up cluster with", detectCores(logical=TRUE)-1 , "cores"))
 
   cl <- makeCluster(detectCores(logical=TRUE)-1)
