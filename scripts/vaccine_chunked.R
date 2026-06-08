@@ -33,6 +33,9 @@ N_scenarios <- selected_scenario |>
   nrow()
 N_chunks <- ceiling(N_scenarios / chunksize)
 
+if(start_chunk > N_chunks){
+  stop(paste0("Start chunk, ", start_chunk, " is larger than number of chunks ", N_chunks))
+}
 
 rows_chunks <- lapply(1:N_chunks, \(i){
   rows <- 1:chunksize + (i-1)*chunksize
@@ -41,7 +44,7 @@ rows_chunks <- lapply(1:N_chunks, \(i){
 })
 
 for(i in start_chunk:length(rows_chunks)){
-  message(paste("Running chunk", i, "of", N_chunks, "rows", paste0(rows_chunks[[i]], collapse=",")))
+  message(paste0("Running chunk ", i, " of ", N_chunks, ", rows ", paste0(rows_chunks[[i]], collapse=", ")))
 
   sim_parameters <- selected_scenario |>
     vaccine_scenario_set_beta_A1_relative() |>
