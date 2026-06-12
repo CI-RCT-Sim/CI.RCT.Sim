@@ -10,10 +10,17 @@
 #' @param W_interaction add treatment x W interaction in outcomes model
 #'
 #' @returns an analyse function that returns a list with the elements
-#'  * `p` the p-value of the super-superiority test
-#'  * `VE` the point estimate for the vaccine efficacy
-#'  * `VE_lower` the lower CI limit
-#'  * `VE_upper` the upper CI limit
+#'  * `p_model` p-value of the super-superiority test, model based vcov
+#'  * `VE` the point estimate for the vaccine efficacy, model based vcov
+#'  * `VE_lower` the lower CI limit for vaccine efficacy, model based vcov
+#'  * `VE_upper` the upper CI limit for vaccine efficacy, model based vcov
+#'  * `p` the p-value of the super-superiority test, robust vcov
+#'  * `VE_sandwich` the point estimate for the vaccine efficacy, robust vcov
+#'  * `VE_lower_sandwich` the lower CI limit for vaccine efficacy, robust vcov
+#'  * `VE_upper_sandwich` the upper CI limit for vaccine efficacy, robust vcov
+#'  * `N_pat` number of patients in the dataset
+#'  * `N_evt` number of observed events in the dataset
+#'
 #' @export
 #'
 #' @importFrom stats glm poisson

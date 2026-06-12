@@ -26,10 +26,16 @@ analyse_vaccine_pp(
 \value{
 an analyse function that returns a list with the elements
 \itemize{
-\item \code{p} the p-value of the super-superiority test
-\item \code{VE} the point estimate for the vaccine efficacy
-\item \code{VE_lower} the lower CI limit
-\item \code{VE_upper} the upper CI limit
+\item \code{p_model} p-value of the super-superiority test, model based vcov
+\item \code{VE} the point estimate for the vaccine efficacy, model based vcov
+\item \code{VE_lower} the lower CI limit for vaccine efficacy, model based vcov
+\item \code{VE_upper} the upper CI limit for vaccine efficacy, model based vcov
+\item \code{p} the p-value of the super-superiority test, robust vcov
+\item \code{VE_sandwich} the point estimate for the vaccine efficacy, robust vcov
+\item \code{VE_lower_sandwich} the lower CI limit for vaccine efficacy, robust vcov
+\item \code{VE_upper_sandwich} the upper CI limit for vaccine efficacy, robust vcov
+\item \code{N_pat} number of patients in the dataset
+\item \code{N_evt} number of observed events in the dataset
 }
 }
 \description{
