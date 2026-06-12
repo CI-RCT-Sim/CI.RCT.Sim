@@ -108,7 +108,9 @@ analyse_vaccine_ivreg2 <- function(ci_level=0.95, VE_margin=0.3, V_unobserved=FA
       p = res_sandwich$p.value,
       VE_sandwich = 1-res_sandwich$ratio,
       VE_lower_sandwich = 1-res_ci_sandwich$asymp.UCL,
-      VE_upper_sandwich = 1-res_ci_sandwich$asymp.LCL
+      VE_upper_sandwich = 1-res_ci_sandwich$asymp.LCL,
+      N_pat = nrow(dat1),
+      N_evt = sum(dat1$evt)
     )
   }
 }

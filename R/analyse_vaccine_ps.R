@@ -129,7 +129,9 @@ analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outco
       p = test_rr_sandwich$p.value,
       VE_sandwich = 1-test_rr_sandwich$ratio,
       VE_lower_sandwich = 1-ci_rr_sandwich$asymp.UCL,
-      VE_upper_sandwich = 1-ci_rr_sandwich$asymp.LCL
+      VE_upper_sandwich = 1-ci_rr_sandwich$asymp.LCL,
+      N_pat = nrow(dat1),
+      N_evt = sum(dat1$evt)
     )
   }
 }
