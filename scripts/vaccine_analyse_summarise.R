@@ -7,6 +7,7 @@ my_analyse <- list(
   ps_cov   = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = TRUE),
   ps_nocov = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = FALSE),
   pp       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3),
+  pp_exact = analyse_vaccine_pp2(ci_level = 1-alpha_ci, VE_margin = 0.3),
   # with trt x W interaction
   ps_cov_winter   = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, W_interaction = TRUE),
   ps_nocov_winter = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, W_interaction = TRUE),
