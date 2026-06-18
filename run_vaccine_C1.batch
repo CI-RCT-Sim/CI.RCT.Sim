@@ -1,0 +1,19 @@
+#!/bin/bash
+#SBATCH -J MUW-CI
+#SBATCH -p cpu
+#SBATCH --cpus-per-task=124
+#SBATCH --mem=496G
+#SBATCH --time=72:00:00
+#SBATCH --mail-type="END,FAIL"
+#SBATCH --mail-user=louise.jespersen@meduniwien.ac.at
+#SBATCH --output="slurm-%j.out"
+#SBATCH --array=1-30
+
+# Sanity check that the script was submitted via sbatch
+if [ -z "$SLURM_JOB_ID" ]; then
+    echo "This script must be submitted via sbatch."
+    exit 1
+fi
+
+# array 1..30
+srun --export=scenario=C1,row=$i --container-image=nvcr.io/muwsc/medstat/r-base:CIRCTSIM  bash -c "cd CI.RCT.Sim/; ./run_one_vaccine_sim.sh"

@@ -26,7 +26,7 @@ selected_scenario <- switch(
 
 # get row number to run ---------------------------------------------------
 
-row <- Sys.getenv("row") |>
+row <- Sys.getenv("SLURM_ARRAY_TASK_ID") |>
   strtoi()
 
 # run simulations ---------------------------------------------------------
