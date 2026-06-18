@@ -50,6 +50,7 @@ sim_parameters <- selected_scenario |>
 N_sim <- 10000
 alpha_ci <- 0.05
 alpha_test <- c(0.05, 0.025)
+N_cores <- 124
 
 # get nodename ------------------------------------------------------------
 
@@ -63,9 +64,9 @@ if(Sys.getenv("SLURM_JOB_ID") == ""){
 
 message(paste(length(my_analyse), "analysis functions"))
 message(paste(length(environment(my_summarise)$summarise_functions), "summarise functions"))
-message(paste("setting up cluster with", detectCores(logical=TRUE)-1 , "cores"))
+message(paste("setting up cluster with", N_cores , "cores"))
 
-cl <- makeCluster(detectCores(logical=TRUE)-1)
+cl <- makeCluster(N_cores)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
 })

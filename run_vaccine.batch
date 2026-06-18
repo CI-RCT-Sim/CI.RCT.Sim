@@ -15,8 +15,26 @@ if [ -z "$SLURM_JOB_ID" ]; then
 fi
 
 # srun -D MA --container-image=nvcr.io/muwsc/medstat/r-base:INVENTS  bash start_process.sh
-srun --container-image=nvcr.io/muwsc/medstat/r-base:CIRCTSIM  bash -c "cd CI.RCT.Sim/; ./run_all_vaccine_sims.sh"
+for i in {1..15}; do
+  srun --export=scenario=A1,row=$i --container-image=nvcr.io/muwsc/medstat/r-base:CIRCTSIM  bash -c "cd CI.RCT.Sim/; ./run_one_vaccine_sim.sh"
+done
 
-# Paste this job script into a text file, and submit with the command: 
-# sbatch <filename>.sh
+for i in {1..10}; do
+  srun --export=scenario=A2,row=$i --container-image=nvcr.io/muwsc/medstat/r-base:CIRCTSIM  bash -c "cd CI.RCT.Sim/; ./run_one_vaccine_sim.sh"
+done
 
+for i in {1..20}; do
+  srun --export=scenario=B1,row=$i --container-image=nvcr.io/muwsc/medstat/r-base:CIRCTSIM  bash -c "cd CI.RCT.Sim/; ./run_one_vaccine_sim.sh"
+done
+
+for i in {1..30}; do
+  srun --export=scenario=C1,row=$i --container-image=nvcr.io/muwsc/medstat/r-base:CIRCTSIM  bash -c "cd CI.RCT.Sim/; ./run_one_vaccine_sim.sh"
+done
+
+for i in {1..40}; do
+  srun --export=scenario=D1,row=$i --container-image=nvcr.io/muwsc/medstat/r-base:CIRCTSIM  bash -c "cd CI.RCT.Sim/; ./run_one_vaccine_sim.sh"
+done
+
+for i in {1..45}; do
+  srun --export=scenario=extra,row=$i --container-image=nvcr.io/muwsc/medstat/r-base:CIRCTSIM  bash -c "cd CI.RCT.Sim/; ./run_one_vaccine_sim.sh"
+done
