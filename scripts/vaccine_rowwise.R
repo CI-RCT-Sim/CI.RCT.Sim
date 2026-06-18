@@ -46,10 +46,18 @@ sim_parameters <- selected_scenario |>
 
 # Constants for simulation -----------------------------------------------
 
-N_sim <- 10000
 # N_sim <- 10
+N_sim <- 10000
 alpha_ci <- 0.05
 alpha_test <- c(0.05, 0.025)
+
+# get nodename ------------------------------------------------------------
+
+if(Sys.getenv("SLURM_JOB_ID") == ""){
+  my_nodename <- Sys.info()["nodename"]
+} else {
+  my_nodename <- paste0("SlurmJob_", Sys.getenv("SLURM_JOB_ID"))
+}
 
 # Run the simulations ----------------------------------------------------
 
@@ -80,7 +88,10 @@ results <- runSimulation(
   summarise = my_summarise,
   fixed_objects = list(include_unobserved=FALSE),
   parallel = TRUE,
-  cl = cl
+  cl = cl,
+  save_details = list(
+    compname = my_nodename
+  )
 )
 
 message(Sys.time())
@@ -89,7 +100,7 @@ stopCluster(cl)
 
 # Save results -----------------------------------------------------------
 
-out_filename <- format(Sys.time(), paste0("results_vaccine_scenario_", scenario, "_row_", formatC(row, width=3, flag="0"), "_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata"))
+out_filename <- format(Sys.time(), paste0("results_vaccine_scenario_", scenario, "_row_", formatC(row, width=3, flag="0"), "_", my_nodename, "_%Y-%m-%d_%H%M.Rdata"))
 message(paste("saving results to", out_filename))
 save(results, main_sessioninfo, nodes_sessioninfo, file=out_filename)
 
