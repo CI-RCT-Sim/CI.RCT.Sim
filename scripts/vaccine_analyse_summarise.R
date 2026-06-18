@@ -7,7 +7,6 @@ my_analyse <- list(
   ps_cov   = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = TRUE),
   ps_nocov = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = FALSE),
   pp       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3),
-  pp_exact = analyse_vaccine_pp2(ci_level = 1-alpha_ci, VE_margin = 0.3),
   # with trt x W interaction
   ps_cov_winter   = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, W_interaction = TRUE),
   ps_nocov_winter = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, W_interaction = TRUE),
@@ -36,7 +35,7 @@ my_analyse <- list(
   pp_vwunobs       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE)
 )
 
-my_analyse <- wrap_all_in_trycatch(my_analyse)
+
 
 # List of summarisation functions ----------------------------------------
 # summarise_estimator and summarise_test are generic summarisation
@@ -56,6 +55,28 @@ my_summarise <- lapply(tmp_functions, \(fn){
     fn
   }) |> setNames(names(my_analyse))
 }) |>
-  do.call(c, args=_) |>
-  do.call(create_summarise_function, args=_)
+  do.call(c, args=_)
 
+# add method that does not follow the scheme ------------------------------
+
+my_analyse <- c(
+  my_analyse,
+  list(
+    pp_exact = analyse_vaccine_pp2(ci_level = 1-alpha_ci, VE_margin = 0.3)
+  )
+)
+
+my_summarise <- c(
+  my_summarise,
+  list(
+    pp_exact = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+    pp_exact = summarise_test(alpha_test, name="test")
+  )
+)
+
+# create final analysis and summarise functions ---------------------------
+
+
+
+my_analyse <- wrap_all_in_trycatch(my_analyse)
+my_summarise <- do.call(create_summarise_function, args=my_summarise)

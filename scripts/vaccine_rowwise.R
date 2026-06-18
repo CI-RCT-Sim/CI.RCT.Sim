@@ -44,8 +44,6 @@ sim_parameters <- selected_scenario |>
   }) |>
   _[row, ]
 
-message(paste(nrow(sim_parameters), "rows"))
-
 # Constants for simulation -----------------------------------------------
 
 N_sim <- 10000
@@ -71,6 +69,7 @@ nodes_sessioninfo <- clusterEvalQ(cl, {
   sessionInfo()
 })
 
+message(Sys.time())
 message(paste("running simulations,", nrow(sim_parameters), "scenarios,", N_sim, "replications"))
 
 results <- runSimulation(
@@ -84,6 +83,7 @@ results <- runSimulation(
   cl = cl
 )
 
+message(Sys.time())
 message("stopping cluster")
 stopCluster(cl)
 
