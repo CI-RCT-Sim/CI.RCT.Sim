@@ -8,13 +8,23 @@
 #' @param W_interaction add treatment x W interaction in outcomes model
 #'
 #' @returns an analyse function that returns a list with the elements
-#'  * `p` the p-value of the super-superiority test
-#'  * `VE` the point estimate for the vaccine efficacy
-#'  * `VE_lower` the lower CI limit for vaccine efficacy
-#'  * `VE_upper` the upper CI limit for vaccine efficacy
-#'  * `OR` the point estimate for the odds-ratio for infection
-#'  * `OR_lower` the lower CI limit for the odds-ratio for infection
-#'  * `OR_upper` the upper CI limit for the odds-ratio for infection
+#'  * `p_model`  p-value of  super-superiority test, model based vcov
+#'  * `VE`  point estimate for  vaccine efficacy, model based vcov
+#'  * `VE_lower`  lower CI limit for vaccine efficacy, model based vcov
+#'  * `VE_upper`  upper CI limit for vaccine efficacy, model based vcov
+#'  * `OR`  point estimate for  odds-ratio for infection, model based vcov
+#'  * `OR_lower`  lower CI limit for  odds-ratio for infection, model based vcov
+#'  * `OR_upper`  upper CI limit for  odds-ratio for infection, model based vcov
+#'  * `OR_sandwich`  point estimate for  odds-ratio for infection, robust vcov
+#'  * `OR_lower_sandwich`  lower CI limit for  odds-ratio for infection, robust vcov
+#'  * `OR_upper_sandwich`  upper CI limit for  odds-ratio for infection, robust vcov
+#'  * `p`  p-value of  super-superiority test, robust vcov
+#'  * `VE_sandwich`  point estimate for  vaccine efficacy, robust vcov
+#'  * `VE_lower_sandwich`  lower CI limit for vaccine efficacy, robust vcov
+#'  * `VE_upper_sandwich`  upper CI limit for vaccine efficacy, robust vcov
+#'  * `N_pat` number of patients in the dataset
+#'  * `N_evt` number of observed events in the dataset
+#'
 #' @export
 #'
 #' @importFrom dplyr case_when mutate
@@ -129,7 +139,9 @@ analyse_vaccine_ps <- function(ci_level=0.95, VE_margin=0.3, covariates_in_outco
       p = test_rr_sandwich$p.value,
       VE_sandwich = 1-test_rr_sandwich$ratio,
       VE_lower_sandwich = 1-ci_rr_sandwich$asymp.UCL,
-      VE_upper_sandwich = 1-ci_rr_sandwich$asymp.LCL
+      VE_upper_sandwich = 1-ci_rr_sandwich$asymp.LCL,
+      N_pat = nrow(dat1),
+      N_evt = sum(dat1$evt)
     )
   }
 }

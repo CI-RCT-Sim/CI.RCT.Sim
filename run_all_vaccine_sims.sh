@@ -1,13 +1,38 @@
 #!/usr/bin/sh
 
-# r script reads envrionment variables
-# scenario A1, A2, ... scenario group
-# start start at chunk 1, 2, ... to re-start sims from partial results
+echo installing renv
+Rscript -e "install.packages('renv')"
+Rscript -e "renv::restore(packages = 'renv')"
 
-scenario=A1 start=1 Rscript ./scripts/vaccine_chunked.R
-scenario=A2 start=1 Rscript ./scripts/vaccine_chunked.R
-scenario=B1 start=1 Rscript ./scripts/vaccine_chunked.R
-scenario=C1 start=1 Rscript ./scripts/vaccine_chunked.R
-scenario=D1 start=1 Rscript ./scripts/vaccine_chunked.R
-scenario=extra start=1 Rscript ./scripts/vaccine_chunked.R
+echo restoring renv snapshot
+Rscript -e "renv::restore()"
 
+echo installing devtools
+Rscript -e "install.packages('devtools')"
+
+echo installing package from directory
+Rscript -e "devtools::install()"
+
+for i in {1..15}; do
+  scenario=A1 row=$i RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
+done
+
+for i in {1..10}; do
+  scenario=A2 row=$i RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
+done
+
+for i in {1..20}; do
+  scenario=B1 row=$i RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
+done
+
+for i in {1..30}; do
+  scenario=C1 row=$i RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
+done
+
+for i in {1..40}; do
+  scenario=D1 row=$i RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
+done
+
+for i in {1..45}; do
+  scenario=extra row=$i RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
+done

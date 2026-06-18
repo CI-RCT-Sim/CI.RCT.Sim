@@ -3,6 +3,7 @@
 my_analyse <- list(
   # both V and W observed
   iv       = analyse_vaccine_ivreg(ci_level = 1-alpha_ci, VE_margin = 0.3),
+  iv2      = analyse_vaccine_ivreg2(ci_level = 1-alpha_ci, VE_margin = 0.3),
   ps_cov   = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = TRUE),
   ps_nocov = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = FALSE),
   pp       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3),
@@ -12,6 +13,7 @@ my_analyse <- list(
   pp_winter       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3, W_interaction = TRUE),
   # V unobserved
   iv_vunobs       = analyse_vaccine_ivreg(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE),
+  iv_vunobs2      = analyse_vaccine_ivreg2(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE),
   ps_cov_vunobs   = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, V_unobserved=TRUE),
   ps_nocov_vunobs = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, V_unobserved=TRUE),
   pp_vunobs       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE),
@@ -21,17 +23,19 @@ my_analyse <- list(
   pp_vunobs_winter       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE, W_interaction = TRUE),
   # W unobserved
   iv_wunobs       = analyse_vaccine_ivreg(ci_level = 1-alpha_ci, VE_margin = 0.3, W_unobserved=TRUE),
+  iv_wunobs2      = analyse_vaccine_ivreg2(ci_level = 1-alpha_ci, VE_margin = 0.3, W_unobserved=TRUE),
   ps_cov_wunobs   = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, W_unobserved=TRUE),
   ps_nocov_wunobs = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, W_unobserved=TRUE),
   pp_wunobs       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3, W_unobserved=TRUE),
   # both V and W unobserved
   iv_vwunobs       = analyse_vaccine_ivreg(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE),
+  iv_vwunobs2      = analyse_vaccine_ivreg2(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE),
   ps_cov_vwunobs   = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = TRUE, V_unobserved=TRUE, W_unobserved=TRUE),
   ps_nocov_vwunobs = analyse_vaccine_ps(ci_level = 1-alpha_ci, VE_margin = 0.3, covariates_in_outcomes_model = FALSE, V_unobserved=TRUE, W_unobserved=TRUE),
   pp_vwunobs       = analyse_vaccine_pp(ci_level = 1-alpha_ci, VE_margin = 0.3, V_unobserved=TRUE, W_unobserved=TRUE)
 )
 
-my_analyse <- wrap_all_in_trycatch(my_analyse)
+
 
 # List of summarisation functions ----------------------------------------
 # summarise_estimator and summarise_test are generic summarisation
@@ -51,6 +55,28 @@ my_summarise <- lapply(tmp_functions, \(fn){
     fn
   }) |> setNames(names(my_analyse))
 }) |>
-  do.call(c, args=_) |>
-  do.call(create_summarise_function, args=_)
+  do.call(c, args=_)
 
+# add method that does not follow the scheme ------------------------------
+
+my_analyse <- c(
+  my_analyse,
+  list(
+    pp_exact = analyse_vaccine_pp2(ci_level = 1-alpha_ci, VE_margin = 0.3)
+  )
+)
+
+my_summarise <- c(
+  my_summarise,
+  list(
+    pp_exact = summarise_estimator(VE, VE, VE_lower, VE_upper, null=0.3, name="est"),
+    pp_exact = summarise_test(alpha_test, name="test")
+  )
+)
+
+# create final analysis and summarise functions ---------------------------
+
+
+
+my_analyse <- wrap_all_in_trycatch(my_analyse)
+my_summarise <- do.call(create_summarise_function, args=my_summarise)

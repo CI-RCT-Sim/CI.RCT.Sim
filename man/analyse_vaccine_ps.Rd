@@ -29,13 +29,22 @@ analyse_vaccine_ps(
 \value{
 an analyse function that returns a list with the elements
 \itemize{
-\item \code{p} the p-value of the super-superiority test
-\item \code{VE} the point estimate for the vaccine efficacy
-\item \code{VE_lower} the lower CI limit for vaccine efficacy
-\item \code{VE_upper} the upper CI limit for vaccine efficacy
-\item \code{OR} the point estimate for the odds-ratio for infection
-\item \code{OR_lower} the lower CI limit for the odds-ratio for infection
-\item \code{OR_upper} the upper CI limit for the odds-ratio for infection
+\item \code{p_model}  p-value of  super-superiority test, model based vcov
+\item \code{VE}  point estimate for  vaccine efficacy, model based vcov
+\item \code{VE_lower}  lower CI limit for vaccine efficacy, model based vcov
+\item \code{VE_upper}  upper CI limit for vaccine efficacy, model based vcov
+\item \code{OR}  point estimate for  odds-ratio for infection, model based vcov
+\item \code{OR_lower}  lower CI limit for  odds-ratio for infection, model based vcov
+\item \code{OR_upper}  upper CI limit for  odds-ratio for infection, model based vcov
+\item \code{OR_sandwich}  point estimate for  odds-ratio for infection, robust vcov
+\item \code{OR_lower_sandwich}  lower CI limit for  odds-ratio for infection, robust vcov
+\item \code{OR_upper_sandwich}  upper CI limit for  odds-ratio for infection, robust vcov
+\item \code{p}  p-value of  super-superiority test, robust vcov
+\item \code{VE_sandwich}  point estimate for  vaccine efficacy, robust vcov
+\item \code{VE_lower_sandwich}  lower CI limit for vaccine efficacy, robust vcov
+\item \code{VE_upper_sandwich}  upper CI limit for vaccine efficacy, robust vcov
+\item \code{N_pat} number of patients in the dataset
+\item \code{N_evt} number of observed events in the dataset
 }
 }
 \description{
