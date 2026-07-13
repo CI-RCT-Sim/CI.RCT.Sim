@@ -22,8 +22,12 @@ Rscript -e "devtools::install()"
 # D1 1-40
 # extra 1-45
 scenario=A1    SLURM_ARRAY_TASK_ID=1 RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
+scenario=A1    SLURM_ARRAY_TASK_ID=7 RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
 scenario=A2    SLURM_ARRAY_TASK_ID=1 RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
+scenario=A2    SLURM_ARRAY_TASK_ID=5 RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
 scenario=B1    SLURM_ARRAY_TASK_ID=1 RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
+scenario=B1    SLURM_ARRAY_TASK_ID=9 RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
 scenario=C1    SLURM_ARRAY_TASK_ID=1 RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
+scenario=C1    SLURM_ARRAY_TASK_ID=13 RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
 scenario=D1    SLURM_ARRAY_TASK_ID=1 RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
-scenario=extra SLURM_ARRAY_TASK_ID=1 RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
+scenario=D1    SLURM_ARRAY_TASK_ID=17 RENV_CONFIG_SANDBOX_ENABLED=FALSE Rscript ./scripts/vaccine_rowwise.R
