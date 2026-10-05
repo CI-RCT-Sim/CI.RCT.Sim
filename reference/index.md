@@ -2,22 +2,101 @@
 
 ## All functions
 
-- [`analyse_ipw()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_ipw.md)
-  : Analyse Dataset with the Inverse probability weighting
-- [`analyse_ltmle()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_ltmle.md)
-  : Analyse Dataset with Longitudinal Targeted Minimum Loss/(Maximum
-  Likelihood) Estimation
+- [`analyse_diabetes_demediation()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_diabetes_demediation.md)
+  : Analyse data set with De-mediation
+- [`analyse_diabetes_gcomputation()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_diabetes_gcomputation.md)
+  : Analyse data set with G-computation
+- [`analyse_diabetes_ipw()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_diabetes_ipw.md)
+  : Analyse data set with the Inverse probability weighting
+- [`analyse_diabetes_mi()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_diabetes_mi.md)
+  : Analyse data set with Multiple Imputation
+- [`analyse_diabetes_mmrm()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_diabetes_mmrm.md)
+  : Analyse diabetes endpoint using a Mixed Model for Repeated Measures
+  (MMRM)
+- [`analyse_mace_cox_cov()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_mace_cox_cov.md)
+  : Analysis function with parameter extraction : cox model with
+  covariates
+- [`analyse_mace_cox_nocov()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_mace_cox_nocov.md)
+  : Analysis function with parameter extraction : cox model without
+  covariates
+- [`analyse_mace_ipw_cov()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_mace_ipw_cov.md)
+  : Analysis function with parameter extraction : ipw model with
+  covariates
+- [`analyse_mace_ipw_nocov()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_mace_ipw_nocov.md)
+  : Analysis function with parameter extraction : ipw model without
+  covariates
 - [`analyse_minimal_example_lm()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_minimal_example_lm.md)
   : Analyse dataset from minimal example scenario with linear regression
 - [`analyse_minimal_example_t()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_minimal_example_t.md)
   : Analyse dataset from minimal example scenario with t-test
-- [`generate_diabetes_rescue()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_diabetes_rescue.md)
-  [`assumptions_diabetes_rescue()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_diabetes_rescue.md)
-  [`true_summary_statistics_diabetes_rescue()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_diabetes_rescue.md)
-  : Generate Dataset ...
+- [`analyse_oncology_TSE()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_oncology_TSE.md)
+  : Create Analyse Functions for
+- [`analyse_oncology_cens()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_oncology_cens.md)
+  : Create Analyse Functions for
+- [`analyse_oncology_gformula()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_oncology_gformula.md)
+  : Create Analyse Functions for g formula
+- [`analyse_oncology_ipw()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_oncology_ipw.md)
+  : Create Analyse Functions for IPW
+- [`analyse_oncology_ipw2()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_oncology_ipw2.md)
+  : Create Analyse Functions for
+- [`analyse_oncology_itt()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_oncology_itt.md)
+  : Create Analyse Functions for ITT analysis
+- [`analyse_oncology_mixed()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_oncology_mixed.md)
+  : Create Analyse Functions for
+- [`analyse_oncology_rpsftm()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_oncology_rpsftm.md)
+  : Create Analyse Functions for
+- [`analyse_vaccine_ivreg()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_vaccine_ivreg.md)
+  : Analyse dataset from vaccine scenario using instrumental variable
+  regression
+- [`analyse_vaccine_pp()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_vaccine_pp.md)
+  : Analyse dataset from vaccine scenario, per-protocol analysis
+- [`analyse_vaccine_ps()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/analyse_vaccine_ps.md)
+  : Analyse dataset from vaccine scenario using principal score
+  weighting
+- [`censor_buffer_window()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/censor_buffer_window.md)
+  : Function that censor MACE events after discontinuation + buffer
+  window t_mace = T_disc + buffer is censored at one year
+- [`cox_model_cov()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/cox_model_cov.md)
+  : Cox model with covariates
+- [`cox_model_ipw()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/cox_model_ipw.md)
+  : Cox model with IPW weights with covariates
+- [`cox_model_ipw_nocov()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/cox_model_ipw_nocov.md)
+  : Cox model with IPW weights without covariates
+- [`cox_model_nocov()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/cox_model_nocov.md)
+  : Cox model without covariates
+- [`data_process_start_stop()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/data_process_start_stop.md)
+  : Function that transforms data set with t_mace,event_mace, with one
+  row per patients into a data set with t_mace_start, t_mace_stop,
+  event_mace, with discontinuation as a time varying covariate
+- [`generate_all_tte2()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_all_tte2.md)
+  : For internal use only
+- [`generate_diabetes()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_diabetes.md)
+  [`diabetes_scenario()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_diabetes.md)
+  [`diabetes_scenario_set_truevalues()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_diabetes.md)
+  : Generate data set that simulates a diabetes trial in which rescue
+  medication can be introduced
+- [`mace_scenario()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_mace.md)
+  [`mace_scenario_set_sample_size()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_mace.md)
+  [`generate_mace()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_mace.md)
+  [`true_trt_mace()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_mace.md)
+  : Generate Data for MACE Scenario
 - [`generate_minimal_example()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_minimal_example.md)
   [`true_summary_statistics_minimal_example()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_minimal_example.md)
   [`assumptions_minimal_example()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_minimal_example.md)
   : Generate dataset for minimal example
+- [`generate_oncology()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_oncology.md)
+  [`oncology_scenario()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_oncology.md)
+  [`oncology_scenario_set_truevalues()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/generate_oncology.md)
+  : Generate Dataset that simulates an oncology trial
 - [`params_scenarios_grid()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/params_scenarios_grid.md)
   : Generate Grid of Parameter Values
+- [`vaccine_scenario()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/vaccine_scenario.md)
+  [`generate_vaccine()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/vaccine_scenario.md)
+  [`vaccine_scenario_defaults()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/vaccine_scenario.md)
+  [`vaccine_scenario_base_defaults()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/vaccine_scenario.md)
+  [`vaccine_scenario_tweak()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/vaccine_scenario.md)
+  [`vaccine_scenario_set_beta_A1_relative()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/vaccine_scenario.md)
+  [`vaccine_scenario_set_gamma_0()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/vaccine_scenario.md)
+  [`vaccine_scenario_set_true_eff()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/vaccine_scenario.md)
+  [`vaccine_scenario_set_samplesize()`](https://ci-rct-sim.github.io/CI.RCT.Sim/reference/vaccine_scenario.md)
+  : Generate Data for Vaccine Scenario

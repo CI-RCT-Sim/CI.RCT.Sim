@@ -2,10 +2,6 @@
 
 Generate dataset for minimal example
 
-Calculate true summary statistics value for generate_minimal_example
-
-Create an empty assumtions tibble for generate_minimal_example
-
 ## Usage
 
 ``` r
@@ -36,7 +32,7 @@ assumptions_minimal_example(print = interactive())
 
 ## Value
 
-a simulated dataset
+For generate_minimal_example: a simulated dataset
 
 For true_summary_statistics_minimal_example: the Design tibble with
 added column eff_size
@@ -55,15 +51,15 @@ invisibly
 
 ``` r
 Design <- assumptions_minimal_example() |>
-true_summary_statistics_minimal_example()
+  true_summary_statistics_minimal_example()
 
 dat <- generate_minimal_example(Design[1,])
 head(dat)
 #>   group          y
-#> 1     1  1.4864143
-#> 2     1  0.1427555
-#> 3     1  0.7911104
-#> 4     1  0.9781716
-#> 5     1  1.3717289
-#> 6     1 -1.3006149
+#> 1     1  1.3783187
+#> 2     1  1.0775305
+#> 3     1  0.5535304
+#> 4     1  2.3320091
+#> 5     1 -0.5072299
+#> 6     1  0.4989764
 ```

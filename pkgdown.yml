@@ -1,9 +1,9 @@
-pandoc: 3.1.11
-pkgdown: 2.2.0
+pandoc: 3.8.3
+pkgdown: 2.2.1
 pkgdown_sha: ~
 articles:
   minimal_example: minimal_example.html
-last_built: 2026-01-29T13:54Z
+last_built: 2026-10-05T12:59Z
 urls:
   reference: https://ci-rct-sim.github.io/CI.RCT.Sim/reference
   article: https://ci-rct-sim.github.io/CI.RCT.Sim/articles

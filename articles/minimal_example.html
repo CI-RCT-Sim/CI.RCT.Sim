@@ -7,8 +7,8 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
 <title>Minimal Example • CI.RCT.Sim</title>
 <script src="../deps/jquery-3.6.0/jquery-3.6.0.min.js"></script><meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no">
-<link href="../deps/bootstrap-5.3.1/bootstrap.min.css" rel="stylesheet">
-<script src="../deps/bootstrap-5.3.1/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
+<link href="../deps/bootstrap-5.3.8/bootstrap.min.css" rel="stylesheet">
+<script src="../deps/bootstrap-5.3.8/bootstrap.bundle.min.js"></script><link href="../deps/font-awesome-6.5.2/css/all.min.css" rel="stylesheet">
 <link href="../deps/font-awesome-6.5.2/css/v4-shims.min.css" rel="stylesheet">
 <script src="../deps/headroom-0.11.0/headroom.min.js"></script><script src="../deps/headroom-0.11.0/jQuery.headroom.min.js"></script><script src="../deps/bootstrap-toc-1.0.1/bootstrap-toc.min.js"></script><script src="../deps/clipboard.js-2.0.11/clipboard.min.js"></script><script src="../deps/search-1.0.0/autocomplete.jquery.min.js"></script><script src="../deps/search-1.0.0/fuse.min.js"></script><script src="../deps/search-1.0.0/mark.min.js"></script><!-- pkgdown --><script src="../pkgdown.js"></script><meta property="og:title" content="Minimal Example">
 </head>
@@ -107,13 +107,13 @@ ranges.</p>
 <span><span class="co">#' @param condition row of Design dataset</span></span>
 <span><span class="co">#' @param fixed_objects list of parameters that are fixed across simulations</span></span>
 <span><span class="co">#'</span></span>
-<span><span class="co">#' @returns a simulated dataset</span></span>
+<span><span class="co">#' @returns For generate_minimal_example: a simulated dataset</span></span>
 <span><span class="co">#' @export</span></span>
 <span><span class="co">#' @importFrom stats rnorm</span></span>
 <span><span class="co">#'</span></span>
 <span><span class="co">#' @examples</span></span>
 <span><span class="co">#' Design &lt;- assumptions_minimal_example() |&gt;</span></span>
-<span><span class="co">#' true_summary_statistics_minimal_example()</span></span>
+<span><span class="co">#'   true_summary_statistics_minimal_example()</span></span>
 <span><span class="co">#'</span></span>
 <span><span class="co">#' dat &lt;- generate_minimal_example(Design[1,])</span></span>
 <span><span class="co">#' head(dat)</span></span>
@@ -124,8 +124,6 @@ ranges.</p>
 <span>  <span class="op">)</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co">#' Calculate true summary statistics value for generate_minimal_example</span></span>
-<span><span class="co">#'</span></span>
 <span><span class="co">#' @param Design data.frame with parameter values</span></span>
 <span><span class="co">#'</span></span>
 <span><span class="co">#' @returns For true_summary_statistics_minimal_example: the Design tibble with added column eff_size</span></span>
@@ -137,8 +135,6 @@ ranges.</p>
 <span>  <span class="va">Design</span></span>
 <span><span class="op">}</span></span>
 <span></span>
-<span><span class="co">#' Create an empty assumtions tibble for generate_minimal_example</span></span>
-<span><span class="co">#'</span></span>
 <span><span class="co">#' @param print print code to generate parameter set?</span></span>
 <span><span class="co">#'</span></span>
 <span><span class="co">#' @returns For assumptions_mimimal_example: a design tibble with default values invisibly</span></span>
@@ -298,6 +294,7 @@ initialisation of random seeds etc.</p>
 <div class="sourceCode" id="cb3"><pre class="downlit sourceCode r">
 <code class="sourceCode R"><span><span class="kw"><a href="https://rdrr.io/r/base/library.html" class="external-link">library</a></span><span class="op">(</span><span class="st"><a href="https://ci-rct-sim.github.io/CI.RCT.Sim/">"CI.RCT.Sim"</a></span><span class="op">)</span></span>
 <span><span class="co">#&gt; Loading required package: SimDesign</span></span>
+<span><span class="co">#&gt; mmrm() registered as emmeans extension</span></span>
 <span></span>
 <span><span class="co"># Define the parameter valued, calculate derived quantities from the parameters</span></span>
 <span><span class="va">sim_parameters</span> <span class="op">&lt;-</span> <span class="fu"><a href="../reference/generate_minimal_example.html">assumptions_minimal_example</a></span><span class="op">(</span><span class="op">)</span> <span class="op">|&gt;</span></span>
@@ -353,11 +350,11 @@ initialisation of random seeds etc.</p>
 
 
     <footer><div class="pkgdown-footer-left">
-  <p>Developed by Tobias Fellinger.</p>
+  <p>Developed by Tobias Fellinger, Louise Jespersen, Niels Hendrickx, Paula Starke, Susanne Urach, Florian Klinglmüller, Robin Ristl, Maddalena Centanni, Angelika Geroldinger.</p>
 </div>
 
 <div class="pkgdown-footer-right">
-  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.0.</p>
+  <p>Site built with <a href="https://pkgdown.r-lib.org/" class="external-link">pkgdown</a> 2.2.1.</p>
 </div>
 
     </footer>

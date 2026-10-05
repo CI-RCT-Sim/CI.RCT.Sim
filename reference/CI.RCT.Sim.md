@@ -18,3 +18,24 @@ Useful links:
 
 **Maintainer**: Tobias Fellinger <tobias.fellinger@ages.at>
 ([ORCID](https://orcid.org/0000-0001-9474-2731))
+
+Authors:
+
+- Tobias Fellinger <tobias.fellinger@ages.at>
+  ([ORCID](https://orcid.org/0000-0001-9474-2731))
+
+- Louise Jespersen
+
+- Niels Hendrickx
+
+- Paula Starke
+
+- Susanne Urach
+
+- Florian Klinglmüller
+
+- Robin Ristl
+
+- Maddalena Centanni
+
+- Angelika Geroldinger
