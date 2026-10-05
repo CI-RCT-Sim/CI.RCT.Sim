@@ -1,0 +1,84 @@
+test_that("setting sample size works", {
+  Design1 <- vaccine_scenario() |>
+    vaccine_scenario_set_beta_A1_relative() |>
+    vaccine_scenario_set_gamma_0() |>
+    vaccine_scenario_set_true_eff() |>
+    vaccine_scenario_set_samplesize()
+
+  # finite sample sizes
+  expect_true(all(is.finite(Design1$n_ctrl)))
+  expect_true(all(is.finite(Design1$n_trt)))
+
+  Design2 <- vaccine_scenario() |>
+    vaccine_scenario_set_beta_A1_relative() |>
+    vaccine_scenario_set_gamma_0() |>
+    vaccine_scenario_set_true_eff() |>
+    vaccine_scenario_set_samplesize(VE_H1 = 0.6)
+
+  # larger sample sizes with smaller effect
+  expect_true(all(Design2$n_ctrl > Design1$n_ctrl))
+
+  Design3 <- vaccine_scenario() |>
+    vaccine_scenario_set_beta_A1_relative() |>
+    vaccine_scenario_set_gamma_0() |>
+    vaccine_scenario_set_true_eff() |>
+    vaccine_scenario_set_samplesize(alpha = 0.05)
+
+  # smaller sample sizes with larger alpha
+  expect_true(all(Design3$n_ctrl < Design1$n_ctrl))
+
+  Design4 <- vaccine_scenario() |>
+    vaccine_scenario_set_beta_A1_relative() |>
+    vaccine_scenario_set_gamma_0() |>
+    vaccine_scenario_set_true_eff() |>
+    vaccine_scenario_set_samplesize(CSE=0.4)
+
+  # larger sample sizes with larger clinically significant effect
+  expect_true(all(Design4$n_ctrl > Design1$n_ctrl))
+
+  Design5 <- vaccine_scenario() |>
+    vaccine_scenario_set_beta_A1_relative() |>
+    vaccine_scenario_set_gamma_0() |>
+    vaccine_scenario_set_true_eff() |>
+    vaccine_scenario_set_samplesize(power=0.9)
+
+  # larger sample sizes with larger power
+  expect_true(all(Design5$n_ctrl > Design1$n_ctrl))
+})
+
+test_that("setting gamma0 works", {
+  Design1 <- vaccine_scenario() |>
+    vaccine_scenario_set_gamma_0()
+
+  expect_gt(min(Design1$gamma_0), 0)
+  expect_lt(max(Design1$gamma_0), Inf)
+
+  Design2 <- vaccine_scenario() |>
+    within({
+      overall_compliance <- 0
+    }) |>
+    vaccine_scenario_set_gamma_0()
+
+  expect_all_equal(Design2$gamma_0, -Inf)
+
+  Design3 <- vaccine_scenario() |>
+    within({
+      overall_compliance <- 1
+    }) |>
+    vaccine_scenario_set_gamma_0()
+
+  expect_all_equal(Design3$gamma_0, Inf)
+
+  Design4 <- data.frame(
+    p_V = 0.3,
+    p_W = 0.3,
+    gamma_V = 0.5,
+    gamma_W = -0.357,
+    gamma_AW = -0.3,
+    overall_compliance = c(0, 0.5, 0.8, 1)
+  ) |>
+    vaccine_scenario_set_gamma_0()
+
+  # gamma0 should increase with increasing overall compliance
+  expect_all_true(sign(diff(Design4$gamma_0)) == sign(diff(Design4$overall_compliance)))
+})

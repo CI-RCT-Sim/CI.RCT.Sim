@@ -22,7 +22,7 @@ assumptions_minimal_example(print = interactive())
 \item{print}{print code to generate parameter set?}
 }
 \value{
-a simulated dataset
+For generate_minimal_example: a simulated dataset
 
 For true_summary_statistics_minimal_example: the Design tibble with added column eff_size
 
@@ -30,10 +30,6 @@ For assumptions_mimimal_example: a design tibble with default values invisibly
 }
 \description{
 Generate dataset for minimal example
-
-Calculate true summary statistics value for generate_minimal_example
-
-Create an empty assumtions tibble for generate_minimal_example
 }
 \section{Functions}{
 \itemize{
@@ -44,7 +40,7 @@ Create an empty assumtions tibble for generate_minimal_example
 }}
 \examples{
 Design <- assumptions_minimal_example() |>
-true_summary_statistics_minimal_example()
+  true_summary_statistics_minimal_example()
 
 dat <- generate_minimal_example(Design[1,])
 head(dat)

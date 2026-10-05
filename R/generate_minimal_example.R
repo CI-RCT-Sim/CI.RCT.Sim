@@ -3,13 +3,13 @@
 #' @param condition row of Design dataset
 #' @param fixed_objects list of parameters that are fixed across simulations
 #'
-#' @returns a simulated dataset
+#' @returns For generate_minimal_example: a simulated dataset
 #' @export
 #' @importFrom stats rnorm
 #'
 #' @examples
 #' Design <- assumptions_minimal_example() |>
-#' true_summary_statistics_minimal_example()
+#'   true_summary_statistics_minimal_example()
 #'
 #' dat <- generate_minimal_example(Design[1,])
 #' head(dat)
@@ -20,8 +20,6 @@ generate_minimal_example <- function(condition, fixed_objects=NULL){
   )
 }
 
-#' Calculate true summary statistics value for generate_minimal_example
-#'
 #' @param Design data.frame with parameter values
 #'
 #' @returns For true_summary_statistics_minimal_example: the Design tibble with added column eff_size
@@ -33,8 +31,6 @@ true_summary_statistics_minimal_example <- function(Design){
   Design
 }
 
-#' Create an empty assumtions tibble for generate_minimal_example
-#'
 #' @param print print code to generate parameter set?
 #'
 #' @returns For assumptions_mimimal_example: a design tibble with default values invisibly
