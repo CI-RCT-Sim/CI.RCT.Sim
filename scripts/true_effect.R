@@ -1,4 +1,4 @@
-# script to calculate the empirical true treatment effect 
+# script to calculate the empirical true treatment effect
 
 # devtools::install()
 # renv::restore()
@@ -7,11 +7,11 @@ library(parallel)
 
 # Derive true treatment effect  under treatment policy -------------------
 
-sim_parameters <- diabetes_scenario()[c(1,4,5,7,8,11,12,14),] |>
+sim_parameters <- diabetes_scenario() |>
   diabetes_scenario_set_truevalues() |>
-  dplyr::mutate(nfix = 1e6, miss = rep(list(c(-1e5, 0, 0, 0)), 8))
+  dplyr::mutate(nfix = 1e6, miss = rep(list(c(-1e5, 0, 0, 0)), 14))
 
-N_sim <- 20
+N_sim <- 40
 
 my_analyse <- list(
   tp_mean = function(condition, dat, fixed_objects = NULL) {
@@ -34,7 +34,7 @@ my_summarise <- create_summarise_function(
   )
 )
 
-cl <- makeCluster(120)
+cl <- makeCluster(detectCores(logical=FALSE)-1)
 clusterEvalQ(cl, {
   library("CI.RCT.Sim")
 })
