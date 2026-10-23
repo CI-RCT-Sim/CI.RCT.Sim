@@ -15,8 +15,9 @@
 #' @importFrom stats .lm.fit glm.fit update.formula lm glm as.formula binomial coef predict var quantile
 #' @importFrom mice mice make.method make.predictorMatrix complete rbind pool.scalar
 #' @importFrom dplyr cur_column across matches mutate filter case_when select
-#' @importFrom logistf logistf
+#' @importFrom logistf logistf logistf.control
 #' @importFrom tidyselect starts_with
+#' @importFrom boot boot
 #'
 #' @details
 #' This function implements the de-mediation approach described in the paper by Olarte Parra et al (2025) for handling rescue medication in longitudinal diabetes trials.
@@ -93,7 +94,8 @@ analyse_diabetes_demediation <- function(separate = TRUE, B = 100){
     }
 
     completed_data <- lapply(seq_len(dats$m), function(i){
-      dat_comp <- calculate_baseline_change(mice::complete(dats, i), yc_cols, ys_cols)
+      dat_incomp <- calculate_baseline_change(mice::complete(dats, i), yc_cols, ys_cols)
+      dat_comp <- dat_incomp |> mutate(rescue_start = coalesce(rescue_start, 14))
       Rmat <- as.matrix(dat_comp[R_cols])
       rs <- dat_comp$rescue_start
 
