@@ -48,6 +48,9 @@ globalVariables(
     "event_disc",
     "t_mace_start",
     "ID",
-    "time"
+    "time",
+    "beta_mace_L",
+    "beta_disc_L",
+    "beta_wd_L"
   )
 )
