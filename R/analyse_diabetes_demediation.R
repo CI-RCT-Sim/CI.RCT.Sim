@@ -3,6 +3,7 @@
 #' @param separate Default is TRUE which means that the imputation will be
 #' performed separately for the treatment and control groups. If FALSE, the
 #' imputation will be performed on the combined data set, with treatment as a predictor variable.
+#' @param B Number of bootstrap samples used for variance estimation. Default is 100.
 #'
 #' @return A function that, when called with `condition` and `dat`, returns a list with:
 #' * `coef`      estimated difference in mean change in HbA1c between treatment groups
