@@ -20,6 +20,13 @@ A function that, when called with \code{condition} and \code{dat}, returns a lis
 \item \code{se}        standard error for coef
 \item \code{ci_lower}  lower bound of 95\% confidence interval for coef
 \item \code{ci_upper}  upper bound of 95\% confidence interval for coef
+\item \code{p}         one-sided p-value for testing if coef < 0
+\item \code{two_sided} two-sided p-value for testing if coef != 0
+\item \code{mod_se}        model-based standard error for coef
+\item \code{mod_ci_lower}  model-based lower bound of 95\% confidence interval
+\item \code{mod_ci_upper}  model-based upper bound of 95\% confidence interval
+\item \code{mod_p}         model-based one-sided p-value for testing if coef < 0
+\item \code{mod_two_sided} model-based two-sided p-value for testing if coef != 0
 }
 }
 \description{
