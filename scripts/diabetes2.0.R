@@ -5,7 +5,7 @@ library(parallel)
 source("scripts/diabetes_analyse_summarise.R")
 
 # Load the pre-calculated treatment policy effect estimates, originates from the script true_effect.R
-tp_eff <- readRDS("tp_eff_09-09.rds")$tp_mean.mean_est
+tp_eff <- readRDS("tp_eff_10-23.rds")$tp_mean.mean_est
 
 sim_parameters <- diabetes_scenario() |>
   diabetes_scenario_set_truevalues() |>

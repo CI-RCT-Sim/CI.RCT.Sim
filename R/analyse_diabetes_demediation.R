@@ -10,6 +10,13 @@
 #' * `se`        standard error for coef
 #' * `ci_lower`  lower bound of 95% confidence interval for coef
 #' * `ci_upper`  upper bound of 95% confidence interval for coef
+#' * `p`         one-sided p-value for testing if coef < 0
+#' * `two_sided` two-sided p-value for testing if coef != 0
+#' * `mod_se`        model-based standard error for coef
+#' * `mod_ci_lower`  model-based lower bound of 95% confidence interval
+#' * `mod_ci_upper`  model-based upper bound of 95% confidence interval
+#' * `mod_p`         model-based one-sided p-value for testing if coef < 0
+#' * `mod_two_sided` model-based two-sided p-value for testing if coef != 0
 #' @export
 #'
 #' @importFrom stats .lm.fit glm.fit update.formula lm glm as.formula binomial coef predict var quantile
@@ -196,13 +203,29 @@ analyse_diabetes_demediation <- function(separate = TRUE, B = 100){
     p_onesided <- pt(t_stat, df = end_res$df)
     p_pool <- 2 * pt(-abs(t_stat), df = end_res$df)
 
+    mod_var <- unlist(lapply(res, function(x) x["se"]^2))
+    mod_end_res <- pool.scalar(effs, mod_var)
+    mod_t_stat <- mod_end_res$qbar / sqrt(mod_end_res$t)
+    mod_p_onesided <- pt(mod_t_stat, df = mod_end_res$df)
+    mod_p_pool <- 2 * pt(-abs(mod_t_stat), df = mod_end_res$df)
+
+    mod_ci <- c(
+      mod_end_res$qbar - crit*sqrt(mod_end_res$t),
+      mod_end_res$qbar + crit*sqrt(mod_end_res$t)
+    )
+
     list(
       coef = end_res$qbar,
       p = p_onesided,
       se = sqrt(end_res$t),
+      mod_se = sqrt(mod_end_res$t),
       ci_lower = ci[1],
       ci_upper = ci[2],
-      two_sided = p_pool
+      two_sided = p_pool,
+      mod_p = mod_p_onesided,
+      mod_two_sided = mod_p_pool,
+      mod_ci_lower = mod_ci[1],
+      mod_ci_upper = mod_ci[2]
     )
   }
 }
