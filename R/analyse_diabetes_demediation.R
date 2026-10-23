@@ -14,7 +14,7 @@
 #'
 #' @importFrom stats .lm.fit glm.fit update.formula lm glm as.formula binomial coef predict var quantile
 #' @importFrom mice mice make.method make.predictorMatrix complete rbind pool.scalar
-#' @importFrom dplyr cur_column across matches mutate filter case_when select
+#' @importFrom dplyr cur_column across matches mutate filter case_when select coalesce
 #' @importFrom logistf logistf logistf.control
 #' @importFrom tidyselect starts_with
 #' @importFrom boot boot
