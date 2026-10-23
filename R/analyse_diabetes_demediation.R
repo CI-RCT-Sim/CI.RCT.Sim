@@ -12,7 +12,7 @@
 #' * `ci_upper`  upper bound of 95% confidence interval for coef
 #' @export
 #'
-#' @importFrom stats lm glm as.formula binomial coef predict var quantile
+#' @importFrom stats .lm.fit glm.fit update.formula lm glm as.formula binomial coef predict var quantile
 #' @importFrom mice mice make.method make.predictorMatrix complete rbind pool.scalar
 #' @importFrom dplyr cur_column across matches mutate filter case_when select
 #' @importFrom logistf logistf
