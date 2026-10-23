@@ -11,3 +11,4 @@
 ^Meta$
 ^setup.sh
 ^run_all_sims.sh
+^run_all_vaccine_sims.sh
