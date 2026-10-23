@@ -33,6 +33,7 @@ Imports:
     dplyr,
     tibble,
     mice,
+    boot,
     purrr,
     mvtnorm,
     miniPCH,
