@@ -12,7 +12,7 @@ test_that("mi diabetes works", {
     dat <- generate_diabetes(Design[6, ])
   })
   expect_no_error({
-    res <- my_analyse(Design[6, ], dat)
+    res <- suppressWarnings(my_analyse(Design[6, ], dat))
   })
 
   mod_lm <- lm(y12 ~ trt + age + y0, data = dat)
@@ -23,7 +23,7 @@ test_that("mi diabetes works", {
     dat <- generate_diabetes(Design[13, ])
   })
   expect_no_error({
-    res <- my_analyse(Design[13, ], dat)
+    res <- suppressWarnings(my_analyse(Design[13, ], dat))
   })
 
   mod_lm <- lm(y12 ~ trt + age + y0, data = dat)
@@ -57,7 +57,7 @@ test_that("mi hypothetical differs when rescue present", {
 
   dat <- generate_diabetes(Design[6, ])
 
-  res_tp <- analyse_diabetes_mi(strategy = "treatment_policy")(Design[6, ], dat)
+  res_tp <- suppressWarnings(analyse_diabetes_mi(strategy = "treatment_policy")(Design[6, ], dat))
 
   res_hyp <- suppressWarnings(
     analyse_diabetes_mi(strategy = "hypothetical")(Design[6, ], dat)
@@ -72,7 +72,7 @@ test_that("mi strategies equal without rescue", {
   dat <- generate_diabetes(Design[6, ])
   dat$rescue_start <- Design$k[6] + 2 # force no rescue
 
-  res_tp <- analyse_diabetes_mi(strategy = "treatment_policy")(Design[6, ], dat)
+  res_tp <- suppressWarnings(analyse_diabetes_mi(strategy = "treatment_policy")(Design[6, ], dat))
   res_hyp <- suppressWarnings(
     analyse_diabetes_mi(strategy = "hypothetical")(Design[6, ], dat)
   )
