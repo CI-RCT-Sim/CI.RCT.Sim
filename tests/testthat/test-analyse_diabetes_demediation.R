@@ -14,10 +14,10 @@ test_that("demediation diabetes works", {
 
   # Generate data with no missingness, and no treatment effect
   withr::with_seed(129, {
-    dat <- generate_diabetes(Design[15, ])
+    dat <- generate_diabetes(Design[13, ])
   })
   expect_no_error({
-    res <- my_analyse(Design[15, ], dat)
+    res <- my_analyse(Design[13, ], dat)
   })
 
   # sanity checks under the null hypothesis

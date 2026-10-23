@@ -4,12 +4,14 @@
 \alias{analyse_diabetes_demediation}
 \title{Analyse data set with De-mediation}
 \usage{
-analyse_diabetes_demediation(separate = TRUE)
+analyse_diabetes_demediation(separate = TRUE, B = 100)
 }
 \arguments{
 \item{separate}{Default is TRUE which means that the imputation will be
 performed separately for the treatment and control groups. If FALSE, the
 imputation will be performed on the combined data set, with treatment as a predictor variable.}
+
+\item{B}{Number of bootstrap samples used for variance estimation. Default is 100.}
 }
 \value{
 A function that, when called with \code{condition} and \code{dat}, returns a list with:

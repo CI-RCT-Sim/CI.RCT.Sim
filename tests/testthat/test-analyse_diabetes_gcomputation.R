@@ -6,10 +6,10 @@ test_that("g computation diabetes works", {
 
   # Generate data with no missingness to check equivalence with linear regression
   withr::with_seed(123, {
-    dat <- generate_diabetes(Design[7, ])
+    dat <- generate_diabetes(Design[6, ])
   })
   expect_no_error({
-    res <- my_analyse(Design[7, ], dat)
+    res <- my_analyse(Design[6, ], dat)
   })
 
   # Generate data with no missingness, and no treatment effect

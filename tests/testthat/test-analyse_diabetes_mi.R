@@ -9,10 +9,10 @@ test_that("mi diabetes works", {
 
   # Generate data with no missingness to check equivalence with linear regression
   withr::with_seed(123, {
-    dat <- generate_diabetes(Design[7, ])
+    dat <- generate_diabetes(Design[6, ])
   })
   expect_no_error({
-    res <- my_analyse(Design[7, ], dat)
+    res <- suppressWarnings(my_analyse(Design[6, ], dat))
   })
 
   mod_lm <- lm(y12 ~ trt + age + y0, data = dat)
@@ -20,10 +20,10 @@ test_that("mi diabetes works", {
 
   # Generate data with no missingness, and no treatment effect, to check equivalence with linear regression
   withr::with_seed(129, {
-    dat <- generate_diabetes(Design[15, ])
+    dat <- generate_diabetes(Design[13, ])
   })
   expect_no_error({
-    res <- my_analyse(Design[15, ], dat)
+    res <- suppressWarnings(my_analyse(Design[13, ], dat))
   })
 
   mod_lm <- lm(y12 ~ trt + age + y0, data = dat)
@@ -43,11 +43,11 @@ test_that("mi diabetes works", {
 
   # Generate data with no missingness to check equivalence with linear regression
   withr::with_seed(123, {
-    dat <- generate_diabetes(Design[7, ])
+    dat <- generate_diabetes(Design[6, ])
   })
   expect_no_error({
     suppressWarnings(
-      res <- my_analyse(Design[7, ], dat)
+      res <- my_analyse(Design[6, ], dat)
     )
   })
 })
@@ -55,12 +55,12 @@ test_that("mi hypothetical differs when rescue present", {
   Design <- diabetes_scenario(print = FALSE) |>
     diabetes_scenario_set_truevalues()
 
-  dat <- generate_diabetes(Design[7, ])
+  dat <- generate_diabetes(Design[6, ])
 
-  res_tp <- analyse_diabetes_mi(strategy = "treatment_policy")(Design[7, ], dat)
+  res_tp <- suppressWarnings(analyse_diabetes_mi(strategy = "treatment_policy")(Design[6, ], dat))
 
   res_hyp <- suppressWarnings(
-    analyse_diabetes_mi(strategy = "hypothetical")(Design[7, ], dat)
+    analyse_diabetes_mi(strategy = "hypothetical")(Design[6, ], dat)
   )
 
   expect_false(identical(res_tp$coef, res_hyp$coef))
@@ -69,13 +69,14 @@ test_that("mi strategies equal without rescue", {
   Design <- diabetes_scenario(print = FALSE) |>
     diabetes_scenario_set_truevalues()
 
-  dat <- generate_diabetes(Design[7, ])
-  dat$rescue_start <- Design$k[7] + 2 # force no rescue
+  dat <- generate_diabetes(Design[6, ])
+  dat$rescue_start <- Design$k[6] + 2 # force no rescue
 
-  res_tp <- analyse_diabetes_mi(strategy = "treatment_policy")(Design[7, ], dat)
+  res_tp <- suppressWarnings(analyse_diabetes_mi(strategy = "treatment_policy")(Design[6, ], dat))
   res_hyp <- suppressWarnings(
-    analyse_diabetes_mi(strategy = "hypothetical")(Design[7, ], dat)
+    analyse_diabetes_mi(strategy = "hypothetical")(Design[6, ], dat)
   )
   names(res_tp$coef) <- NULL
   expect_equal(res_tp$coef, res_hyp$coef, tolerance = 1e-6)
 })
+

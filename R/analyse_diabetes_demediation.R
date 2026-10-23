@@ -3,6 +3,7 @@
 #' @param separate Default is TRUE which means that the imputation will be
 #' performed separately for the treatment and control groups. If FALSE, the
 #' imputation will be performed on the combined data set, with treatment as a predictor variable.
+#' @param B Number of bootstrap samples used for variance estimation. Default is 100.
 #'
 #' @return A function that, when called with `condition` and `dat`, returns a list with:
 #' * `coef`      estimated difference in mean change in HbA1c between treatment groups
@@ -11,11 +12,12 @@
 #' * `ci_upper`  upper bound of 95% confidence interval for coef
 #' @export
 #'
-#' @importFrom stats lm glm as.formula binomial coef predict var quantile
+#' @importFrom stats .lm.fit glm.fit update.formula lm glm as.formula binomial coef predict var quantile
 #' @importFrom mice mice make.method make.predictorMatrix complete rbind pool.scalar
-#' @importFrom dplyr cur_column across matches mutate filter case_when select
-#' @importFrom logistf logistf
+#' @importFrom dplyr cur_column across matches mutate filter case_when select coalesce
+#' @importFrom logistf logistf logistf.control
 #' @importFrom tidyselect starts_with
+#' @importFrom boot boot
 #'
 #' @details
 #' This function implements the de-mediation approach described in the paper by Olarte Parra et al (2025) for handling rescue medication in longitudinal diabetes trials.
@@ -32,62 +34,69 @@
 #'
 #' analyse_diabetes_demediation(separate = TRUE)(Design, dat)
 #' }
-analyse_diabetes_demediation <- function(separate = TRUE) {
-  function(condition, dat, fixed_objects = NULL) {
+analyse_diabetes_demediation <- function(separate = TRUE, B = 100){
+  lf_fit <- utils::getFromNamespace("logistf.fit", "logistf")
+  lf_ctrl <- logistf::logistf.control(maxit = 2000, maxstep = 0.5)
+  function(condition, dat, fixed_objects = NULL){
+
+    # Global Variables
+    visits <- 0:condition$k
+    R_cols <- paste0("R", visits) # idx 1 visit 0, idx 2 visit 1, ...
+    yc_cols <- paste0("yc", visits[-1]) # idx 1 visit 1, idx 2 visit 2, ...
+    ys_cols <- paste0("y", visits) # idx 1 visit 0, idx 2 visit 1, ...
+    j_cols <- paste0("j", visits[-length(visits)]) # idx 1 visit 0, ..., idx k visit k - 1
+    cols <- c("trt", "age", ys_cols, R_cols, yc_cols)
+    M_idx <- function(v) match(v, cols)
+
     # Convert the logical of receiving rescue at any point in to a longitudinal measurement in wide format
-    daat <- dat |> mutate(
+    dat <- dat |> mutate(
       across(
         starts_with("R") & !R0 & !rescue_start,
         ~ ifelse(is.na(.) & rescue_start <= as.numeric(gsub("R", "", cur_column())), 1, .),
         .names = "R{gsub('R', '', .col)}"
       )
     )
-    Rcols <- grep("^R[0-9]+$", names(daat), value = TRUE)
 
-    if (separate) {
-      dat1 <- daat |> filter(trt == 1)
-      pred1 <- make.predictorMatrix(dat1)
-      pred1[Rcols, ] <- 0
-      pred1["m_start", ] <- 0
-      pred1[, c("id", "trt", "m_start", Rcols)] <- 0
-      meth1 <- make.method(dat1)
-      meth1[Rcols] <- ""
-      dat0 <- daat |> filter(trt == 0)
-      pred0 <- make.predictorMatrix(dat0)
-      pred0[Rcols, ] <- 0
-      pred0["m_start", ] <- 0
-      pred0[, c("id", "trt", "m_start", Rcols)] <- 0
-      meth0 <- make.method(dat0)
-      meth0[Rcols] <- ""
-      suppressWarnings(dats <- rbind(
-        mice(dat1, m = 5, printFlag = FALSE, predictorMatrix = pred1, method = meth1, ridge = 1e-5, remove.collinear = FALSE),
-        mice(dat0, m = 5, printFlag = FALSE, predictorMatrix = pred0, method = meth0, ridge = 1e-5, remove.collinear = FALSE)
-      ))
-    } else {
-      pred <- make.predictorMatrix(daat)
-      pred[Rcols, ] <- 0
-      pred["m_start", ] <- 0
-      pred[, c("id", "m_start", Rcols)] <- 0
+    setup_mice <- function(dat, drop){
+
+      pred <- make.predictorMatrix(dat)
+      pred[c(R_cols, "m_start"),] <- 0
+      pred[, c(drop, R_cols, "m_start")] <- 0
+
       meth <- make.method(dat)
-      meth[Rcols] <- ""
-      suppressWarnings(
-        dats <- mice(daat, m = 5, printFlag = FALSE, predictorMatrix = pred, method = meth, ridge = 1e-5, remove.collinear = FALSE)
-      )
+      meth[R_cols] <- ""
+      return(list(pred = pred, meth = meth))
     }
 
-    analysis <- function(dataa) {
-      dat_comp <- dataa |> mutate(
-        across(
-          matches("^y[0-9]+$") & !y0,
-          ~ .x - y0,
-          .names = "yc{gsub('y', '', .col)}"
-        )
-      )
+    run_mice <- function(dat, setup){
+      mice(dat, m = 5, printFlag = FALSE, predictorMatrix = setup$pred,
+           method = setup$meth, ridge = 1e-5, remove.collinear = FALSE)
+    }
 
-      Rcols <- grep("^R[0-9]+$", names(dat_comp), value = TRUE)
-      visits <- as.numeric(sub("R", "", Rcols))
+    if (separate){
+      dat1 <- dat |> filter(trt == 1)
+      dat0 <- dat |> filter(trt == 0)
 
-      Rmat <- as.matrix(dat_comp[Rcols])
+      suppressWarnings(dats <- rbind(
+        run_mice(dat1, setup_mice(dat1, drop = c("id", "trt"))),
+        run_mice(dat0, setup_mice(dat0, drop = c("id", "trt")))
+      ))
+    }
+    else {
+      suppressWarnings(dats <- run_mice(dat, setup_mice(dat, drop = "id")))
+    }
+
+    calculate_baseline_change <- function(data, yc_cols, ys_cols){
+      for(i in seq_along(yc_cols)){
+        data[yc_cols[i]] <- data[, ys_cols[i + 1]] - data[, ys_cols[1]]
+      }
+      return(data)
+    }
+
+    completed_data <- lapply(seq_len(dats$m), function(i){
+      dat_incomp <- calculate_baseline_change(mice::complete(dats, i), yc_cols, ys_cols)
+      dat_comp <- dat_incomp |> mutate(rescue_start = coalesce(rescue_start, 14))
+      Rmat <- as.matrix(dat_comp[R_cols])
       rs <- dat_comp$rescue_start
 
       # NA & visit < rescue_start -> 0
@@ -99,96 +108,84 @@ analyse_diabetes_demediation <- function(separate = TRUE) {
       Rmat[mask0] <- 0
       Rmat[mask1] <- 1
 
-      dat_comp[Rcols] <- Rmat
+      dat_comp[R_cols] <- Rmat
+      return(as.matrix(dat_comp[cols]))
+    })
 
-      dat_comp[, paste0("j", condition$k - 1)] <- dat_comp[, paste0("yc", condition$k)]
-      for (k in 1:(condition$k - 1)) {
-        if (all(is.na(dat_comp[[paste0("R", condition$k-k)]])) ||
-            sum(dat_comp[[paste0("R", condition$k-k)]], na.rm=TRUE)==0) {
-          dat_comp[, paste0("j", condition$k - k - 1)] <- dat_comp[, paste0("j", condition$k - k)]
+    analysis <- function(dat_comp, indicator){
+      dat_comp <- dat_comp[indicator,]
+      n <- nrow(dat_comp)
+
+      J <- matrix(NA_real_, nrow = n, ncol = length(j_cols),
+                  dimnames = list(NULL, j_cols))
+
+      J[, j_cols[length(j_cols)]] <- dat_comp[, M_idx(yc_cols[length(yc_cols)])]
+      for (k in rev(visits[-c(1, length(visits))])){
+
+        j_new <- j_cols[k]
+        j_old <- j_cols[k + 1]
+        r_k <- dat_comp[, M_idx(paste0("R", k))]
+
+        if (all(is.na(r_k)) ||
+            sum(r_k, na.rm = TRUE) == 0
+        ){
+          J[, j_new] <- J[, j_old]
           next
         }
 
-        rvar <- paste0("R", condition$k-k)
+        Xps <- cbind(1, dat_comp[, M_idx(c("trt", "age", paste0("y", 0:k)))])
 
-        # Fit a model to predict the probability of receiving rescue medication at visit condition$k - k
+        obs <- !is.na(r_k)
         mod <- tryCatch(
-          logistf(
-            as.formula(paste0("R", condition$k - k, " ~ trt + age + y0", paste0("+ y", 1:(condition$k - k), collapse = " "))),
-            data = dat_comp,
-            pl = FALSE,
-            control = logistf::logistf.control(maxit = 2000, maxstep = 0.5)
-          ),
-          error=function(e) {
-            tryCatch(
-              glm(as.formula(paste0("R", condition$k - k, " ~ trt + age + y0", paste0("+ y", 1:(condition$k - k), collapse = " "))),
-                  data = dat_comp, family=binomial()),
-              error=function(e) NULL
-            )
+          suppressWarnings(lf_fit(Xps[obs,, drop = FALSE], r_k[obs], control = lf_ctrl)),
+          error = function(e) {
+            tryCatch(suppressWarnings(glm.fit(Xps[obs,, drop = FALSE], r_k[obs], family = binomial())),
+                     error = function(e) NULL)
           }
         )
-
         if (is.null(mod)) {
-          pred <- rep(
-            mean(dat_comp[[rvar]], na.rm=TRUE),
-            nrow(dat_comp)
-          )
-        } else {
-          pred <- tryCatch(
-            predict(mod, newdata=dat_comp, type="response"),
-            error=function(e)
-              rep(mean(dat_comp[[rvar]], na.rm=TRUE),
-                  nrow(dat_comp))
-          )
+          r_pred <- rep(mean(r_k), n)
+        } else{
+          beta <- if (!is.null(mod$pi)) mod$beta else mod$coefficients
+          beta[is.na(beta)] <- 0
+          r_pred <- plogis(drop(Xps %*% beta))
         }
+        X <- cbind(1, dat_comp[, M_idx(c("trt", "age", "y0",
+                                         R_cols[2:(k + 1)],
+                                         yc_cols[1:k]))],
+                                         r_pred)
 
-        dat_comp[,paste0("pred_",rvar)] <- pred
+        cc <- !is.na(J[, j_old]) & !rowSums(is.na(X))
+        model <- .lm.fit(X[cc, , drop = FALSE], J[cc, j_old, drop = FALSE])
+        pos <- match(4 + k, model$pivot) # col R_k
+        b <- if (pos <= model$rank) model$coefficients[pos] else 0
 
-        # Subset the data
-        daats <- dat_comp |>
-          select(
-            trt,
-            age,
-            y0,
-            paste0("R", (condition$k - k):1),
-            paste0("yc", (condition$k - k):1),
-            paste0("pred_R", condition$k - k),
-            paste0("j", condition$k - k)
-          )
-
-        # Fit a model for the outcome
-        model <- lm(
-          as.formula(
-            paste0("j", condition$k - k, "~ .")
-          ),
-          data = daats
-        )
-
-        dat_comp[, paste0("j", condition$k - k - 1)] <-
-          dat_comp[, paste0("j", condition$k - k)] -
-          case_when(
-            !is.na(coef(model)[paste0("R", condition$k - k)]) ~ coef(model)[paste0("R", condition$k - k)],
-            TRUE ~ 0
-          ) *
-            dat_comp[, paste0("R", condition$k - k)]
+        J[,j_new] <- J[, j_old] - b * r_k
       }
 
-      final.model <- lm(j0 ~ trt + y0, data = dat_comp)
+      final.model <- lm(J[, "j0"] ~ dat_comp[, M_idx("trt")] + dat_comp[, M_idx("y0")])
+      cf <- summary(final.model)$coefficients
       c(
-        p = summary(final.model)$coefficients["trt", "Pr(>|t|)"],
-        coef = summary(final.model)$coefficients["trt", "Estimate"],
-        se = summary(final.model)$coefficients["trt", "Std. Error"]
-      )
+        p = cf[2, "Pr(>|t|)"],
+        coef = cf[2, "Estimate"],
+        se = cf[2, "Std. Error"]
+        )
     }
-    effect <- rep(NA, dats$m)
-    effect.var <- rep(NA, dats$m)
-    for (i in 1:dats$m) {
-      dat <- complete(dats, i)
-      res <- analysis(dat)
-      effect[i] <- res["coef"]
-      effect.var[i] <- res["se"]^2
+
+    res  <- lapply(completed_data, analysis)
+    test <- lapply(completed_data, boot::boot, statistic = analysis, R = B)
+
+    variance <- function(bootdata){
+      B <- bootdata$R
+      mu <- mean(bootdata$t[, 2])
+      var <- sum((bootdata$t[,2]-mu)^2)/(B-1)
+      var
     }
-    end_res <- pool.scalar(effect, effect.var)
+
+    effs <- unlist(lapply(res, function(x) x["coef"]))
+    var  <- unlist(lapply(test, variance))
+
+    end_res <- pool.scalar(effs, var)
     crit <- qt(0.975, df = end_res$df)
     ci <- c(
       end_res$qbar - crit*sqrt(end_res$t),

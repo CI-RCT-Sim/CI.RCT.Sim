@@ -68,7 +68,7 @@ generate_diabetes <- function(condition, fixed_objects = NULL) {
   sigma_adj <- sqrt(sigma^2 * (1 - rho^2))
 
   ifelse(is.null(condition$nfix),
-    n <- 2 * round(((qnorm(1 - alpha / 2) + qnorm(power))^2) * sigma_adj^2 * 2 / (delta_true^2)),
+    n <- 2 * round(((qnorm(1 - alpha / 2) + qnorm(power))^2) * sigma_adj^2 * 2 / (delta_true^2)/(1-0.1)),
     n <- condition$nfix
   )
   if (condition$hyp == 0) {
@@ -192,7 +192,7 @@ diabetes_scenario <- function(print = interactive()) {
   resc_0      = qlogis(c(0.05,0.2)),      # probability for rescue medication
   resc_y      = log(c(3,150)),            # strong effect due to high HbA1c
   resc_age    = -log(1.01),               # weaker age effect than for dropout
-  setup       = c(0,1), # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
+  setup       = 1, # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
   miss        = list(
   c(qlogis(0.02), log(3),log(1.02),log(1.5)), # probability for missing data in the core scenario
   c(-100000,0,0,0),                                # probability for missing data in the scenario with no dropout
@@ -233,7 +233,7 @@ diabetes_scenario_set_truevalues <- function(Design) {
   if (!"nfix" %in% colnames(Design)) {
     Design$n <- 2 * round(((qnorm(1 - alpha / 2) + qnorm(power))^2) *
       Design$sd_bl^2 * (1 - Design$rho^2) * 2 /
-      (Design$eff_true^2))
+      (Design$eff_true^2)/(1-0.1))
   } else {
     Design$n <- Design$nfix
   }

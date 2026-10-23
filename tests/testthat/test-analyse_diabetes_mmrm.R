@@ -9,10 +9,10 @@ test_that("mmrm diabetes works", {
 
   # Generate data with no missingness to check equivalence with linear regression
   withr::with_seed(123, {
-    dat <- generate_diabetes(Design[7, ])
+    dat <- generate_diabetes(Design[6, ])
   })
   expect_no_error({
-    res <- my_analyse(Design[7, ], dat)
+    res <- my_analyse(Design[6, ], dat)
   })
 
   mod_lm <- lm(y12 ~ trt + age + y0, data = dat)
@@ -20,10 +20,10 @@ test_that("mmrm diabetes works", {
 
   # Generate data with no missingness, and no treatment effect, to check equivalence with linear regression
   withr::with_seed(129, {
-    dat <- generate_diabetes(Design[15, ])
+    dat <- generate_diabetes(Design[13, ])
   })
   expect_no_error({
-    res <- my_analyse(Design[15, ], dat)
+    res <- my_analyse(Design[13, ], dat)
   })
 
   mod_lm <- lm(y12 ~ trt + age + y0, data = dat)
@@ -85,3 +85,4 @@ test_that("mmrm strategies equal without rescue", {
 
   expect_equal(res_tp$coef, res_hyp$coef, tolerance = 1e-8)
 })
+
