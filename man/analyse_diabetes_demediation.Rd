@@ -4,7 +4,7 @@
 \alias{analyse_diabetes_demediation}
 \title{Analyse data set with De-mediation}
 \usage{
-analyse_diabetes_demediation(separate = TRUE)
+analyse_diabetes_demediation(separate = TRUE, B = 100)
 }
 \arguments{
 \item{separate}{Default is TRUE which means that the imputation will be
