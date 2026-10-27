@@ -5,7 +5,7 @@ library(parallel)
 source("scripts/diabetes_analyse_summarise.R")
 
 # Load the pre-calculated treatment policy effect estimates, originates from the script true_effect.R
-tp_eff <- readRDS("tp_eff_10-23.rds")$tp_mean.mean_est
+tp_eff <- readRDS("scripts/tp_eff_10-23.rds")$tp_mean.mean_est
 
 sim_parameters <- diabetes_scenario() |>
   diabetes_scenario_set_truevalues() |>
@@ -32,7 +32,7 @@ message(paste("setting up cluster with", N_cores , "cores"))
 
 cl <- makeCluster(N_cores)
 clusterEvalQ(cl, {
-  library("CI.RCT.Sim")
+  library(CI.RCT.Sim)
 })
 
 clusterExport(cl = cl, varlist = c("alpha"))
@@ -64,8 +64,5 @@ stopCluster(cl)
 
 # Save results -----------------------------------------------------------
 
-out_filename <- format(Sys.time(), paste0("results_diabetes_row_", formatC(row, width=3, flag="0"), "_", my_nodename, "_%Y-%m-%d_%H%M.Rdata"))
-message(paste("saving results to", out_filename))
-save(results, main_sessioninfo, nodes_sessioninfo, file=out_filename)
-
-
+save(results, main_sessioninfo, nodes_sessioninfo, file=format(Sys.time(), paste0("results_diabetes_", Sys.info()["nodename"], "%Y-%m-%d_%H%M.Rdata")))
+results
