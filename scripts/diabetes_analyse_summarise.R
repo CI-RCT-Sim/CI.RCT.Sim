@@ -16,8 +16,10 @@ my_analyse <- list(
       n_pat  = nrow(dat),
       n_ctrl = sum(dat$trt == 0),
       n_trt  = sum(dat$trt == 1),
-      n_resc = sum(dat$rescue_start < 14, na.rm = TRUE),
-      n_miss = sum(dat$m_start < 13, na.rm = TRUE),
+      n_resc_ctrl = sum(dat$rescue_start < 14 & dat$trt == 0, na.rm = TRUE)/sum(dat$trt == 0),
+      n_resc_trt  = sum(dat$rescue_start < 14 & dat$trt == 1, na.rm = TRUE)/sum(dat$trt == 1),
+      n_miss_ctrl = sum(dat$m_start < 13 & dat$trt == 0, na.rm = TRUE)/sum(dat$trt == 0),
+      n_miss_trt  = sum(dat$m_start < 13 & dat$trt == 1, na.rm = TRUE)/sum(dat$trt == 1),
       naive  = mean(dat[which(dat$trt == 1),]$y12-dat[which(dat$trt == 1),]$y0, na.rm = TRUE) -
         mean(dat[which(dat$trt == 0),]$y12-dat[which(dat$trt == 0),]$y0, na.rm = TRUE)
     )
