@@ -170,7 +170,9 @@ analyse_diabetes_demediation <- function(separate = TRUE, B = 100){
         J[,j_new] <- J[, j_old] - b * r_k
       }
 
-      final.model <- lm(J[, "j0"] ~ dat_comp[, M_idx("trt")] + dat_comp[, M_idx("y0")])
+      final.model <- lm(J[, "j0"] ~ dat_comp[, M_idx("trt")] +
+                                    dat_comp[, M_idx("age")] +
+                                    dat_comp[, M_idx("y0")])
       cf <- summary(final.model)$coefficients
       c(
         p = cf[2, "Pr(>|t|)"],
