@@ -70,155 +70,67 @@
 #' analyse_diabetes_gcomputation()(Design, dat)
 #' }
 analyse_diabetes_gcomputation <- function() {
-  function(condition, dat, fixed_objects = NULL) {
-    k <- condition$k # number of last visit
-    setup <- condition$setup # determines whether rescue medication is switched to (setup = 0) or put on top of active treatment (setup = 1)
+  function(condition, dat, fixed_objects = NULL,B=200) {
+    data<-dat
+    k<-condition$k
+    estim_fun<-function(data) {
+      mean_age<-mean(data$age)
+      mean_y<-mean(data$y0)
 
-    estimate_gformula <- function(dat) { # this function is run in each bootstrap iteration
+      group<-c(0,1)
+      yfinal<-rep(NA,2)
+      for(u in 1:2) {
+        yhat<-rep(NA,k)
 
-      # reformat dat to long format with outcome column 'y' for the change in HbA1c at each visit
-      dat_long <- pivot_longer(dat,
-                               cols = matches("^[yR]\\d+$"),
-                               names_to = c(".value", "visit"),
-                               names_pattern = "([yR])(\\d+)"
-      ) %>%
-        mutate(
-          hba1c = y,
-          visit = as.numeric(sub("y", "", visit)),
-          R = ifelse(visit == 0, 0, R) # set rescue at baseline to 0
-        ) %>%
-        arrange(id, visit) %>%
-        group_by(id) %>% # make sure table is grouped by id and ordered by visit
-        mutate(
-          hba1c_0 = hba1c[visit == 0], # HbA1c at baseline
-          y = hba1c - hba1c_0, # HbA1c change
-          # want to fit models on data up to time k-1, then simulate forward to predict the outcome at time k:
-          # create a new column at second-to-last timepoint that holds y at last time point
-          # i.e. final outcome
-          # to preserve this value while deleting the last row for the model estimation
-          y_k = ifelse(visit == k - 1, dplyr::lead(y), NA),
-          lag1_hba1c = dplyr::lag(hba1c),
-          lag1_R = dplyr::lag(R)
-        ) %>%
-        ungroup()
+        D<-data[data$trt==group[u],]
 
-      # Remove final visit i.e. visit k
-      dat_long <- dat_long[dat_long$visit != k, ]
+        X<-matrix(c(1,mean_y,0,mean_age),nrow=1)
+        i<-1
+        frml<-formula(paste("y",i,"~ y",i-1,"+R",i-1,"+age",sep=""))
+        mod<-lm(frml,data=D)
+        beta<-coef(mod)
+        beta[is.na(beta)]<-0 #because if there is no rescue, the coefficient is NA
+        yhat[1]<-X%*%beta
 
-      # Under assumption 1 (setup = 0)
-      # when rescue is started
-      # treatment group should switch to control, and control should stay in control
-      if (setup == 0) {
-        dat_long <- dat_long %>% mutate(trt = replace(trt, R == 1, 0))
-      }
-      # Run g-computation with bootstrap using custom function
-      # We simulate HbA1c values under the intervention (no rescue) and then
-      # estimate the mean change in HbA1c at the final visit
-
-
-      dat_followup <- dat_long %>%
-        filter(visit > 0)
-
-      # fit visit-specific hba1c models
-      fit_hba1c <- vector("list", length = k - 1)
-
-      for (v in 1:(k - 1)) {
-        dat_visit <- dat_followup %>%
-          filter(visit == v)
-
-        fit_hba1c[[v]] <- stats::lm(
-          hba1c ~ trt + R + lag1_hba1c + age,
-          data = dat_visit
-        )
-      }
-
-      # retain only second to last hba1c value
-      dat_outcome <- dat_long %>%
-        filter(visit == k - 1)
-
-      # fit outcome model (change in hba1c)
-      fit_ymodel <- stats::lm(
-        y_k ~ trt + R + hba1c + age + hba1c_0, # hba1c instead of hba1c_lag is used here, because y_k is the value at timepoint k (saved in line ), so hba1c is the value at time k-1
-        data = dat_outcome
-      )
-
-      baseline_dat <- dat_long %>%
-        filter(visit == 0) %>%
-        select(id, age, hba1c_0)
-
-      simulate_mean <- function(trt_value) {
-        sim_dat <- baseline_dat %>%
-          mutate(
-            trt = trt_value, #treatment intervention
-            hba1c = hba1c_0,
-            R = 0 #rescue intervention
-          )
-        # iterate over each timepoint after baseline until k-1
-        # put in values under interventions instead of original observed data
-        if (k > 1) {
-          for (v in 1:(k - 1)) {
-            newdat_hba1c <- data.frame(
-              trt = sim_dat$trt,
-              R = 0,
-              lag1_hba1c = sim_dat$hba1c,
-              age = sim_dat$age
-            )
-            mu_hba1c <- stats::predict(fit_hba1c[[v]], newdata = newdat_hba1c)
-            sim_dat$hba1c <- mu_hba1c
-            sim_dat$R <- 0
-          }
+        for(i in 2:k) {
+          X<-matrix(c(1,yhat[i-1],0,mean_y,mean_age),nrow=1)
+          frml<-formula(paste("y",i,"~ y",i-1,"+R",i-1,"+y0+age",sep=""))
+          mod<-lm(frml,data=D)
+          beta<-coef(mod)
+          beta[is.na(beta)]<-0 #because if there is no rescue, the coefficient is NA
+          yhat[i]<-X%*%beta
         }
-        # based on predicted hypothetical follow-up values, simulate hypothetical outcome
-        newdat_y <- data.frame(
-          trt = sim_dat$trt,
-          R = 0,
-          hba1c = sim_dat$hba1c,
-          age = sim_dat$age,
-          hba1c_0 = sim_dat$hba1c_0
-        )
-        mu_y <- stats::predict(fit_ymodel, newdata = newdat_y)
-        mean(mu_y)
+        yfinal[u]<-yhat[k]
       }
-
-      mean_trt <- simulate_mean(trt_value = 1)
-      mean_ctrl <- simulate_mean(trt_value = 0)
-
-      mean_trt - mean_ctrl
+      est<-yfinal[2]-yfinal[1]
+      est
     }
 
-    coef <- estimate_gformula(dat)
+    est<-estim_fun(data)
 
-    # variance estimation using full bootstrap
-    nsamples <- 200
-    ids <- unique(dat$id)
-    n_ids <- length(ids)
-    boot_est <- numeric(nsamples)
-
-    for (b in seq_len(nsamples)) {
-      boot_ids <- sample(ids, size = n_ids, replace = TRUE)
-
-      dat_boot <- do.call(rbind, lapply(seq_along(boot_ids), function(i) {
-        dat_i <- dat[dat$id == boot_ids[i], ]
-        dat_i$id <- i
-        dat_i
-      }))
-
-      boot_est[b] <- estimate_gformula(dat_boot)
+    #Bootsratp
+    #B<-100
+    ids<-1:dim(data)[1]
+    est_b<-rep(NA,B)
+    for(j in 1:B) {
+      ind<-sample(ids,replace=TRUE)
+      data_b<-data[ind,]
+      est_b[j]<-estim_fun(data_b)
     }
-
-    # mean of difference in mean change over bootstrap samples
-    se <- stats::sd(boot_est) # se for mean difference
-    ci_lower <- as.numeric(stats::quantile(boot_est, probs = 0.025)) # 95% lower CI via percentile method
-    ci_upper <- as.numeric(stats::quantile(boot_est, probs = 0.975)) # 95% upper CI via percentile method
-    null_dist <- boot_est - mean(boot_est) #centering boot_est with its own mean
-    p <- (sum(null_dist <= coef) + 1) / (length(null_dist) + 1)
-
+    SE<-sd(est_b,na.rm=TRUE)
+    Q<-qt(0.975,df=B-1)
+    KI<-est+c(-1,1)*Q*SE
+    KI
+    z<-est/SE
+    p<-pnorm(z)
+    p
     list(
-      coef = coef,
-      se = se,
+      coef = est,
+      se = SE,
       p = p,
-      ci_lower = ci_lower,
-      ci_upper = ci_upper
+      ci_lower = KI[1],
+      ci_upper = KI[2]
     )
   }
 }
+
