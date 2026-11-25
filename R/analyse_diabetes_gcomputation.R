@@ -122,7 +122,7 @@ analyse_diabetes_gcomputation <- function() {
     KI<-est+c(-1,1)*Q*SE
     KI
     z<-est/SE
-    p<-pnorm(z)
+    p<-pt(z,df=B-1)
     p
     list(
       coef = est,
